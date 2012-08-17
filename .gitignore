@@ -6,3 +6,4 @@ resources/*.storyboardc
 .DS_Store
 doc/**/*.*
 doc
+*.gem
