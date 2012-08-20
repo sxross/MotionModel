@@ -1,13 +1,13 @@
 class Task
   include MotionModel::Model
   columns       :name => :string, 
-  							:description => :string,
+  							:details => :string,
   							:some_day => :date
 end
 
 class ATask
   include MotionModel::Model
-  columns :name, :description, :some_day
+  columns :name, :details, :some_day
 end
 
 describe "Creating a model" do
@@ -18,14 +18,19 @@ describe "Creating a model" do
   describe 'column macro behavior' do
 
     it 'succeeds when creating a valid model from attributes' do
-  	  a_task = Task.new(:name => 'name', :description => 'description')
+  	  a_task = Task.new(:name => 'name', :details => 'details')
   	  a_task.name.should.equal('name')
+    end
+    
+    it 'creates a model with all attributes even if some omitted' do
+      atask = Task.create(:name => 'bob')
+      atask.should.respond_to(:details)
     end
 
     it 'simply bypasses spurious attributes erroneously set' do
-    	a_task = Task.new(:name => 'description', :zoo => 'very bad')
+    	a_task = Task.new(:name => 'details', :zoo => 'very bad')
     	a_task.should.not.respond_to(:zoo)
-    	a_task.name.should.equal('description')
+    	a_task.name.should.equal('details')
     end
 
     it "can check for a column's existence on a model" do
@@ -33,21 +38,21 @@ describe "Creating a model" do
     end
 
     it "can check for a column's existence on an instance" do
-  	  a_task = Task.new(:name => 'name', :description => 'description')
+  	  a_task = Task.new(:name => 'name', :details => 'details')
   	  a_task.column?(:name).should.be.true
     end
 
     it "gets a list of columns on a model" do
     	cols = Task.columns
     	cols.should.include(:name)
-    	cols.should.include(:description)
+    	cols.should.include(:details)
     end
 
     it "gets a list of columns on an instance" do
     	a_task = Task.new
     	cols = a_task.columns
     	cols.should.include(:name)
-    	cols.should.include(:description)
+    	cols.should.include(:details)
     end
 
     it "columns can be specified as a Hash" do
@@ -116,13 +121,80 @@ describe "Creating a model" do
       10.times {|i| Task.create(:name => "task #{i}")}
     end
 
-    it 'finds elements within the collection' do
-      Task.find(3).name.should.equal('task 3')
-    end
+    describe 'find' do
+      it 'finds elements within the collection' do
+        Task.find(3).name.should.equal('task 3')
+      end
 
-    it 'returns nil if find by id is not found' do
-      Task.find(999).should.be.nil
-    end
+      it 'returns nil if find by id is not found' do
+        Task.find(999).should.be.nil
+      end
+      
+      it 'looks into fields if field name supplied' do
+        Task.create(:name => 'find me')
+        Task.find(:name).eq('find me').all.length.should.equal(1)
+      end
+      
+      it 'allows for multiple (chained) query parameters' do
+        Task.create(:name => 'find me', :details => "details 1")
+        Task.create(:name => 'find me', :details => "details 2")
+        tasks = Task.find(:name).eq('find me').and(:details).like('2')
+        tasks.first.details.should.equal('details 2')
+        tasks.all.length.should.equal(1)
+      end
 
+      it 'where should respond to finder methods' do
+        Task.where(:details).should.respond_to(:contain)
+      end
+      
+      it 'returns a FinderQuery object' do
+        Task.where(:details).should.is_a(MotionModel::FinderQuery)
+      end
+      
+      it 'using where instead of find' do
+        atask = Task.create(:name => 'find me', :details => "details 1")
+        found_task = Task.where(:details).contain("details 1").first.details.should.equal("details 1")
+      end
+    
+      it 'all returns all members of the collection as an array' do
+        Task.all.length.should.equal(10)
+      end
+    
+      it 'each yields each row in sequence' do
+        i = 0
+        Task.each do |task|
+          task.name.should.equal("task #{i}")
+          i += 1
+        end
+      end
+
+    end
+    
+    describe 'sorting' do
+      before do
+        Task.delete_all
+        Task.create(:name => 'Task 3', :details => 'detail 3')
+        Task.create(:name => 'Task 1', :details => 'detail 1')
+        Task.create(:name => 'Task 2', :details => 'detail 6')
+        Task.create(:name => 'Random Task', :details => 'another random task')
+      end
+
+      it 'sorts by field' do
+        tasks = Task.order(:name).all
+        tasks[0].name.should.equal('Random Task')
+        tasks[1].name.should.equal('Task 1')
+        tasks[2].name.should.equal('Task 2')
+        tasks[3].name.should.equal('Task 3')
+      end
+
+      it 'sorts observing block syntax' do
+        tasks = Task.order{|one, two| two.details <=> one.details}.all
+        tasks[0].details.should.equal('detail 6')
+        tasks[1].details.should.equal('detail 3')
+        tasks[2].details.should.equal('detail 1')
+        tasks[3].details.should.equal('another random task')
+      end
+    end
+    
   end
 end

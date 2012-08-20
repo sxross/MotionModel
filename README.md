@@ -32,43 +32,47 @@ What Model Can Do
 
 You can define your models and their schemas in Ruby. For example:
 
-    class Task
-      include MotionModel::Model
+```ruby
+class Task
+  include MotionModel::Model
 
-      columns :name        => :string,
-              :description => :string,
-              :due_date    => :date
-    end
+  columns :name        => :string,
+          :description => :string,
+          :due_date    => :date
+end
 
-    class MyCoolController
-      def some_method
-        @task = Task.create :name => 'walk the dog',
-                    :description => 'get plenty of exercise. pick up the poop',
-                    :due_date => '2012-09-15'
-       end
-    end
+class MyCoolController
+  def some_method
+    @task = Task.create :name => 'walk the dog',
+                :description => 'get plenty of exercise. pick up the poop',
+                :due_date => '2012-09-15'
+   end
+end
+```
 
 You can also include the `Validations` module to get field validation. For example:
 
-    class Task
-      include MotionModel::Model
-      include MotionModel::Validations
- 
-      columns :name        => :string,
-              :description => :string,
-              :due_date    => :date
-      validates :name => :presence => true
-    end
-    
-    class MyCoolController
-      def some_method
-        @task = Task.new :name => 'walk the dog',
-                     :description => 'get plenty of exercise. pick up the poop',
-                     :due_date => '2012-09-15'
- 
-        show_scary_warning unless @task.valid?
-      end
-    end
+```ruby
+class Task
+  include MotionModel::Model
+  include MotionModel::Validations
+
+  columns :name        => :string,
+          :description => :string,
+          :due_date    => :date
+  validates :name => :presence => true
+end
+
+class MyCoolController
+  def some_method
+    @task = Task.new :name => 'walk the dog',
+                 :description => 'get plenty of exercise. pick up the poop',
+                 :due_date => '2012-09-15'
+
+    show_scary_warning unless @task.valid?
+  end
+end
+```
 
 Model Instances and Unique IDs
 -----------------
@@ -86,10 +90,25 @@ Things That Work
 * Models, in general, work. They aren't ultra full-featured, but more is in the
   works. In particular, finders are just coming online. All column data may be
   accessed by member name, e.g., `@task.name`.
+  
+  * Finders are implemented using chaining. Here is an examples:
+
+    ```ruby  
+    @tasks = Task.where(:assigned_to).eq('bob').and(:location).contains('seattle')
+    @tasks.all.each { |task| do_something_with(task) }
+    ```
+
+    You can perform ordering using either a field name or block syntax. Here's an example:
+
+    ```ruby
+    @tasks = Task.order(:name).all                                  # Get tasks ordered ascending by :name
+    @tasks = Task.order{|one, two| two.details <=> one.details}.all # Get tasks ordered descending by :details
+    ```
 
 * Serialization using `NSCoder` works. Basically, you might do something like this
   in your `AppDelegate`:
-  <pre><code>
+
+  ```ruby
   def load_data
     if File.exist? documents_file("my_fine.dat")
       error_ptr = Pointer.new(:object)
@@ -106,11 +125,11 @@ Things That Work
       show_user_first_time_welcome
     end
   end
-  </code></pre>
+  ```
   
   and of course on the "save" side:
   
-  <code><pre>
+  ```ruby
   error_ptr = Pointer.new(:object)
 
   data = NSKeyedArchiver.archivedDataWithRootObject App.delegate.events
@@ -118,7 +137,7 @@ Things That Work
     error = error_ptr[0]
     show_scary_message error
   end
-  </pre></code>
+  ```
   
   Note that the archiving of any arbitrarily complex set of relations is
   automatically handled by `NSCoder` provided you conform to the coding
