@@ -10,6 +10,16 @@ class ATask
   columns :name, :details, :some_day
 end
 
+class TypeCast
+  include MotionModel::Model
+  columns :an_int => {:type => :int, :default => 3},
+          :an_integer => :integer,
+          :a_float => :float,
+          :a_double => :double,
+          :a_date => :date,
+          :a_time => :time
+end
+
 describe "Creating a model" do
   before do
     Task.delete_all
@@ -18,8 +28,8 @@ describe "Creating a model" do
   describe 'column macro behavior' do
 
     it 'succeeds when creating a valid model from attributes' do
-  	  a_task = Task.new(:name => 'name', :details => 'details')
-  	  a_task.name.should.equal('name')
+      a_task = Task.new(:name => 'name', :details => 'details')
+      a_task.name.should.equal('name')
     end
     
     it 'creates a model with all attributes even if some omitted' do
@@ -28,45 +38,50 @@ describe "Creating a model" do
     end
 
     it 'simply bypasses spurious attributes erroneously set' do
-    	a_task = Task.new(:name => 'details', :zoo => 'very bad')
-    	a_task.should.not.respond_to(:zoo)
-    	a_task.name.should.equal('details')
+      a_task = Task.new(:name => 'details', :zoo => 'very bad')
+      a_task.should.not.respond_to(:zoo)
+      a_task.name.should.equal('details')
+    end
+    
+    it "adds a default value if none supplied" do
+      a_type_test = TypeCast.new
+      a_type_test.an_int.should.equal(3)
     end
 
     it "can check for a column's existence on a model" do
-  	  Task.column?(:name).should.be.true
+      Task.column?(:name).should.be.true
     end
 
     it "can check for a column's existence on an instance" do
-  	  a_task = Task.new(:name => 'name', :details => 'details')
-  	  a_task.column?(:name).should.be.true
+      a_task = Task.new(:name => 'name', :details => 'details')
+      a_task.column?(:name).should.be.true
     end
 
     it "gets a list of columns on a model" do
-    	cols = Task.columns
-    	cols.should.include(:name)
-    	cols.should.include(:details)
+      cols = Task.columns
+      cols.should.include(:name)
+      cols.should.include(:details)
     end
 
     it "gets a list of columns on an instance" do
-    	a_task = Task.new
-    	cols = a_task.columns
-    	cols.should.include(:name)
-    	cols.should.include(:details)
+      a_task = Task.new
+      cols = a_task.columns
+      cols.should.include(:name)
+      cols.should.include(:details)
     end
 
     it "columns can be specified as a Hash" do
-    	lambda{Task.new}.should.not.raise
-    	Task.new.column?(:name).should.be.true
+      lambda{Task.new}.should.not.raise
+      Task.new.column?(:name).should.be.true
     end
 
     it "columns can be specified as an Array" do
-    	lambda{ATask.new}.should.not.raise
-    	Task.new.column?(:name).should.be.true
+      lambda{ATask.new}.should.not.raise
+      Task.new.column?(:name).should.be.true
     end
 
     it "the type of a column can be retrieved" do
-    	Task.new.type(:some_day).should.equal(:date)
+      Task.new.type(:some_day).should.equal(:date)
     end
 
   end
@@ -155,6 +170,11 @@ describe "Creating a model" do
         atask = Task.create(:name => 'find me', :details => "details 1")
         found_task = Task.where(:details).contain("details 1").first.details.should.equal("details 1")
       end
+      
+      it 'handles case-sensitive queries' do
+        task = Task.create :name => 'Bob'
+        Task.find(:name).eq('bob', :case_sensitive => true).all.should.be.empty
+      end
     
       it 'all returns all members of the collection as an array' do
         Task.all.length.should.equal(10)
@@ -197,4 +217,74 @@ describe "Creating a model" do
     end
     
   end
+  
+  describe 'Handling Attribute method_missing Implementation' do
+    it 'raises a NoMethodError exception when an unknown attribute it referenced' do
+      task = Task.new
+      lambda{task.bar}.should.raise(NoMethodError)
+    end
+  end
+  
+  describe 'Type casting' do
+    before do
+      @convertible = TypeCast.new
+      @convertible.an_int = '1'
+      @convertible.an_integer = '2'
+      @convertible.a_float = '3.7'
+      @convertible.a_double = '3.41459'
+      @convertible.a_date = '2012-09-15'
+    end
+    
+    it 'does the type casting on instantiation' do
+      @convertible.an_int.should.is_a Integer
+      @convertible.an_integer.should.is_a Integer
+      @convertible.a_float.should.is_a Float
+      @convertible.a_double.should.is_a Float
+      @convertible.a_date.should.is_a NSDate
+    end
+    
+    it 'returns an integer for an int field' do
+      @convertible.an_int.should.is_a(Integer)
+    end
+
+    it 'the int field should be the same as it was in string form' do
+      @convertible.an_int.to_s.should.equal('1')
+    end
+
+    it 'returns an integer for an integer field' do
+      @convertible.an_integer.should.is_a(Integer)
+    end
+
+    it 'the integer field should be the same as it was in string form' do
+      @convertible.an_integer.to_s.should.equal('2')
+    end
+
+    it 'returns a float for a float field' do
+      @convertible.a_float.should.is_a(Float)
+    end
+
+    it 'the float field should be the same as it was in string form' do
+      @convertible.a_float.should.>(3.6)
+      @convertible.a_float.should.<(3.8)
+    end
+
+    it 'returns a double for a double field' do
+      @convertible.a_double.should.is_a(Float)
+    end
+
+    it 'the double field should be the same as it was in string form' do
+      @convertible.a_double.should.>(3.41458)
+      @convertible.a_double.should.<(3.41460)
+    end
+
+    it 'returns a NSDate for a date field' do
+      @convertible.a_date.should.is_a(NSDate)
+    end
+    
+    it 'the date field should be the same as it was in string form' do
+      @convertible.a_date.to_s.should.match(/^2012-09-15/)
+    end
+        
+  end
+  
 end

@@ -1,0 +1,12 @@
+2012-09-05: Basically rewrote how the data is stored.
+
+The API remains consistent, but a certain amount of
+efficiency is added by adding hashes to map column names
+to the column metadata.
+
+* Type casting now works, and is a function of initialization
+  and of assignment.
+
+* Default values have been added to fill in values
+  if not specified in new or create.
+  

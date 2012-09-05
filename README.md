@@ -23,9 +23,9 @@ are:
 - input_helpers: Hooking an array up to a data form, populating
   it, and retrieving the data afterwards can be a bunch of code.
   Not something I'd like to write more often that I have to. These
-  helpers are certainly not the focus of this strawman release, but
+  helpers are certainly not the focus of this release, but
   I am using these in an app to create Apple-like input forms in
-  static tables. I expect some churn in this module.
+  static tables.
 
 What Model Can Do
 ================
@@ -50,6 +50,17 @@ class MyCoolController
 end
 ```
 
+Models support default values, so if you specify your model like this, you get defaults:
+
+```ruby
+class Task
+  include MotionModel::Model
+  
+  columns :name     => :string,
+          :due_date => {:type => :date, :default => '2012-09-15'}
+end
+```          
+
 You can also include the `Validations` module to get field validation. For example:
 
 ```ruby
@@ -72,6 +83,16 @@ class MyCoolController
     show_scary_warning unless @task.valid?
   end
 end
+```
+
+*Important Note*: Type casting occurs at initialization and on assignment. That means
+If you have a field type `int`, it will be changed from a string to an integer when you
+initialize the object of your class type or when you assign to the integer field in your class.
+
+```ruby
+a_task = Task.create(:name => 'joe-bob', :due_date => '2012-09-15')     # due_date is cast to NSDate
+
+a_task.due_date = '2012-09-19'    # due_date is cast to NSDate
 ```
 
 Model Instances and Unique IDs
@@ -168,3 +189,9 @@ Things In The Pipeline
 - Testing relations
 - Adding validations and custom validations
 - Did I say more tests?
+
+Problems/Comments
+------------------
+
+Please raise an issue if you find something that doesn't work, some
+syntax that smells, etc.

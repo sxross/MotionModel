@@ -23,8 +23,7 @@
 # Recognized types are:
 #
 # * :string
-# * :date (must be in a form that Date.parse can recognize)
-# * :time (must be in a form that Time.parse can recognize)
+# * :date (must be in YYYY-mm-dd form)
 # * :integer
 # * :float
 #
@@ -37,72 +36,119 @@
 #    tasks_this_week = Task.where(:due_date).ge(beginning_of_week).and(:due_date).le(end_of_week)
 #    ordered_tasks_this_week = tasks_this_week.order(:due_date)
 #
+    
 module MotionModel
   module Model
+    class Column
+      attr_accessor :name
+      attr_accessor :type
+      attr_accessor :default
+
+      def initialize(name = nil, type = nil, default = nil)
+        @name = name
+        @type = type
+        @default = default || nil
+      end
+      
+      def add_attr(name, type, default = nil)
+        @name = name
+        @type = type
+        @default = default || nil
+      end
+      alias_method :add_attribute, :add_attr
+    end
+
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set("@column_attrs", [])
-      base.instance_variable_set("@typed_attrs", [])
+      base.instance_variable_set("@_columns", [])
+      base.instance_variable_set("@_column_hashes", {})
       base.instance_variable_set("@collection", [])
       base.instance_variable_set("@_next_id", 1)
     end
     
     module ClassMethods
+      def add_field(name, options, default = nil) #nodoc
+        col = Column.new(name, options, default)
+        @_columns.push col
+        @_column_hashes[col.name.to_sym] = col
+      end
+
       # Macro to define names and types of columns. It can be used in one of
       # two forms:
       #
       # Pass a hash, and you define columns with types. E.g.,
       #
       #   columns :name => :string, :age => :integer
+      #
+      # Pass a hash of hashes and you can specify defaults such as:
+      #
+      #   columns :name => {:type => :string, :default => 'Joe Bob'}, :age => :integer
       #   
       # Pass an array, and you create column names, all of which have type +:string+.
       #   
       #   columns :name, :age, :hobby
+      
       def columns(*fields)
-        return @column_attrs if fields.empty?
+        return @_columns.map{|c| c.name} if fields.empty?
 
+        col = Column.new
+        
         case fields.first
         when Hash
-          fields.first.each_pair do |attr, type|
-            add_attribute(attr, type)
+          fields.first.each_pair do |name, options|
+            case options
+            when Symbol, String
+              add_field(name, options)
+            when Hash
+              add_field(name, options[:type], options[:default])
+            else
+              raise ArgumentError.new("arguments to fields must be a symbol, a hash, or a hash of hashes.")
+            end
           end
         else
-          fields.each do |attr|
-            add_attribute(attr, :string)
+          fields.each do |name|
+            add_field(name, :string)
           end
         end
 
         unless self.respond_to?(:id)
-          add_attribute(:id, :integer)
+          add_field(:id, :integer)
         end
       end
-
-      def add_attribute(attr, type) #nodoc
-        attr_accessor attr
-        @column_attrs << attr
-        @typed_attrs  << type
+      
+      # Returns a column denoted by +name+
+      def column_named(name)
+        @_column_hashes[name.to_sym]
       end
 
+      # Returns next available id
       def next_id #nodoc
         @_next_id
       end
 
+      # Sets next available id
+      def next_id=(value)
+        @_next_id = value
+      end
+
+      # Increments next available id
       def increment_id #nodoc
         @_next_id += 1
       end
 
       # Returns true if a column exists on this model, otherwise false.
       def column?(column)
-        @column_attrs.each{|key| 
-          return true if key == column
-          }
-        false
+        respond_to?(column)
       end
       
       # Returns type of this column.
       def type(column)
-        index = @column_attrs.index(column)
-        index ? @typed_attrs[index] : nil
+        column_named(column).type || nil
+      end
+      
+      # returns default value for this column or nil.
+      def default(column)
+        column_named(column).default || nil
       end
 
       # Creates an object and saves it. E.g.:
@@ -112,12 +158,16 @@ module MotionModel
       # returns the object created or false.
       def create(options = {})
         row = self.new(options)
+        row.before_create if row.respond_to?(:before_create)
+        row.before_save   if row.respond_to?(:before_save)
+        
         # TODO: Check for Validatable and if it's
         # present, check valid? before saving.
-        @collection.push(row)
+
+        row.save
         row
       end
-
+      
       def length
         @collection.length
       end
@@ -172,15 +222,56 @@ module MotionModel
  
     ####### Instance Methods #######
     def initialize(options = {})
-      columns.each{|col| instance_variable_set("@#{col.to_s}", nil) unless options.has_key?(col)}
+      @data ||= {}
       
-      options.each do |key, value|
-        instance_variable_set("@#{key.to_s}", value || '') if self.class.column?(key.to_sym)
-      end
-      unless self.id
-        self.id = self.class.next_id
+      # Time zone, for future use.
+      @tz_offset ||= NSDate.date.to_s.gsub(/^.*?( -\d{4})/, '\1')
+
+      @cached_date_formatter = NSDateFormatter.alloc.init # Create once, as they are expensive to create
+      @cached_date_formatter.dateFormat = "yyyy-MM-dd HH:mm"
+
+      unless options[:id]
+        options[:id] = self.class.next_id
         self.class.increment_id
+      else
+        self.class.next_id = [options[:id].to_i, self.class.next_id].max
       end
+
+      columns.each do |col|
+        options[col] ||= self.class.default(col)
+        cast_value = cast_to_type(col, options[col])
+        @data[col] = cast_value
+      end
+    end
+
+    def cast_to_type(column_name, arg)
+      return nil if arg.nil?
+      
+      return_value = arg
+      
+      case type(column_name)
+      when :string
+        return_value = arg.to_s
+      when :int, :integer
+        return_value = arg.is_a?(Integer) ? arg : arg.to_i
+      when :float, :double
+        return_value = arg.is_a?(Float) ? arg : arg.to_f
+      when :date
+        return arg if arg.is_a?(NSDate)
+        date_string = arg += ' 00:00'
+        return_value = @cached_date_formatter.dateFromString(date_string)
+      else
+        raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
+      end
+      return_value
+    end
+
+    def to_s
+      columns.each{|c| puts "#{c}: #{self.send(c)}"}
+    end
+
+    def save
+      self.class.instance_variable_get('@collection') << self
     end
 
     def length
@@ -190,11 +281,15 @@ module MotionModel
     alias_method :count, :length
       
     def column?(target_key)
-      self.class.column?(target_key)
+      self.class.column?(target_key.to_sym)
     end
 
     def columns
       self.class.columns
+    end
+
+    def column_named(name)
+      self.class.column_named(name.to_sym)
     end
 
     def type(field_name)
@@ -203,7 +298,7 @@ module MotionModel
 
     def initWithCoder(coder)
       self.init
-      self.class.instance_variable_get("@column_attrs").each do |attr|
+      self.class.instance_variable_get("@_columns").each do |attr|
         # If a model revision has taken place, don't try to decode
         # something that's not there.
         new_tag_id = 1
@@ -222,125 +317,49 @@ module MotionModel
     end
     
     def encodeWithCoder(coder)
-      self.class.instance_variable_get("@column_attrs").each do |attr|
+      self.class.instance_variable_get("@_columns").each do |attr|
         coder.encodeObject(self.send(attr), forKey: attr.to_s)
       end
     end
     
-  end
-  
-  class FinderQuery
-    attr_accessor :field_name
-    
-    def initialize(*args)
-      @field_name = args[0] if args.length > 1
-      @collection = args.last
+    # Modify respond_to? to add model's attributes.
+    alias_method :old_respond_to?, :respond_to?
+    def respond_to?(method)
+      column_named(method) || old_respond_to?(method)
     end
     
-    def and(field_name)
-      @field_name = field_name
-      self
-    end
-    
-    def order(field = nil, &block)
-      if block_given?
-        @collection = @collection.sort{|o1, o2| yield(o1, o2)}
+    # Handle attribute retrieval
+    # 
+    # Gets and sets work as expected, and type casting occurs
+    # For example:
+    # 
+    #     Task.date = '2012-09-15'
+    # 
+    # This creates a real Date object in the data store.
+    # 
+    #     date = Task.date
+    # 
+    # Date is a real date object.
+    def method_missing(method, *args, &block)
+      base_method = method.to_s.gsub('=', '').to_sym
+      
+      col = column_named(base_method)
+      
+      if col
+        if method.to_s.include?('=')
+          return @data[base_method] = self.cast_to_type(base_method, args[0])
+        else
+          return @data[base_method]
+        end
       else
-        raise ArgumentError.new('you must supply a field name to sort unless you supply a block.') if field.nil?
-        @collection = @collection.sort{|o1, o2| o1.send(field) <=> o2.send(field)}
-      end
-      self
-    end
-    
-    ######## relational methods ########
-    def do_comparison(query_string)
-      # TODO: Flag case-insensitive searching
-      query_string = query_string.downcase if query_string.respond_to?(:downcase)
-      @collection = @collection.select do |item|
-        comparator = item.send(@field_name.to_sym)
-        yield query_string, comparator
-      end
-      self
-    end
-    
-    def contain(query_string)
-      do_comparison(query_string) do |comparator, item|
-        item =~ Regexp.new(comparator)
+        raise NoMethodError, <<ERRORINFO
+method: #{method}
+args:   #{args.inspect}
+in:     #{self.class.name}
+ERRORINFO
       end
     end
-    alias_method :contains, :contain
-    alias_method :like, :contain
-    
-    def eq(query_string)
-      do_comparison(query_string) do |comparator, item|
-        comparator == item
-      end
-    end
-    alias_method :==, :eq
-    alias_method :equal, :eq
-    
-    def gt(query_string)
-      do_comparison(query_string) do |comparator, item|
-        comparator > item
-      end
-    end
-    alias_method :>, :gt
-    alias_method :greater_than, :gt
-    
-    def lt(query_string)
-      do_comparison(query_string) do |comparator, item|
-        comparator < item
-      end
-    end
-    alias_method :<, :lt
-    alias_method :less_than, :lt
-    
-    def gte(query_string)
-      do_comparison(query_string) do |comparator, item|
-        comparator >= item
-      end
-    end
-    alias_method :>=, :gte
-    alias_method :greater_than_or_equal, :gte
-    
-    
-    def lte(query_string)
-      do_comparison(query_string) do |comparator, item|
-        comparator <= item
-      end
-    end
-    alias_method :<=, :lte
-    alias_method :less_than_or_equal, :lte
-    
-    def ne(query_string)
-      do_comparison(query_string) do |comparator, item|
-        comparator != item
-      end
-    end
-    alias_method :!=, :ne
-    alias_method :not_equal, :ne
-    
-    ########### accessor methods #########
-    def first
-      @collection.first
-    end
-    
-    def last
-      @collection.last
-    end
-    
-    def all
-      @collection
-    end
-    
-    # each is a shortcut method to turn a query into an iterator. It allows
-    # you to write code like:
-    #
-    #   Task.where(:assignee).eq('bob').each{ |assignee| do_something_with(assignee) }
-    def each(&block)
-      raise ArgumentError.new("each requires a block") unless block_given?
-      @collection.each{|item| yield item}
-    end
+
   end
 end
 
