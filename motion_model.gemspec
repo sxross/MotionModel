@@ -9,7 +9,6 @@ Gem::Specification.new do |gem|
   gem.homepage      = "https://github.com/sxross/MotionModel"
 
   gem.files         = `git ls-files`.split($\)
-  puts "gem files are #{`git ls-files`.split($\)}"
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.name          = "motion_model"
   gem.require_paths = ["lib"]
