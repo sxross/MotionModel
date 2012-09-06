@@ -114,5 +114,10 @@ module MotionModel
       raise ArgumentError.new("each requires a block") unless block_given?
       @collection.each{|item| yield item}
     end
+    
+    def length
+      @collection.length
+    end
+    alias_method :count, :length
   end
 end

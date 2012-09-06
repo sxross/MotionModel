@@ -185,7 +185,14 @@ module MotionModel
       # or...
       #
       #   @posts = Post.find(:author).eq('bob').all
-      def find(*args)
+      def find(*args, &block)
+        if block_given?
+          matches = @collection.collect do |item|
+            item if yield(item)
+          end.compact
+          return FinderQuery.new(matches)
+        end
+        
         unless args[0].is_a?(Symbol) || args[0].is_a?(String)
           return @collection[args[0].to_i] || nil
         end
@@ -267,11 +274,17 @@ module MotionModel
     end
 
     def to_s
-      columns.each{|c| puts "#{c}: #{self.send(c)}"}
+      columns.each{|c| "#{c}: #{self.send(c)}"}
     end
 
     def save
       self.class.instance_variable_get('@collection') << self
+    end
+    
+    def delete
+      collection = self.class.instance_variable_get('@collection')
+      target_index = collection.index{|item| item.id == self.id}
+      collection.delete_at(target_index)
     end
 
     def length
