@@ -187,7 +187,29 @@ describe "Creating a model" do
           i += 1
         end
       end
-
+      
+      describe 'block-style finders' do
+        before do
+          @items_less_than_5 = Task.find{|item| item.name.split(' ').last.to_i < 5}
+        end
+        
+        it 'returns a FinderQuery' do
+          @items_less_than_5.should.is_a MotionModel::FinderQuery
+        end
+        
+        it 'handles block-style finders' do
+          @items_less_than_5.length.should == 5 # Zero based
+        end
+        
+        it 'deals with any arbitrary block finder' do
+          @even_items = Task.find do |item|
+            test_item = item.name.split(' ').last.to_i
+            test_item % 2 == 0 && test_item < 5
+          end
+          @even_items.each{|item| item.name.split(' ').last.to_i.should.even?}
+          @even_items.length.should == 3   # [0, 2, 4]
+        end
+      end
     end
     
     describe 'sorting' do
@@ -216,6 +238,23 @@ describe "Creating a model" do
       end
     end
     
+  end
+  
+  describe 'deleting' do
+    before do
+      10.times {|i| Task.create(:name => "task #{i}")}
+    end
+    
+    it 'deletes a row' do
+      target = Task.find(:name).eq('task 3').first
+      target.delete
+      Task.find(:description).eq('Task 3').should == nil
+    end
+    
+    it 'deleting a row changes length' do
+      target = Task.find(:name).eq('task 3').first
+      lambda{target.delete}.should.change{Task.length}
+    end
   end
   
   describe 'Handling Attribute method_missing Implementation' do
