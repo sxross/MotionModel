@@ -118,6 +118,12 @@ Things That Work
     @tasks = Task.where(:assigned_to).eq('bob').and(:location).contains('seattle')
     @tasks.all.each { |task| do_something_with(task) }
     ```
+    
+    You can use a block with find:
+    
+    ```ruby  
+    @tasks = Task.find{|task| task.name =~ /dog/i && task.assigned_to == 'Bob'}
+    ```
 
     You can perform ordering using either a field name or block syntax. Here's an example:
 
