@@ -10,3 +10,4 @@ to the column metadata.
 * Default values have been added to fill in values
   if not specified in new or create.
   
+2012-09-06: Added block-style finders. Added delete method.
