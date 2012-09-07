@@ -132,44 +132,23 @@ Things That Work
     @tasks = Task.order{|one, two| two.details <=> one.details}.all # Get tasks ordered descending by :details
     ```
 
-* Serialization using `NSCoder` works. Basically, you might do something like this
-  in your `AppDelegate`:
+* Serialization is part of MotionModel. So, in your `AppDelegate` you might do something like this:
 
   ```ruby
-  def load_data
-    if File.exist? documents_file("my_fine.dat")
-      error_ptr = Pointer.new(:object)
-      
-      data = NSData.dataWithContentsOfFile(documents_file('my_fine.dat'), options:NSDataReadingMappedIfSafe, error:error_ptr)
-      
-      if data.nil?
-        error = error_ptr[0]
-        show_user_scary_warning error
-      else
-        @my_data_tree = NSKeyedUnarchiver.unarchiveObjectWithData(data)
-      end
-    else
-      show_user_first_time_welcome
-    end
-  end
+    @tasks = Task.deserialize_from_file('tasks.dat')
   ```
   
   and of course on the "save" side:
   
   ```ruby
-  error_ptr = Pointer.new(:object)
-
-  data = NSKeyedArchiver.archivedDataWithRootObject App.delegate.events
-  unless data.writeToFile(documents_file('my_fine.dat'), options: NSDataWritingAtomic, error: error_ptr)
-    error = error_ptr[0]
-    show_scary_message error
+    @tasks.serialize_to_file('tasks.dat')
   end
   ```
   
-  Note that the archiving of any arbitrarily complex set of relations is
-  automatically handled by `NSCoder` provided you conform to the coding
-  protocol. When you declare your columns, `MotionModel` understands how
-  to serialize your data so you need take no further action.
+  Note that the this serialization of any arbitrarily complex set of relations
+  is automatically handled by `NSCoder` provided you conform to the coding
+  protocol. When you declare your columns, `MotionModel` understands how to
+  serialize your data so you need take no further action.
   
 * Relations, in principle work. This is a part I'm still noodling over
   so it's not really safe to use them. In any case, how I expect it will
