@@ -325,5 +325,22 @@ describe "Creating a model" do
     end
         
   end
+end
+
+describe 'persistence' do
+  before do
+    Task.delete_all
+    %w(one two three).each do |task|
+      @tasks = Task.create(:name => "name #{task}")
+    end
+    @tasks.serialize_to_file('test.dat')
+  end
   
+  it 'reads persisted model data' do
+    tasks = Task.deserialize_from_file('test.dat')
+    
+    Task.first.name.should == 'name one'
+    Task.last.name.should  == 'name three'
+    Task.count.should      == 3
+  end
 end
