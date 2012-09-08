@@ -343,4 +343,30 @@ describe 'persistence' do
     Task.last.name.should  == 'name three'
     Task.count.should      == 3
   end
+  
+  describe 'model change resiliency' do
+    it 'column addition' do
+      class Foo
+        include MotionModel::Model
+        columns       :name => :string
+      end
+      @foo = Foo.create(:name=> 'Bob')
+      @foo.serialize_to_file('test.dat')
+
+      class Foo
+        include MotionModel::Model
+        columns       :name => :string,
+                      :address => '123 Main Street'
+      end
+      Foo.deserialize_from_file('test.dat')
+      @foo = Foo.first
+      @foo.name.should == 'Bob'
+      @foo.address.should.be nil
+      Foo.length.should == 3
+    end
+    
+    it "column removal" do
+      
+    end
+  end
 end

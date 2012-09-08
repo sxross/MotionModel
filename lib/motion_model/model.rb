@@ -350,9 +350,11 @@ module MotionModel
         new_tag_id = 1
         if coder.containsValueForKey(attr.to_s)
           value = coder.decodeObjectForKey(attr.to_s)
-          self.instance_variable_set('@' + attr.to_s, value || '')
+          self.send(attr.to_s, value || '')
+          # self.instance_variable_set('@' + attr.to_s, value || '')
         else
-          self.instance_variable_set('@' + attr.to_s, '') # set to empty string if new attribute
+          self.send(attr.to_s, nil)
+          # self.instance_variable_set('@' + attr.to_s, '') # set to empty string if new attribute
         end
 
         # re-issue tags to make sure they are unique

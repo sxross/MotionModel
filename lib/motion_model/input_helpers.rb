@@ -16,7 +16,7 @@ module MotionModel
     
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set('@data', [])
+      base.instance_variable_set('@binding_data', [])
     end
     
     module ClassMethods
@@ -37,9 +37,8 @@ module MotionModel
       # Only one field mapping may be supplied for
       # a given class.
       def field(field, options = {})
-        puts "adding field #{field}"
         label = options[:label] || field.humanize
-        @data << FieldBindingMap.new(:label => label, :name => field)
+        @binding_data << FieldBindingMap.new(:label => label, :name => field)
       end
     end
     
@@ -61,7 +60,7 @@ module MotionModel
     #     end
 
     def field_count
-      self.class.instance_variable_get('@data'.to_sym).length
+      self.class.instance_variable_get('@binding_data'.to_sym).length
     end
 
     # +field_at+ retrieves the field at a given index.
@@ -72,7 +71,7 @@ module MotionModel
     #     label_view = subview(UILabel, :label_frame, text: field.label)
     
     def field_at(index)
-      data = self.class.instance_variable_get('@data'.to_sym)
+      data = self.class.instance_variable_get('@binding_data'.to_sym)
       data[index].tag = index + 1
       data[index]
     end
@@ -98,7 +97,7 @@ module MotionModel
     #     end
     
     def fields
-      self.class.instance_variable_get('@data'.to_sym).each{|datum| yield datum}
+      self.class.instance_variable_get('@binding_data'.to_sym).each{|datum| yield datum}
     end
     
     # +bind+ fetches all mapped fields from
@@ -110,10 +109,8 @@ module MotionModel
       raise ModelNotSetError.new("You must set the model before binding it.") unless @model
       
       fields do |field|
-        puts "*** retrieving data for #{field.name} and tag #{field.tag} ***"
-        view_obj = view.viewWithTag(field.tag)
-        puts "view object with tag is #{view_obj.inspect}"
-        @model.send("#{field.name}=".to_sym, view.viewWithTag(field.tag).text)
+        view_obj = self.view.viewWithTag(field.tag)
+        @model.send("#{field.name}=".to_sym, view_obj˝".text)
       end
     end
 
