@@ -1,7 +1,7 @@
 class Task
   include MotionModel::Model
   columns       :name => :string, 
-  							:details => :string,
+  							:details => {:type => :string, :default => 'na'},
   							:some_day => :date
 end
 
@@ -26,7 +26,6 @@ describe "Creating a model" do
   end
 
   describe 'column macro behavior' do
-
     it 'succeeds when creating a valid model from attributes' do
       a_task = Task.new(:name => 'name', :details => 'details')
       a_task.name.should.equal('name')
@@ -242,6 +241,7 @@ describe "Creating a model" do
   
   describe 'deleting' do
     before do
+      Task.delete_all
       10.times {|i| Task.create(:name => "task #{i}")}
     end
     
@@ -254,6 +254,11 @@ describe "Creating a model" do
     it 'deleting a row changes length' do
       target = Task.find(:name).eq('task 3').first
       lambda{target.delete}.should.change{Task.length}
+    end
+
+    it 'deletes all' do
+      Task.delete_all
+      Task.all.empty?.should == true
     end
   end
   
@@ -327,20 +332,52 @@ describe "Creating a model" do
   end
 end
 
+describe 'empty persistence' do
+  before do
+    Task.delete_all
+
+    @filename = "test.data"
+    Task.serialize_to_file(@filename)
+  end
+
+  it 'reads persisted model data' do
+    Task.delete_all
+    Task.deserialize_from_file(@filename)
+
+    Task.count.should == 0
+    Task.first.should == nil
+    Task.last.should  == nil
+  end
+end
+
 describe 'persistence' do
   before do
     Task.delete_all
-    %w(one two three).each do |task|
-      @tasks = Task.create(:name => "name #{task}")
-    end
-    @tasks.serialize_to_file('test.dat')
+    Task.create(:name => "name one")
+    Task.create(:name => "name two", :details => 'foo')
+    Task.create(:name => "name three", :some_day => '2012-09-17')
+
+    @filename = "test.data"
+    Task.serialize_to_file(@filename)
   end
-  
+
   it 'reads persisted model data' do
-    tasks = Task.deserialize_from_file('test.dat')
-    
+    Task.delete_all
+    Task.deserialize_from_file(@filename)
+
+    Task.count.should == 3
+    Task.first.should != nil
+    Task.last.should  != nil
+
     Task.first.name.should == 'name one'
     Task.last.name.should  == 'name three'
-    Task.count.should      == 3
+
+    tasks = Task.all
+    tasks[0].details.should == 'na'
+    tasks[1].details.should == 'foo'
+    tasks[2].details.should == 'na'
+    tasks[0].some_day.should == nil
+    tasks[1].some_day.should == nil
+    tasks[2].some_day =~ /^2012\-09\-17/
   end
 end

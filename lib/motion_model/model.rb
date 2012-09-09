@@ -98,6 +98,7 @@ module MotionModel
         case fields.first
         when Hash
           fields.first.each_pair do |name, options|
+            puts "name => \"#{name}\" options => #{options.inspect}"
             case options
             when Symbol, String
               add_field(name, options)
@@ -177,7 +178,7 @@ module MotionModel
 
       # Empties the entire store.
       def delete_all
-        @collection = [] # TODO: Handle cascading or let GC take care of it.
+        @collection.clear # TODO: Handle cascading or let GC take care of it.
       end
 
       # Finds row(s) within the data store. E.g.,
@@ -232,21 +233,21 @@ module MotionModel
       # Note that subsequent calls to serialize/deserialize methods
       # will remember the file name, so they may omit that argument.
       #
-      # Raises a +MotionModel::PersistFileFailureError+ on failure.
-      def deserialize_from_file(file_name = nil)
-        @file_name ||= file_name
-        new_object = self.new
-        
-        if File.exist? documents_file(@file_name)
+      # Raises a +MotionModel::PersistFileError+ on failure.
+      def deserialize_from_file(file_name)
+        delete_all
+
+        if File.exist? documents_file(file_name)
           error_ptr = Pointer.new(:object)
-      
+
           data = NSData.dataWithContentsOfFile(documents_file(file_name), options:NSDataReadingMappedIfSafe, error:error_ptr)
-      
+
           if data.nil?
             error = error_ptr[0]
-            raise MotionModel::PersistFileFailureError.new "Error when reading the data: #{error}"
+            raise MotionModel::PersistFileError.new "Error when reading the data: #{error}"
           else
-            return NSKeyedUnarchiver.unarchiveObjectWithData(data)
+            @collection = NSKeyedUnarchiver.unarchiveObjectWithData(data)
+            return true
           end
         else
           return false
@@ -257,7 +258,33 @@ module MotionModel
         file_path = File.join NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true), file_name
         file_path
       end
-      
+
+      # Serializes data to a persistent store (file, in this
+      # terminology). Serialization is synchronous, so this
+      # will pause your run loop until complete.
+      #
+      # +file_name+ is the name of the persistent store you
+      # want to use. If you omit this, it will use the last
+      # remembered file name.
+      #
+      # Raises a +MotionModel::PersistFileError+ on failure.
+      def serialize_to_file(file_name)
+        error_ptr = Pointer.new(:object)
+
+        if @collection.empty?
+          File.delete(documents_file(file_name)) if File.exist?(documents_file(file_name))
+        else
+          data = NSKeyedArchiver.archivedDataWithRootObject @collection
+          unless data.writeToFile(documents_file(file_name), options: NSDataWritingAtomic, error: error_ptr)
+            # De-reference the pointer.
+            error = error_ptr[0]
+
+            # Now we can use the `error' object.
+            raise MotionModel::PersistFileError.new "Error when writing data: #{error}"
+          end
+        end
+      end
+
     end
  
     ####### Instance Methods #######
@@ -344,21 +371,19 @@ module MotionModel
 
     def initWithCoder(coder)
       self.init
+      @data ||= {}
       columns.each do |attr|
         # If a model revision has taken place, don't try to decode
         # something that's not there.
-        new_tag_id = 1
         if coder.containsValueForKey(attr.to_s)
           value = coder.decodeObjectForKey(attr.to_s)
-          self.instance_variable_set('@' + attr.to_s, value || '')
+          @data[attr.to_s.to_sym] = value
         else
-          self.instance_variable_set('@' + attr.to_s, '') # set to empty string if new attribute
+          @data[attr.to_s.to_sym] =  nil # set to empty string if new attribute
         end
-
-        # re-issue tags to make sure they are unique
-        @tag = new_tag_id
-        new_tag_id += 1
       end
+      # re-issue tags to make sure they are unique
+      @data[:id] = self.class.next_id
       self
     end
     
@@ -406,28 +431,6 @@ ERRORINFO
       end
     end
 
-    # Serializes data to a persistent store (file, in this
-    # terminology). Serialization is synchronous, so this
-    # will pause your run loop until complete.
-    #
-    # +file_name+ is the name of the persistent store you
-    # want to use. If you omit this, it will use the last
-    # remembered file name.
-    #
-    # Raises a +MotionModel::PersistFileFailureError+ on failure.
-    def serialize_to_file(file_name = nil)
-      @file_name ||= file_name
-      error_ptr = Pointer.new(:object)
-
-      data = NSKeyedArchiver.archivedDataWithRootObject self
-      unless data.writeToFile(self.class.documents_file(file_name), options: NSDataWritingAtomic, error: error_ptr)
-        # De-reference the pointer.
-        error = error_ptr[0]
-
-        # Now we can use the `error' object.
-        raise MotionModel::PersistFileFailureError.new "Error when writing data: #{error}"
-      end
-    end
   end
 end
 
