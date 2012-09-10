@@ -35,3 +35,21 @@ class Symbol
     self.to_s.titleize
   end
 end
+
+class Debug
+  def self.put_message(type, message)
+    puts("#{type} #{caller[1]}: #{message}")
+  end
+  
+  def self.info(msg)
+    put_message 'INFO', msg
+  end
+  
+  def self.warning(msg)
+    put_message 'WARNING', msg
+  end
+  
+  def self.error(msg)
+    put_message 'ERROR', msg
+  end
+end
