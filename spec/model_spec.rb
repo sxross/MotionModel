@@ -34,6 +34,7 @@ describe "Creating a model" do
     
     it 'creates a model with all attributes even if some omitted' do
       atask = Task.create(:name => 'bob')
+      Debug.info "atask: #{atask.inspect}"
       atask.should.respond_to(:details)
     end
 
@@ -327,46 +328,3 @@ describe "Creating a model" do
   end
 end
 
-describe 'persistence' do
-  before do
-    Task.delete_all
-    %w(one two three).each do |task|
-      @tasks = Task.create(:name => "name #{task}")
-    end
-    @tasks.serialize_to_file('test.dat')
-  end
-  
-  it 'reads persisted model data' do
-    tasks = Task.deserialize_from_file('test.dat')
-    
-    Task.first.name.should == 'name one'
-    Task.last.name.should  == 'name three'
-    Task.count.should      == 3
-  end
-  
-  describe 'model change resiliency' do
-    it 'column addition' do
-      class Foo
-        include MotionModel::Model
-        columns       :name => :string
-      end
-      @foo = Foo.create(:name=> 'Bob')
-      @foo.serialize_to_file('test.dat')
-
-      class Foo
-        include MotionModel::Model
-        columns       :name => :string,
-                      :address => '123 Main Street'
-      end
-      Foo.deserialize_from_file('test.dat')
-      @foo = Foo.first
-      @foo.name.should == 'Bob'
-      @foo.address.should.be nil
-      Foo.length.should == 3
-    end
-    
-    it "column removal" do
-      
-    end
-  end
-end
