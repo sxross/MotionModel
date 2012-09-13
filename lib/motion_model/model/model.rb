@@ -210,7 +210,10 @@ module MotionModel
         raise ArgumentError.new("each requires a block") unless block_given?
         @collection.each{|item| yield item}
       end      
-            
+      
+      def empty?
+        @collection.empty?
+      end
     end
  
     ####### Instance Methods #######
@@ -253,8 +256,7 @@ module MotionModel
         return_value = arg.is_a?(Float) ? arg : arg.to_f
       when :date
         return arg if arg.is_a?(NSDate)
-        date_string = arg += ' 00:00'
-        return_value = @cached_date_formatter.dateFromString(date_string)
+        return_value = NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
       else
         raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
       end
@@ -268,7 +270,14 @@ module MotionModel
     def save
       collection = self.class.instance_variable_get('@collection')
       @dirty = false
-      collection << self
+      
+      # Existing object implies update in place
+      # TODO: Optimize location of existing id
+      if obj = collection.find{|o| o.id == @data[:id]}
+        obj = self
+      else
+        collection << self
+      end
     end
     
     def delete
@@ -303,6 +312,10 @@ module MotionModel
     alias_method :old_respond_to?, :respond_to?
     def respond_to?(method)
       column_named(method) || old_respond_to?(method)
+    end
+    
+    def dirty?
+      @dirty      
     end
     
     # Handle attribute retrieval
