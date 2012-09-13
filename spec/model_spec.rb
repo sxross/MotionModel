@@ -34,7 +34,6 @@ describe "Creating a model" do
     
     it 'creates a model with all attributes even if some omitted' do
       atask = Task.create(:name => 'bob')
-      Debug.info "atask: #{atask.inspect}"
       atask.should.respond_to(:details)
     end
 
@@ -134,12 +133,13 @@ describe "Creating a model" do
 
   describe 'finders' do
     before do
+      Task.delete_all
       10.times {|i| Task.create(:name => "task #{i}")}
     end
 
     describe 'find' do
       it 'finds elements within the collection' do
-        Task.find(3).name.should.equal('task 3')
+        task = Task.find(3).name.should.equal('task 3')
       end
 
       it 'returns nil if find by id is not found' do
@@ -148,7 +148,15 @@ describe "Creating a model" do
       
       it 'looks into fields if field name supplied' do
         Task.create(:name => 'find me')
-        Task.find(:name).eq('find me').all.length.should.equal(1)
+        tasks = Task.find(:name).eq('find me')
+        tasks.all.length.should.equal(1)
+        tasks.first.name.should == 'find me'
+      end
+      
+      it "provides an array of valid model instances when doing a find" do
+        Task.create(:name => 'find me')
+        tasks = Task.find(:name).eq('find me')
+        tasks.first.name.should.eql 'find me'
       end
       
       it 'allows for multiple (chained) query parameters' do
@@ -169,12 +177,12 @@ describe "Creating a model" do
       
       it 'using where instead of find' do
         atask = Task.create(:name => 'find me', :details => "details 1")
-        found_task = Task.where(:details).contain("details 1").first.details.should.equal("details 1")
+        found_task = Task.where(:details).contain("s 1").first.details.should == 'details 1'
       end
       
       it 'handles case-sensitive queries' do
         task = Task.create :name => 'Bob'
-        Task.find(:name).eq('bob', :case_sensitive => true).all.should.be.empty
+        Task.find(:name).eq('bob', :case_sensitive => true).all.length.should == 0
       end
     
       it 'all returns all members of the collection as an array' do
@@ -249,7 +257,7 @@ describe "Creating a model" do
     it 'deletes a row' do
       target = Task.find(:name).eq('task 3').first
       target.delete
-      Task.find(:description).eq('Task 3').should == nil
+      Task.find(:description).eq('Task 3').length.should.equal 0
     end
     
     it 'deleting a row changes length' do
