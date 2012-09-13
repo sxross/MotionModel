@@ -23,12 +23,18 @@ module MotionModel
     end
     
     ######## relational methods ########
-    def do_comparison(query_string, options = {:case_sensitive => false})
-      query_string = query_string.downcase if query_string.respond_to?(:downcase) && !options[:case_sensitive]
-      @collection = @collection.select do |item|
+    def translate_case(item, case_sensitive)#nodoc
+      item = item.downcase if case_sensitive === false && item.respond_to?(:downcase)
+      item
+    end
+    
+    def do_comparison(query_string, options = {:case_sensitive => false})#nodoc
+      query_string = translate_case(query_string, options[:case_sensitive])
+      @collection = @collection.collect do |item|
         comparator = item.send(@field_name.to_sym)
-        yield query_string, comparator
-      end
+        comparator = translate_case(comparator, options[:case_sensitive])
+        item if yield query_string, comparator
+      end.compact
       self
     end
     
