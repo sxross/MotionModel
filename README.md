@@ -26,6 +26,34 @@ are:
   helpers are certainly not the focus of this release, but
   I am using these in an app to create Apple-like input forms in
   static tables.
+  
+Getting Going
+================
+
+If you are using Bundler, put this in your Gemfile:
+
+```
+gem motion_model
+```
+
+then do:
+
+```
+bundle install
+```
+
+If you are not using Bundler:
+
+```
+gem install motion_model
+```
+
+then put this in your Rakefile after requiring `motion/project`:
+
+```
+require 'motion_model'
+```
+
 
 What Model Can Do
 ================
@@ -124,6 +152,15 @@ Things That Work
     ```ruby  
     @tasks = Task.find{|task| task.name =~ /dog/i && task.assigned_to == 'Bob'}
     ```
+    
+    Note that finders always return a proxy (`FinderQuery`). You must use `first`, `last`, or `all`
+    to get useful results.
+    
+    ```ruby  
+    @tasks = Task.where(:owner).eq('jim')   # => A FinderQuery.
+    @tasks.all                              # => An array of matching results.
+    @tasks.first                            # => The first result
+    ```
 
     You can perform ordering using either a field name or block syntax. Here's an example:
 
@@ -141,7 +178,7 @@ Things That Work
   and of course on the "save" side:
   
   ```ruby
-    @tasks.serialize_to_file('tasks.dat')
+    Task.serialize_to_file('tasks.dat')
   end
   ```
   
@@ -150,11 +187,14 @@ Things That Work
   protocol. When you declare your columns, `MotionModel` understands how to
   serialize your data so you need take no further action.
   
-* Relations, in principle work. This is a part I'm still noodling over
-  so it's not really safe to use them. In any case, how I expect it will
-  shake out is that one-to-one or one-to-many will be supported out of
-  the box, but you will have to take some extra steps to implement
-  many-to-many, just as you would in Rails' `has_many :through`.
+* Relations, in principle work. They are more embedded documents similar
+  to CouchDB or MongoDB. So instead of being separate tables, the embedded
+  documents are model objects contained in a collection.
+  
+  **Relations Are Untested**. This is completely experimental, but to use
+  them, just define a column as type `:array`. Initializing these properly
+  and testing them is a high priority for me, so expect it to be addressed
+  soon.
 
 * Core extensions work. The following are supplied:
 
@@ -165,6 +205,15 @@ Things That Work
   - Array#empty?
   - Hash#empty?
   - Symbol#titleize
+  
+  Also in the extensions is a debug class to log stuff to the console.
+  This may be preferable to `puts` just because it's easier to spot in
+  your code and it gives you the exact level and file/line number of the
+  info/warning/error in your console output:
+  
+  - Debug.info(message)
+  - Debug.warning(message)
+  - Debug.error(message)
 
 Things In The Pipeline
 ----------------------
@@ -178,5 +227,28 @@ Things In The Pipeline
 Problems/Comments
 ------------------
 
-Please raise an issue if you find something that doesn't work, some
+Please **raise an issue** on GitHub if you find something that doesn't work, some
 syntax that smells, etc.
+
+If you want to stay on the bleeding edge, clone yourself a copy (or better yet, fork
+one).
+
+Then be sure references to motion_model are commented out or removed from your Gemfile
+and/or Rakefile and put this in your Rakefile:
+
+```
+require "~/github/local//MotionModel/lib/motion_model.rb"
+```
+
+The `~/github/local` is where I cloned it, but you can put it anyplace. Next, make
+sure you are following the project on GitHub so you know when there are changes.
+
+Submissions/Patches
+------------------
+
+Obviously, the ideal one is a pull request from your own fork, complete with passing
+specs.
+
+Really, even a failing spec or some proposed code is fine. I really want to make
+this a decent tool for RubyMotion developers who need a straightforward data
+modeling and persistence framework.
