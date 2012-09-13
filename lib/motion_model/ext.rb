@@ -37,8 +37,22 @@ class Symbol
 end
 
 class Debug
+  @@silent = false
+  
+  # Use silence if you want to keep messages from being echoed
+  # to the console.
+  def self.silence
+    @@silent = true
+  end
+  
+  # Use resume when you want messages that were silenced to
+  # resume displaying.
+  def self.resume
+    @@silent = false
+  end
+  
   def self.put_message(type, message)
-    puts("#{type} #{caller[1]}: #{message}")
+    puts("#{type} #{caller[1]}: #{message}") unless @@silent
   end
   
   def self.info(msg)
