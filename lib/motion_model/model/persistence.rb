@@ -28,6 +28,29 @@ module MotionModel
           return false
         end
       end
+      # Serializes data to a persistent store (file, in this
+      # terminology). Serialization is synchronous, so this
+      # will pause your run loop until complete.
+      #
+      # +file_name+ is the name of the persistent store you
+      # want to use. If you omit this, it will use the last
+      # remembered file name.
+      #
+      # Raises a +MotionModel::PersistFileFailureError+ on failure.
+      def serialize_to_file(file_name = nil)
+        @file_name ||= file_name
+        error_ptr = Pointer.new(:object)
+
+        data = NSKeyedArchiver.archivedDataWithRootObject @collection
+        unless data.writeToFile(documents_file(file_name), options: NSDataWritingAtomic, error: error_ptr)
+          # De-reference the pointer.
+          error = error_ptr[0]
+
+          # Now we can use the `error' object.
+          raise MotionModel::PersistFileFailureError.new "Error when writing data: #{error}"
+        end
+      end
+    
 
       def documents_file(file_name)
         file_path = File.join NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true), file_name
@@ -66,29 +89,6 @@ module MotionModel
         unless value.nil?
           coder.encodeObject(value, forKey: attr.to_s)
         end
-      end
-    end
-    
-    # Serializes data to a persistent store (file, in this
-    # terminology). Serialization is synchronous, so this
-    # will pause your run loop until complete.
-    #
-    # +file_name+ is the name of the persistent store you
-    # want to use. If you omit this, it will use the last
-    # remembered file name.
-    #
-    # Raises a +MotionModel::PersistFileFailureError+ on failure.
-    def serialize_to_file(file_name = nil)
-      @file_name ||= file_name
-      error_ptr = Pointer.new(:object)
-
-      data = NSKeyedArchiver.archivedDataWithRootObject self.class.instance_variable_get('@collection')
-      unless data.writeToFile(self.class.documents_file(file_name), options: NSDataWritingAtomic, error: error_ptr)
-        # De-reference the pointer.
-        error = error_ptr[0]
-
-        # Now we can use the `error' object.
-        raise MotionModel::PersistFileFailureError.new "Error when writing data: #{error}"
       end
     end
     
