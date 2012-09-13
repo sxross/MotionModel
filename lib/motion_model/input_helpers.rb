@@ -110,7 +110,7 @@ module MotionModel
       
       fields do |field|
         view_obj = self.view.viewWithTag(field.tag)
-        @model.send("#{field.name}=".to_sym, view_obj.text)
+        @model.send("#{field.name}=".to_sym, view_obj.text) if view_obj.respond_to?(:text)
       end
     end
 
