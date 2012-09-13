@@ -12,11 +12,11 @@ describe 'persistence' do
   end
   
   it "serializes data" do
-    lambda{@tasks.serialize_to_file('test.dat')}.should.not.raise
+    lambda{PersistTask.serialize_to_file('test.dat')}.should.not.raise
   end
   
   it 'reads persisted model data' do
-    @tasks.serialize_to_file('test.dat')
+    PersistTask.serialize_to_file('test.dat')
 
     PersistTask.delete_all
     
@@ -36,7 +36,7 @@ describe 'persistence' do
         columns       :name => :string
       end
       @foo = Foo.create(:name=> 'Bob')
-      @foo.serialize_to_file('test.dat')
+      Foo.serialize_to_file('test.dat')
       
       @foo.should.not.respond_to :address
   
@@ -61,7 +61,7 @@ describe 'persistence' do
         columns       :name => :string, :desc => :string
       end
       @foo = Foo.create(:name=> 'Bob', :desc => 'who cares anyway?')
-      @foo.serialize_to_file('test.dat')
+      Foo.serialize_to_file('test.dat')
       
       @foo.should.respond_to :desc
   
