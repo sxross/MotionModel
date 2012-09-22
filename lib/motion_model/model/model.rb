@@ -424,14 +424,14 @@ module MotionModel
       base_method = method.to_s.gsub('=', '').to_sym
       
       col = column_named(base_method)
-      raise RuntimeError.new("nil column #{method} accessed.") if col.nil?
+      raise NoMethodError.new("nil column #{method} accessed.") if col.nil?
 
       unless col.type == :belongs_to_id
         has_relation = relation_for(col) if self.class.has_relation?(col)
         return has_relation if has_relation
       end
       
-      if col
+      unless col.nil?
         if method.to_s.include?('=')
           @dirty = true
           return @data[base_method] = col.type == :belongs_to_id ? args[0] : self.cast_to_type(base_method, args[0])
@@ -439,11 +439,13 @@ module MotionModel
           return @data[base_method]
         end
       else
-        raise NoMethodError, <<ERRORINFO
+        exception = NoMethodError.new(<<ERRORINFO
 method: #{method}
 args:   #{args.inspect}
 in:     #{self.class.name}
 ERRORINFO
+)
+        raise exception
       end
     end
 

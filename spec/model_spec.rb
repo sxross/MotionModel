@@ -134,12 +134,13 @@ describe "Creating a model" do
   describe 'finders' do
     before do
       Task.delete_all
-      10.times {|i| Task.create(:name => "task #{i}")}
+      @tasks = []
+      10.times {|i| @tasks.push Task.create(:name => "task #{i}")}
     end
 
     describe 'find' do
       it 'finds elements within the collection' do
-        task = Task.find(3).name.should.equal('task 3')
+        task = Task.find(3).name.should.equal(@tasks[2].name) # zero based
       end
 
       it 'returns nil if find by id is not found' do
