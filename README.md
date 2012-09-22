@@ -187,20 +187,59 @@ Things That Work
   protocol. When you declare your columns, `MotionModel` understands how to
   serialize your data so you need take no further action.
   
-* Relations, in principle work. They are more embedded documents similar
-  to CouchDB or MongoDB. So instead of being separate tables, the embedded
-  documents are model objects contained in a collection.
+  **Warning**: As of this release, persistence will serialize only one
+  model at a time and not your entire data store. This will be fixed next.
   
-  **Relations Are Untested**. This is completely experimental, but to use
-  them, just define a column as type `:array`. Initializing these properly
-  and testing them is a high priority for me, so expect it to be addressed
-  soon.
+  * Relations now are usable, although not complete fleshed out:
+  
+  ```ruby
+  class Task
+    include MotionModel::Model
+    columns     :name => :string
+    has_many    :assignees
+  end
+  
+  class Assignee
+    include MotionModel::Model
+    columns     :assignee_name => :string
+    belongs_to  :task
+  end
+  
+  # Create a task, then create an assignee as a
+  # related object on that task
+  a_task = Task.create(:name => "Walk the Dog")
+  a_task.assignees.create(:assignee_name => "Howard")
+  
+  # See? It works.
+  a_task.assignees.assignee_name      # => "Howard"
+  Task.first.assignees.assignee_name  # => "Howard"
+  
+  # Create another assignee but don't save
+  # Add to assignees collection. Both objects
+  # are saved.
+  another_assignee = Assignee.new(:name => "Douglas")
+  a_task.assignees << another_assignee  # adds to relation and saves both objects
+  
+  # The count of assignees accurately reflects current state
+  a_task.assignees.count              # => 2
+  
+  # And backreference access through belongs_to works.
+  Assignee.first.task.name            # => "Walk the Dog"
+  ```
+  
+  At this point, there are a few methods that need to be added
+  for relations, and they will.
+  
+  * delete
+  * destroy
 
 * Core extensions work. The following are supplied:
 
   - String#humanize
   - String#titleize
   - String#empty?
+  - String#singularize
+  - String#pluralize
   - NilClass#empty?
   - Array#empty?
   - Hash#empty?
@@ -214,15 +253,44 @@ Things That Work
   - Debug.info(message)
   - Debug.warning(message)
   - Debug.error(message)
+  - Debug.silence / Debug.resume to turn on and off logging
+  - Debug.colorize (true/false) for pretty console display
+  
+  Finally, there is an inflector singleton class based around the one
+  Rails has implemented. You don't need to dig around in this class
+  too much, as its core functionality is exposed through two methods:
+  
+  String#singularize
+  String#pluralize
+  
+  These work, with the caveats that 1) The inflector is English-language
+  based; 2) Irregular nouns are not handled; 3) Singularizing a singular
+  or pluralizing a plural makes for good cocktail-party stuff, but in
+  code, it mangles things pretty badly.
+  
+  You may want to get into customizing your inflections using:
+  
+  - Inflector.inflections.singular(rule, replacement)
+  - Inflector.inflections.plural(rule, replacement)
+  - Inflector.inflections.irregular(rule, replacement)
+  
+  These allow you to add to the list of rules the inflector uses when
+  processing singularize and pluralize. For each singular rule, you will
+  probably want to add a plural one. Note that order matters for rules,
+  so if your inflection is getting chewed up in one of the baked-in
+  inflections, you may have to use Inflector.inflections.reset to empty
+  them all out and build your own.
+  
+  Of particular note is Inflector.inflections.irregular. This is for words
+  that defy regular rules such as 'man' => 'men' or 'person' => 'people'.
+  Again, a reversing rule is required for both singularize and 
+  pluralize to work properly.
 
 Things In The Pipeline
 ----------------------
 
-- More tests!
 - More robust id assignment
-- Testing relations
 - Adding validations and custom validations
-- Did I say more tests?
 
 Problems/Comments
 ------------------
