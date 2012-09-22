@@ -17,6 +17,17 @@ module MotionModel
         @default = default || nil
       end
       alias_method :add_attribute, :add_attr
+      
+      def classify
+        case @type
+        when :belongs_to
+          @klass ||= Object.const_get @name.to_s.downcase.capitalize
+        when :has_many
+          @klass ||= Object.const_get @name.to_s.downcase.singularize.capitalize
+        else
+          raise "#{@name} is not a relation. This isn't supposed to happen."
+        end
+      end
     end
   end
 end

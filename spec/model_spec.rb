@@ -180,6 +180,20 @@ describe "Creating a model" do
         found_task = Task.where(:details).contain("s 1").first.details.should == 'details 1'
       end
       
+      it "performs set inclusion(in) queries" do
+        class InTest
+          include MotionModel::Model
+          columns :name
+        end
+        
+        1.upto(10) do |i|
+          InTest.create(:id => i, :name => "test #{i}")
+        end
+        
+        results = InTest.find(:id).in([3, 5, 7])
+        results.length.should == 3
+      end
+      
       it 'handles case-sensitive queries' do
         task = Task.create :name => 'Bob'
         Task.find(:name).eq('bob', :case_sensitive => true).all.length.should == 0

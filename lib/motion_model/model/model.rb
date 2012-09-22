@@ -43,10 +43,11 @@ module MotionModel
   module Model
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set("@_columns", [])
-      base.instance_variable_set("@_column_hashes", {})
-      base.instance_variable_set("@collection", [])
-      base.instance_variable_set("@_next_id", 1)
+      base.instance_variable_set("@_columns", [])         # Columns in model
+      base.instance_variable_set("@_column_hashes", {})   # Hashes to for quick column lookup
+      base.instance_variable_set("@_relations", {})       # relations
+      base.instance_variable_set("@collection", [])       # Actual data
+      base.instance_variable_set("@_next_id", 1)          # Next assignable id
     end
     
     module ClassMethods
@@ -101,6 +102,52 @@ module MotionModel
         end
       end
       
+      # Use at class level, as follows:
+      #
+      #   class Task
+      #     include MotionModel::Model
+      #
+      #     columns  :name, :details, :assignees
+      #     has_many :assignees
+      #
+      # Note that :assignees must be declared as a virtual attribute on the
+      # model before you can has_many on it.
+      #
+      # This enables code like:
+      #
+      #   Task.find(:due_date).gt(Time.now).first.assignees
+      #
+      # to get the people assigned to first task that is due after right now.
+      #
+      # This must be used with a belongs_to macro in the related model class
+      # if you want to be able to access the inverse relation.
+      def has_many(*relations)
+        relations.each do |relation|
+          raise ArgumentError.new("arguments to has_many must be a symbol, a string or an array of same.") unless relation.is_a?(Symbol) || relation.is_a?(String)
+          add_field relation, :has_many                                   # Relation must be plural
+        end
+      end
+      
+      def belongs_to_id(relation)
+        (relation.downcase + '_id').to_sym
+      end
+
+      # Use at class level, as follows
+      #
+      #   class Assignee
+      #     include MotionModel::Model
+      #
+      #     columns :assignee_name, :department
+      #     belongs_to :task
+      #
+      # Allows code like this:
+      #
+      #   Assignee.find(:assignee_name).like('smith').first.task
+      def belongs_to(relation)
+        add_field relation, :belongs_to
+        add_field belongs_to_id(relation), :belongs_to_id    # a relation is singular.
+      end
+      
       # Returns a column denoted by +name+
       def column_named(name)
         @_column_hashes[name.to_sym]
@@ -135,7 +182,17 @@ module MotionModel
       def default(column)
         column_named(column).default || nil
       end
-
+      
+      def has_relation?(col)
+        col = case col
+        when MotionModel::Model::Column
+          column_named(col.name)
+        else
+          column_named(col)
+        end
+        col.type == :has_many || col.type == :belongs_to
+      end
+      
       # Creates an object and saves it. E.g.:
       #
       #   @bob = Person.create(:name => 'Bob', :hobby => 'Bird Watching')
@@ -161,6 +218,7 @@ module MotionModel
       # Empties the entire store.
       def delete_all
         @collection = [] # TODO: Handle cascading or let GC take care of it.
+        @_next_id = 1
         @collection.compact!
       end
 
@@ -180,7 +238,7 @@ module MotionModel
         end
         
         unless args[0].is_a?(Symbol) || args[0].is_a?(String)
-          return @collection[args[0].to_i] || nil
+          return @collection.select{|c| c.id == args[0].to_i}.first || nil
         end
         
         FinderQuery.new(args[0].to_sym, @collection)
@@ -224,7 +282,7 @@ module MotionModel
       @tz_offset ||= NSDate.date.to_s.gsub(/^.*?( -\d{4})/, '\1')
 
       @cached_date_formatter = NSDateFormatter.alloc.init # Create once, as they are expensive to create
-      @cached_date_formatter.dateFormat = "yyyy-MM-dd HH:mm"
+      @cached_date_formatter.dateFormat = "MM-dd-yyyy HH:mm"
 
       unless options[:id]
         options[:id] = self.class.next_id
@@ -234,9 +292,15 @@ module MotionModel
       end
 
       columns.each do |col|
-        options[col] ||= self.class.default(col)
-        cast_value = cast_to_type(col, options[col])
-        @data[col] = cast_value
+        unless [:belongs_to, :belongs_to_id, :has_many].include? column_named(col).type
+          options[col] ||= self.class.default(col)
+          cast_value = cast_to_type(col, options[col])
+          @data[col] = cast_value
+        else
+          if column_named(col).type == :belongs_to_id
+            @data[col] = options[col]
+          end
+        end
       end
       
       dirty = true
@@ -264,7 +328,7 @@ module MotionModel
     end
 
     def to_s
-      columns.each{|c| "#{c}: #{self.send(c)}"}
+      columns.each{|c| "#{c}: #{self.send(c)}\n"}
     end
 
     def save
@@ -318,6 +382,32 @@ module MotionModel
       @dirty      
     end
     
+    def relation_for(col)
+      # relation is a belongs_to or a has_many
+      case col.type
+        when :belongs_to
+          # column = col.match(/^(.*)_id$/)
+          # column = column[0] if column.length > 1
+          result = col.classify.find(       # for clarity, we get the class
+            @data.send(                     # and look inside it to find the
+              :[], :id                      # parent element that the current 
+            )                               # object belongs to.
+          )
+          result
+        when :has_many
+          belongs_to_id = self.class.send(:belongs_to_id, self.class.to_s)
+          
+          # For has_many to work, the finder query needs the
+          # actual object, and the class of the relation
+          result = col.classify.find(belongs_to_id).belongs_to(self, col.classify).eq(    # find all elements of belongs_to 
+              @data.send(:[], :id)                                                # class that have the ID of this element       Task.find(:assignee_id).eq(3)
+            )
+          result
+        else
+          nil
+      end
+    end
+    
     # Handle attribute retrieval
     # 
     # Gets and sets work as expected, and type casting occurs
@@ -330,15 +420,21 @@ module MotionModel
     #     date = Task.date
     # 
     # Date is a real date object.
-    def method_missing(method, *args, &block)
+    def method_missing(method, *args, &block)      
       base_method = method.to_s.gsub('=', '').to_sym
       
       col = column_named(base_method)
+      raise RuntimeError.new("nil column #{method} accessed.") if col.nil?
+
+      unless col.type == :belongs_to_id
+        has_relation = relation_for(col) if self.class.has_relation?(col)
+        return has_relation if has_relation
+      end
       
       if col
         if method.to_s.include?('=')
           @dirty = true
-          return @data[base_method] = self.cast_to_type(base_method, args[0])
+          return @data[base_method] = col.type == :belongs_to_id ? args[0] : self.cast_to_type(base_method, args[0])
         else
           return @data[base_method]
         end
@@ -353,4 +449,3 @@ ERRORINFO
 
   end
 end
-
