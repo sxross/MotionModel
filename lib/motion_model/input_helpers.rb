@@ -208,6 +208,7 @@ module MotionModel
     end
     
     def cell_has_first_responder?(cell)
+      return false unless cell.respond_to?(:subviews)
       cell.subviews.each do |subview|
         return true if subview.isFirstResponder
       end
