@@ -194,7 +194,11 @@ class Debug
   def self.put_message(type, message, color = Ansi.reset_color)
     open_color = @@colorize ? color : ''
     close_color = @@colorize ? Ansi.reset_color : ''
-    NSLog("#{open_color}#{type} #{caller[1]}: #{message}#{close_color}") unless @@silent
+    
+    ### It appears that RubyMotion does not support caller backtrace yet.
+    
+    # NSLog("#{open_color}#{type} #{caller[1]}: #{message}#{close_color}") unless @@silent
+    NSLog("#{open_color}#{type} #{message}#{close_color}") unless @@silent
   end
   
   def self.info(msg)
@@ -209,4 +213,15 @@ class Debug
     put_message 'ERROR', msg, Ansi.red_color
   end
   
+end
+
+# These are C macros in iOS SDK. Not workable for Ruby.
+def UIInterfaceOrientationIsLandscape(orientation)
+  orientation == UIInterfaceOrientationLandscapeLeft ||
+     orientation == UIInterfaceOrientationLandscapeRight
+end
+
+def UIInterfaceOrientationIsPortrait(orientation)
+  orientation == UIInterfaceOrientationPortrait ||
+     orientation == UIInterfaceOrientationPortraitUpsideDown
 end
