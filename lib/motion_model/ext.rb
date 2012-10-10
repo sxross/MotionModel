@@ -50,7 +50,9 @@ class Inflector
     
     @irregulars = [
       ['person', 'people'],
-      ['people', 'person']
+      ['people', 'person'],
+      ['children', 'child'],
+      ['child', 'children']
     ]
     
     @uncountables = [
