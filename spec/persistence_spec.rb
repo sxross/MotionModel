@@ -81,4 +81,56 @@ describe 'persistence' do
       Foo.length.should == 1
     end
   end
+
+  describe "remembering filename" do
+    class Foo
+      include MotionModel::Model
+      columns :name => :string
+    end
+
+    before do
+      Foo.delete_all
+      @foo = Foo.create(:name => 'Bob')
+    end
+
+    it "deserializes from last file if no filename given (previous method serialize)" do
+      Foo.serialize_to_file('test.dat')
+      Foo.delete_all
+      Foo.count.should == 0
+      Foo.deserialize_from_file # => TypeError: can't convert nil into String
+      Foo.count.should == 1
+    end
+
+    it "deserializes from last file if no filename given (previous method deserialize)" do
+      Foo.serialize_to_file('test.dat')
+      Foo.deserialize_from_file('test.dat')
+      Foo.delete_all
+      Foo.count.should == 0
+      Foo.deserialize_from_file # => TypeError: can't convert nil into String
+      Foo.count.should == 1
+    end
+
+    it "serializes to last file if no filename given (previous method serialize)" do
+      Foo.serialize_to_file('test.dat')
+      Foo.create(:name => 'Ted')
+      Foo.serialize_to_file # => TypeError: can't convert nil into String
+      Foo.delete_all
+      Foo.count.should == 0
+      Foo.deserialize_from_file('test.dat')
+      Foo.count.should == 2
+    end
+
+    it "serializes to last file if no filename given (previous method deserialize)" do
+      Foo.serialize_to_file('test.dat')
+      Foo.delete_all
+      Foo.deserialize_from_file('test.dat')
+      Foo.create(:name => 'Ted')
+      Foo.serialize_to_file # => TypeError: can't convert nil into String
+      Foo.delete_all
+      Foo.count.should == 0
+      Foo.deserialize_from_file('test.dat')
+      Foo.count.should == 2
+    end
+
+  end
 end
