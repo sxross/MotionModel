@@ -138,3 +138,40 @@ describe 'persistence' do
 
   end
 end
+
+describe "serialization of relations" do
+  class Parent
+    include MotionModel::Model
+    columns   :name
+    has_many  :children
+  end
+  
+  class Child
+    include MotionModel::Model
+    columns     :name
+    belongs_to  :parent
+  end
+  
+  before do
+    parent = Parent.create(:name => 'BoB')
+    parent.children.create :name => 'Fergie'
+    parent.children.create :name => 'Will I Am'
+  end
+  
+  it "is wired up right" do
+    Parent.first.name.should == 'BoB'
+    Parent.first.children.count.should == 2
+  end
+  
+  it "serializes and deserializes properly" do
+    Parent.serialize_to_file('parents.dat')
+    Child.serialize_to_file('children.dat')
+    Parent.delete_all
+    Child.delete_all
+    Parent.deserialize_from_file('parents.dat')
+    Child.deserialize_from_file('children.dat')
+    Parent.first.name.should == 'BoB'
+    Parent.first.children.count.should == 2
+    Parent.first.children.first.name.should == 'Fergie'
+  end
+end
