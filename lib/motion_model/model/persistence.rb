@@ -10,12 +10,12 @@ module MotionModel
       #
       # Raises a +MotionModel::PersistFileFailureError+ on failure.
       def deserialize_from_file(file_name = nil)
-        @file_name ||= file_name
+        @file_name = file_name if file_name
         
         if File.exist? documents_file(@file_name)
           error_ptr = Pointer.new(:object)
       
-          data = NSData.dataWithContentsOfFile(documents_file(file_name), options:NSDataReadingMappedIfSafe, error:error_ptr)
+          data = NSData.dataWithContentsOfFile(documents_file(@file_name), options:NSDataReadingMappedIfSafe, error:error_ptr)
           
           if data.nil?
             error = error_ptr[0]
@@ -38,11 +38,11 @@ module MotionModel
       #
       # Raises a +MotionModel::PersistFileFailureError+ on failure.
       def serialize_to_file(file_name = nil)
-        @file_name ||= file_name
+        @file_name = file_name if file_name
         error_ptr = Pointer.new(:object)
 
         data = NSKeyedArchiver.archivedDataWithRootObject @collection
-        unless data.writeToFile(documents_file(file_name), options: NSDataWritingAtomic, error: error_ptr)
+        unless data.writeToFile(documents_file(@file_name), options: NSDataWritingAtomic, error: error_ptr)
           # De-reference the pointer.
           error = error_ptr[0]
 
