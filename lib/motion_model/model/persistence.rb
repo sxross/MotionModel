@@ -40,7 +40,7 @@ module MotionModel
       def serialize_to_file(file_name = nil)
         @file_name = file_name if file_name
         error_ptr = Pointer.new(:object)
-
+        
         data = NSKeyedArchiver.archivedDataWithRootObject @collection
         unless data.writeToFile(documents_file(@file_name), options: NSDataWritingAtomic, error: error_ptr)
           # De-reference the pointer.
@@ -85,9 +85,12 @@ module MotionModel
     # values.
     def encodeWithCoder(coder)
       columns.each do |attr|
-        value = self.send(attr)
-        unless value.nil?
-          coder.encodeObject(value, forKey: attr.to_s)
+        # Serialize attributes except the proxy has_many and belongs_to ones.
+        unless [:belongs_to, :has_many].include? column_named(attr).type
+          value = self.send(attr)
+          unless value.nil?
+            coder.encodeObject(value, forKey: attr.to_s)
+          end
         end
       end
     end
