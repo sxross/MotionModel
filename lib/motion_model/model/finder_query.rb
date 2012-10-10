@@ -195,7 +195,7 @@ module MotionModel
     
     # task.assignees.new(:name => 'BoB')
     # creates a new unsaved Assignee object on the Task object task
-    def new(options)
+    def new(options = {})
       raise ArgumentError.new("Creating on a relation requires the parent be saved first.") if @related_object.nil?
       
       id_field = (@related_object.class.to_s.downcase + '_id').to_sym
