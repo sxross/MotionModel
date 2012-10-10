@@ -75,6 +75,15 @@ describe 'related objects' do
       Task.find(3).assignees.push(assignee)
       Task.find(3).assignees.count.should == assignee_count + 1
     end
+    
+    it "supports creating blank (empty) scratchpad associated objects" do
+      task = Task.create :name => 'watch a movie'
+      assignee = task.assignees.new
+      assignee.assignee_name = 'Chloe'
+      assignee.save
+      task.assignees.count.should == 1
+      task.assignees.first.assignee_name.should == 'Chloe'
+    end
   end
   
   describe "supporting belongs_to" do
