@@ -51,6 +51,20 @@ module MotionModel
     end
     
     module ClassMethods
+      # Use to do bulk insertion, updating, or deleting without
+      # making repeated calls to a delegate. E.g., when syncing
+      # with an external data source.
+      def bulk_update(&block)
+        @call_delegate_method = false
+        yield
+        @call_delegate_method = true
+      end
+      
+      def call_delegate(object, info) #nodoc
+        @call_delegate_method = true if @call_delegate_method.nil?
+        NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info) if @call_delegate_method && !object.nil?
+      end
+
       def add_field(name, options, default = nil) #nodoc
         col = Column.new(name, options, default)
         @_columns.push col
@@ -217,6 +231,12 @@ module MotionModel
 
       # Empties the entire store.
       def delete_all
+        # Do each delete so any on_delete and
+        # cascades are called, then empty the
+        # collection and compact the array.
+        bulk_update do
+          self.each{|item| item.delete}
+        end
         @collection = [] # TODO: Handle cascading or let GC take care of it.
         @_next_id = 1
         @collection.compact!
@@ -286,10 +306,10 @@ module MotionModel
 
       unless options[:id]
         options[:id] = self.class.next_id
-        self.class.increment_id
       else
         self.class.next_id = [options[:id].to_i, self.class.next_id].max
       end
+      self.class.increment_id
 
       columns.each do |col|
         unless [:belongs_to, :belongs_to_id, :has_many].include? column_named(col).type
@@ -330,24 +350,28 @@ module MotionModel
     def to_s
       columns.each{|c| "#{c}: #{self.send(c)}\n"}
     end
-
+    
     def save
       collection = self.class.instance_variable_get('@collection')
       @dirty = false
       
       # Existing object implies update in place
       # TODO: Optimize location of existing id
+      action = 'add'
       if obj = collection.find{|o| o.id == @data[:id]}
-        obj = self
+        collection = self
+        action = 'update'
       else
         collection << self
       end
+      self.class.call_delegate(self, :action => action)
     end
     
     def delete
       collection = self.class.instance_variable_get('@collection')
       target_index = collection.index{|item| item.id == self.id}
       collection.delete_at(target_index)
+      self.class.call_delegate(self, :action => 'delete')
     end
 
     def length
