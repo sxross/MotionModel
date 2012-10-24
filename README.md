@@ -133,12 +133,13 @@ already present, it's left alone. If it's missing, then it is created for you.
 Each row id is guaranteed to be unique, so you can use this when communicating
 with a server or syncing your rowset to a UITableView.
 
-Things That Work
+Using MotionModel
 -----------------
 
-* Models, in general, work. They aren't ultra full-featured, but more is in the
-  works. In particular, finders are just coming online. All column data may be
-  accessed by member name, e.g., `@task.name`.
+* Your data in a model is accessed in a very ActiveRecord (or Railsey) way.
+  This should make transitioning from Rails or any ORM that follows the
+  ActiveRecord pattern pretty easy. Some of the finder syntactic sugar is
+  similar to that of Sequel or DataMapper.
   
   * Finders are implemented using chaining. Here is an examples:
 
@@ -169,6 +170,13 @@ Things That Work
     @tasks = Task.order{|one, two| two.details <=> one.details}.all # Get tasks ordered descending by :details
     ```
 
+    You can implement some aggregate functions using map/reduce:
+
+```ruby
+  @task.all.map{|task| task.number_of_items}.reduce(:+)                # implements sum
+  @task.all.map{|task| task.number_of_items}.reduce(:+) / @task.count  #implements average
+```
+
 * Serialization is part of MotionModel. So, in your `AppDelegate` you might do something like this:
 
   ```ruby
@@ -181,16 +189,18 @@ Things That Work
     Task.serialize_to_file('tasks.dat')
   end
   ```
+  After the first serialize or deserialize, your model will remember the file
+  name so you can call these methods without the filename argument.
   
-  Note that the this serialization of any arbitrarily complex set of relations
+  Implementation note: that the this serialization of any arbitrarily complex set of relations
   is automatically handled by `NSCoder` provided you conform to the coding
-  protocol. When you declare your columns, `MotionModel` understands how to
-  serialize your data so you need take no further action.
+  protocol (which MotionModel does). When you declare your columns, `MotionModel` understands how to
+  serialize your data so you need take no specific action.
   
   **Warning**: As of this release, persistence will serialize only one
-  model at a time and not your entire data store. This will be fixed next.
+  model at a time and not your entire data store.
   
-  * Relations now are usable, although not complete fleshed out:
+  * Relations
   
   ```ruby
   class Task
@@ -230,10 +240,86 @@ Things That Work
   At this point, there are a few methods that need to be added
   for relations, and they will.
   
-  * delete
   * destroy
+  
+Notifications
+-------------
 
-* Core extensions work. The following are supplied:
+  Notifications are issued on object save, update, and delete. They work like this:
+  
+  ```ruby
+  def viewDidAppear(animated)
+    super
+    # other stuff here to set up your view
+    
+    NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', name:'MotionModelDataDidChangeNotification', object:nil)
+  end
+  
+  def viewWillDisappear(animated)
+    super
+    NSNotificationCenter.defaultCenter.removeObserver self
+  end
+  
+  # ... more stuff ...
+  
+  def dataDidChange(notification)
+    # code to update or refresh your view based on the object passed back
+    # and the userInfo. userInfo keys are:
+    #   action
+    #     'add'
+    #     'update'
+    #     'delete'
+  end
+  ```
+  
+  In your dataDidChange notification handler, you can respond to the `'MotionModelDataDidChangeNotification'` notification any way you like,
+  but in the instance of a tableView, you might want to use the id of the object passed back to locate
+  the correct row in the table and act upon it instead of doing a wholesale `reloadData`.
+  
+  Note that if you do a delete_all, no notifications are issued because there is no single object
+  on which to report. You pretty much know what you need to do: Refresh your view.
+
+  This is implemented as a notification and not a delegate so you can dispatch something
+  like a remote synch operation but still be confident you will be updating the UI only on the main thread.
+  MotionModel does not currently send notification messages that differentiate by class, so if your
+  UI presents `Task`s and you get a notification that an `Assignee` has changed:
+  
+  ```ruby
+  class Task
+    include MotionModel::Model
+    has_many :assignees
+    # etc
+  end
+  
+  class Assignee
+    include MotionModel::Model
+    belongs_to :task
+    # etc
+  end
+
+  # ...
+  
+  task = Task.create :name => 'Walk the dog'  # Triggers notification with a task object
+  task.assignees.create :name => 'Adam'       # Triggers notification with an assignee object
+  
+  # ...
+  
+  # We set up observers for `MotionModelDataDidChangeNotification` someplace and:
+  def dataDidChange(notification)
+  if notification.object is_a?(Task)
+    # Update our UI
+  else
+    # This notification is not for us because
+    # We don't display anything other than tasks
+  end
+  ```
+  
+  The above example implies you are only presenting, say, a list of tasks in the current
+  view. If, however, you are presenting a list of tasks along with their assignees and
+  the assignees could change as a result of a background sync, then your code could and
+  should recognize the change to assignee objects.
+  
+Core Extensions
 
   - String#humanize
   - String#titleize
@@ -245,7 +331,8 @@ Things That Work
   - Hash#empty?
   - Symbol#titleize
   
-  Also in the extensions is a debug class to log stuff to the console.
+  Also in the extensions is a `Debug` class to log stuff to the console.
+  It uses NSLog so you will have a separate copy in your application log.
   This may be preferable to `puts` just because it's easier to spot in
   your code and it gives you the exact level and file/line number of the
   info/warning/error in your console output:
@@ -289,7 +376,6 @@ Things That Work
 Things In The Pipeline
 ----------------------
 
-- More robust id assignment
 - Adding validations and custom validations
 
 Problems/Comments
@@ -304,8 +390,8 @@ one).
 Then be sure references to motion_model are commented out or removed from your Gemfile
 and/or Rakefile and put this in your Rakefile:
 
-```
-require "~/github/local//MotionModel/lib/motion_model.rb"
+```ruby
+require "~/github/local/MotionModel/lib/motion_model.rb"
 ```
 
 The `~/github/local` is where I cloned it, but you can put it anyplace. Next, make
@@ -314,9 +400,9 @@ sure you are following the project on GitHub so you know when there are changes.
 Submissions/Patches
 ------------------
 
-Obviously, the ideal one is a pull request from your own fork, complete with passing
+Obviously, the ideal patch request is really a pull request from your own fork, complete with passing
 specs.
 
-Really, even a failing spec or some proposed code is fine. I really want to make
+Really, for a bug report, even a failing spec or some proposed code is fine. I really want to make
 this a decent tool for RubyMotion developers who need a straightforward data
 modeling and persistence framework.

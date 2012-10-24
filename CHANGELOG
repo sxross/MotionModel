@@ -1,3 +1,11 @@
+2012-10-14: Primary New Feature: Notifications
+
+MotionModel: Added bulk update, which suppresses notifications and added it to delete_all.
+MotionModel: Added notifications of type MotionModelDataDidChangeNotification on data change.
+MotionModel: Added classification code to save to differentiate between save-new and update
+MotionModel: Added notification calls to save and delete
+
+
 2012-09-05: Basically rewrote how the data is stored.
 
 The API remains consistent, but a certain amount of
