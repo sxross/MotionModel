@@ -175,3 +175,4 @@ describe "serialization of relations" do
     Parent.first.children.first.name.should == 'Fergie'
   end
 end
+

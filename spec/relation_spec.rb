@@ -99,3 +99,4 @@ describe 'related objects' do
     end
   end
 end
+
