@@ -451,10 +451,15 @@ module MotionModel
       base_method = method.to_s.gsub('=', '').to_sym
       
       col = column_named(base_method)
+
       if method.to_s.include?('=')
         if col.type == :belongs_to then
           belongs_to_id = (col.name + "_id").to_sym
-          @data[belongs_to_id] = args[0].send(:id)
+          if (args[0].nil?)
+            @data[belongs_to_id] = nil
+          else
+            @data[belongs_to_id] = args[0].send(:id)
+          end
           return args[0]
         end
       end
