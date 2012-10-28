@@ -65,10 +65,44 @@ module MotionModel
         NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info) if @call_delegate_method && !object.nil?
       end
 
-      def add_field(name, options, default = nil) #nodoc
-        col = Column.new(name, options, default)
+      def define_accessor_methods(name)
+        define_method(name.to_sym) {
+          @data[name]
+        }
+        define_method("#{name}=".to_sym) { |value|
+          base_method = name.match(/^[^=]*/)[0].to_sym
+          @data[base_method] = cast_to_type(base_method, value)
+        }
+      end
+
+      def define_belongs_to_methods(name)
+        define_method(name) {
+          relation_for(name)
+         }
+        define_method("#{name}=") { |value|
+          relation_for(name, value[:id])
+         }
+      end
+
+      def define_has_many_methods(name)
+        define_method(name) {
+          relation_for(name)
+        }
+      end
+
+      def add_field(name, type, default = nil) #nodoc
+        col = Column.new(name, type, default)
         @_columns.push col
         @_column_hashes[col.name.to_sym] = col
+
+        case type
+          when :has_many
+            define_has_many_methods(name)
+          when :belongs_to
+            define_belongs_to_methods(name)
+          else
+            define_accessor_methods(name)
+          end
       end
 
       # Macro to define names and types of columns. It can be used in one of
@@ -334,7 +368,7 @@ module MotionModel
       case type(column_name)
       when :string
         return_value = arg.to_s
-      when :int, :integer
+      when :int, :integer, :belongs_to_id
         return_value = arg.is_a?(Integer) ? arg : arg.to_i
       when :float, :double
         return_value = arg.is_a?(Float) ? arg : arg.to_f
@@ -408,10 +442,9 @@ module MotionModel
     
     def relation_for(col)
       # relation is a belongs_to or a has_many
+      col = column_named(col)
       case col.type
         when :belongs_to
-          # column = col.match(/^(.*)_id$/)
-          # column = column[0] if column.length > 1
           result = col.classify.find(       # for clarity, we get the class
             @data.send(                     # and look inside it to find the
               :[], :id                      # parent element that the current 
@@ -448,7 +481,7 @@ module MotionModel
       base_method = method.to_s.gsub('=', '').to_sym
       
       col = column_named(base_method)
-      raise NoMethodError.new("nil column #{method} accessed.") if col.nil?
+      raise NoMethodError.new("nil column #{method} accessed from #{caller[1]}.") if col.nil?
 
       unless col.type == :belongs_to_id
         has_relation = relation_for(col) if self.class.has_relation?(col)
