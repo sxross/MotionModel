@@ -197,10 +197,7 @@ class Debug
     open_color = @@colorize ? color : ''
     close_color = @@colorize ? Ansi.reset_color : ''
     
-    ### It appears that RubyMotion does not support caller backtrace yet.
-    
-    # NSLog("#{open_color}#{type} #{caller[1]}: #{message}#{close_color}") unless @@silent
-    NSLog("#{open_color}#{type} #{message}#{close_color}") unless @@silent
+    NSLog("#{open_color}#{type} #{caller[1]}: #{message}#{close_color}") unless @@silent
   end
   
   def self.info(msg)
