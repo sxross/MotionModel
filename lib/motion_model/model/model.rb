@@ -412,9 +412,11 @@ module MotionModel
         when :belongs_to
           # column = col.match(/^(.*)_id$/)
           # column = column[0] if column.length > 1
+          belongs_to_id = (col.name.to_s + "_id").to_sym
+
           result = col.classify.find(       # for clarity, we get the class
             @data.send(                     # and look inside it to find the
-              :[], :id                      # parent element that the current 
+              :[], belongs_to_id            # parent element that the current 
             )                               # object belongs to.
           )
           result
