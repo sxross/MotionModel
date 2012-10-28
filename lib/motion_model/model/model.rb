@@ -239,6 +239,7 @@ module MotionModel
         end
         @collection = [] # TODO: Handle cascading or let GC take care of it.
         @_next_id = 1
+        #@_next_id = rand(100).floor
         @collection.compact!
       end
 
@@ -450,6 +451,14 @@ module MotionModel
       base_method = method.to_s.gsub('=', '').to_sym
       
       col = column_named(base_method)
+      if method.to_s.include?('=')
+        if col.type == :belongs_to then
+          belongs_to_id = (col.name + "_id").to_sym
+          @data[belongs_to_id] = args[0].send(:id)
+          return args[0]
+        end
+      end
+
       raise NoMethodError.new("nil column #{method} accessed.") if col.nil?
 
       unless col.type == :belongs_to_id
