@@ -10,6 +10,19 @@ class ATask
   columns :name, :details, :some_day
 end
 
+
+class Parent
+  include MotionModel::Model
+  columns       :name => :string
+  has_many      :children
+end
+
+class Child
+  include MotionModel::Model
+  columns       :name => :string
+  belongs_to    :parent
+end
+
 class TypeCast
   include MotionModel::Model
   columns :an_int => {:type => :int, :default => 3},
@@ -23,6 +36,8 @@ end
 describe "Creating a model" do
   before do
     Task.delete_all
+    Child.delete_all
+    Parent.delete_all
   end
 
   describe 'column macro behavior' do
@@ -36,6 +51,13 @@ describe "Creating a model" do
       atask = Task.create(:name => 'bob')
       atask.should.respond_to(:details)
     end
+
+    it 'creates a model with attributes that are relations, if it can accept nested attributes' do
+      child = Child.create(:name => 'child', :parent => {:name => 'parent'})
+      Child.first.name.should.equal('child')
+      Parent.first.name.should.equal('parent')
+    end
+ 
 
     it 'simply bypasses spurious attributes erroneously set' do
       a_task = Task.new(:name => 'details', :zoo => 'very bad')
