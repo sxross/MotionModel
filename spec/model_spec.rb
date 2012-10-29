@@ -227,7 +227,7 @@ class NotifiableTask
   attr_accessor :notification_called, :notification_details
   
   def hookup_events
-    NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', name:'MotionModelDataDidChangeNotification', object:nil)
+    @notification_id = NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', name:'MotionModelDataDidChangeNotification', object:nil)
     @notification_details = nil
   end
 
@@ -237,7 +237,7 @@ class NotifiableTask
   end
 
   def teardown_events
-    NSNotificationCenter.defaultCenter.removeObserver self
+    NSNotificationCenter.defaultCenter.removeObserver @notification_id
   end
 end
 
