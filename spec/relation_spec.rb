@@ -85,7 +85,7 @@ describe 'related objects' do
       task.assignees.first.assignee_name.should == 'Chloe'
     end
   end
-  
+
   describe "supporting belongs_to" do
     before do
       Task.delete_all
@@ -96,6 +96,26 @@ describe 'related objects' do
       t = Task.create(:name => "Walk the Dog")
       t.assignees.create(:assignee_name => "Rihanna")
       Assignee.first.task.name.should == "Walk the Dog"
+    end
+
+    it "sets up the belongs_to relation when assigning to the belongs_to side of the relation" do
+      
+      t = Task.create(:name => "Walk the Dog")
+      a = Assignee.create(:assignee_name => "Rihanna")
+      a.task = t
+      Assignee.first.task.name.should == "Walk the Dog"
+    end
+
+    it "sets up the belongs_to relation when assigning to the belongs_to side of the relation" do
+      
+      t = Task.create(:name => "Walk the Dog")
+      a1 = Assignee.create(:assignee_name => "Rihanna")
+      a1.task = t
+      a2 = Assignee.create(:assignee_name => "Madonna")
+      a2.task = t
+      Assignee.all[0].task.name.should == "Walk the Dog"
+      Assignee.all[1].task.name.should == "Walk the Dog"
+      Task.first.assignees.all.size.should == 2
     end
   end
 end

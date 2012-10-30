@@ -10,6 +10,19 @@ class ATask
   columns :name, :details, :some_day
 end
 
+
+class Parent
+  include MotionModel::Model
+  columns       :name => :string
+  has_many      :children
+end
+
+class Child
+  include MotionModel::Model
+  columns       :name => :string
+  belongs_to    :parent
+end
+
 class TypeCast
   include MotionModel::Model
   columns :an_int => {:type => :int, :default => 3},
@@ -23,6 +36,8 @@ end
 describe "Creating a model" do
   before do
     Task.delete_all
+    Child.delete_all
+    Parent.delete_all
   end
 
   describe 'column macro behavior' do
@@ -36,6 +51,13 @@ describe "Creating a model" do
       atask = Task.create(:name => 'bob')
       atask.should.respond_to(:details)
     end
+
+    it 'creates a model with attributes that are relations, if it can accept nested attributes' do
+      child = Child.create(:name => 'child', :parent => {:name => 'parent'})
+      Child.first.name.should.equal('child')
+      Parent.first.name.should.equal('parent')
+    end
+ 
 
     it 'simply bypasses spurious attributes erroneously set' do
       a_task = Task.new(:name => 'details', :zoo => 'very bad')
@@ -216,6 +238,60 @@ describe "Creating a model" do
       @convertible.a_date.to_s.should.match(/^2012-09-15/)
     end
         
+  end
+
+  describe "hash generation" do
+    it "should generate a hash from the an object" do
+      task = Task.new(:name => "name", :details => "details")
+      hash = task.to_hash
+      hash[:name].should.equal("name")
+      hash[:details].should.equal("details")
+      hash[:date].should.equal(nil)
+      hash[:id].should.equal(1)
+    end
+
+    describe "hashes with inclusion" do
+      before do
+        Parent.delete_all
+        Child.delete_all
+        @parent = Parent.create(:name => "parent")
+        @child1 = @parent.children.create(:name => "child1")
+        @child2 = @parent.children.create(:name => "child2")
+      end
+      
+      it "should not generate any included info without :include option" do
+        hash = @parent.to_hash
+        hash.keys.size.should.equal(2)
+        hash[:name].should.equal("parent")
+        hash[:id].should.equal(1)
+      end
+
+      it "should generate inclusions for all has_many objects" do
+        Parent.first.children.count.should.equal(2)
+
+        hash = @parent.to_hash(:include => :children)
+        hash.keys.size.should.equal(3)
+        hash[:name].should.equal("parent")
+        hash[:id].should.equal(1)
+        hash[:children].size.should.equal(2)
+        hash[:children][0].keys.size.should.equal(2)
+        hash[:children][0][:name].should.equal("child1")
+        hash[:children][0][:id].should.equal(1)
+        hash[:children][1].keys.size.should.equal(2)
+        hash[:children][1][:name].should.equal("child2")
+        hash[:children][1][:id].should.equal(2)
+      end
+
+      it "should generate inclusion for the belongs_to objects" do
+        hash = @child1.to_hash(:include => :parent)
+        hash.keys.size.should.equal(3)
+        hash[:name].should.equal("child1")
+        hash[:id].should.equal(1)
+        hash[:parent].keys.size.should.equal(2)
+        hash[:parent][:name].should.equal("parent")
+        hash[:parent][:id].should.equal(1)
+      end
+    end
   end
 end
 

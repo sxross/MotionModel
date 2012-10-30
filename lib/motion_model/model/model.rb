@@ -239,6 +239,7 @@ module MotionModel
         end
         @collection = [] # TODO: Handle cascading or let GC take care of it.
         @_next_id = 1
+        #@_next_id = rand(100).floor
         @collection.compact!
       end
 
@@ -317,8 +318,15 @@ module MotionModel
           cast_value = cast_to_type(col, options[col])
           @data[col] = cast_value
         else
-          if column_named(col).type == :belongs_to_id
+          named_col = column_named(col)
+          # FIXME: need to make sure belongs_to_id runs before belongs_to for same relation
+          if named_col.type == :belongs_to_id
             @data[col] = options[col]
+          elsif named_col.type == :belongs_to && options[col]
+            belongs_to_id = (col.to_s + "_id").to_sym
+            new_object = named_col.classify.new(options[col])
+            new_object.save
+            @data[belongs_to_id] = new_object.id
           end
         end
       end
@@ -349,6 +357,35 @@ module MotionModel
 
     def to_s
       columns.each{|c| "#{c}: #{self.send(c)}\n"}
+    end
+
+    def to_hash(options={})
+      result = @data.dup
+      inclusions = options[:include]
+      if options[:remove_key] then
+        result.delete(options[:remove_key])
+      end
+      
+      return result if inclusions.nil?
+      inclusions = [inclusions] unless inclusions.is_a?(Array)
+      inclusions.each do |inclusion|
+        col = column_named(inclusion)
+        raise "include must be a relation" unless col.type == :belongs_to || col.type == :has_many
+
+        include_result = {}
+        if col.type == :has_many then
+          objects = relation_for(col)
+          # FIXME: need to underscorize the class name
+          key_to_remove = (self.class.to_s.downcase + "_id").to_sym
+          include_result = {inclusion => objects.all.map{|obj| obj.to_hash(:remove_key => key_to_remove)}} unless objects.all.empty?
+        else
+          object = relation_for(col)
+          result.delete((col.name.to_s + "_id").to_sym)
+          include_result = {inclusion => object.to_hash} if object
+        end
+        result = result.merge(include_result)
+      end
+      result
     end
     
     def save
@@ -412,9 +449,11 @@ module MotionModel
         when :belongs_to
           # column = col.match(/^(.*)_id$/)
           # column = column[0] if column.length > 1
+          belongs_to_id = (col.name.to_s + "_id").to_sym
+
           result = col.classify.find(       # for clarity, we get the class
             @data.send(                     # and look inside it to find the
-              :[], :id                      # parent element that the current 
+              :[], belongs_to_id            # parent element that the current 
             )                               # object belongs to.
           )
           result
@@ -448,6 +487,19 @@ module MotionModel
       base_method = method.to_s.gsub('=', '').to_sym
       
       col = column_named(base_method)
+
+      if method.to_s.include?('=')
+        if col.type == :belongs_to then
+          belongs_to_id = (col.name + "_id").to_sym
+          if (args[0].nil?)
+            @data[belongs_to_id] = nil
+          else
+            @data[belongs_to_id] = args[0].send(:id)
+          end
+          return args[0]
+        end
+      end
+
       raise NoMethodError.new("nil column #{method} accessed.") if col.nil?
 
       unless col.type == :belongs_to_id

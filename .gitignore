@@ -7,3 +7,10 @@ resources/*.storyboardc
 doc/**/*.*
 doc
 *.gem
+.backups
+**/.backups
+*.swp
+TAGS
+.rvmrc
+Notes.txt
+
