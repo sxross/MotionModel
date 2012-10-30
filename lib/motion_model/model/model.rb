@@ -357,6 +357,35 @@ module MotionModel
     def to_s
       columns.each{|c| "#{c}: #{self.send(c)}\n"}
     end
+
+    def to_hash(options={})
+      result = @data.dup
+      inclusions = options[:include]
+      if options[:remove_key] then
+        result.delete(options[:remove_key])
+      end
+      
+      return result if inclusions.nil?
+      inclusions = [inclusions] unless inclusions.is_a?(Array)
+      inclusions.each do |inclusion|
+        col = column_named(inclusion)
+        raise "include must be a relation" unless col.type == :belongs_to || col.type == :has_many
+
+        include_result = {}
+        if col.type == :has_many then
+          objects = relation_for(col)
+          # FIXME: need to underscorize the class name
+          key_to_remove = (self.class.to_s.downcase + "_id").to_sym
+          include_result = {inclusion => objects.all.map{|obj| obj.to_hash(:remove_key => key_to_remove)}} unless objects.all.empty?
+        else
+          object = relation_for(col)
+          result.delete((col.name.to_s + "_id").to_sym)
+          include_result = {inclusion => object.to_hash} if object
+        end
+        result = result.merge(include_result)
+      end
+      result
+    end
     
     def save
       collection = self.class.instance_variable_get('@collection')

@@ -239,6 +239,60 @@ describe "Creating a model" do
     end
         
   end
+
+  describe "hash generation" do
+    it "should generate a hash from the an object" do
+      task = Task.new(:name => "name", :details => "details")
+      hash = task.to_hash
+      hash[:name].should.equal("name")
+      hash[:details].should.equal("details")
+      hash[:date].should.equal(nil)
+      hash[:id].should.equal(1)
+    end
+
+    describe "hashes with inclusion" do
+      before do
+        Parent.delete_all
+        Child.delete_all
+        @parent = Parent.create(:name => "parent")
+        @child1 = @parent.children.create(:name => "child1")
+        @child2 = @parent.children.create(:name => "child2")
+      end
+      
+      it "should not generate any included info without :include option" do
+        hash = @parent.to_hash
+        hash.keys.size.should.equal(2)
+        hash[:name].should.equal("parent")
+        hash[:id].should.equal(1)
+      end
+
+      it "should generate inclusions for all has_many objects" do
+        Parent.first.children.count.should.equal(2)
+
+        hash = @parent.to_hash(:include => :children)
+        hash.keys.size.should.equal(3)
+        hash[:name].should.equal("parent")
+        hash[:id].should.equal(1)
+        hash[:children].size.should.equal(2)
+        hash[:children][0].keys.size.should.equal(2)
+        hash[:children][0][:name].should.equal("child1")
+        hash[:children][0][:id].should.equal(1)
+        hash[:children][1].keys.size.should.equal(2)
+        hash[:children][1][:name].should.equal("child2")
+        hash[:children][1][:id].should.equal(2)
+      end
+
+      it "should generate inclusion for the belongs_to objects" do
+        hash = @child1.to_hash(:include => :parent)
+        hash.keys.size.should.equal(3)
+        hash[:name].should.equal("child1")
+        hash[:id].should.equal(1)
+        hash[:parent].keys.size.should.equal(2)
+        hash[:parent][:name].should.equal("parent")
+        hash[:parent][:id].should.equal(1)
+      end
+    end
+  end
 end
 
 class NotifiableTask
