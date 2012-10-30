@@ -318,10 +318,11 @@ module MotionModel
           cast_value = cast_to_type(col, options[col])
           @data[col] = cast_value
         else
-          #if column_named(col).type == :belongs_to_id
-          #  @data[col] = options[col]
           named_col = column_named(col)
-          if named_col.type == :belongs_to && options[col]
+          # FIXME: need to make sure belongs_to_id runs before belongs_to for same relation
+          if named_col.type == :belongs_to_id
+            @data[col] = options[col]
+          elsif named_col.type == :belongs_to && options[col]
             belongs_to_id = (col.to_s + "_id").to_sym
             new_object = named_col.classify.new(options[col])
             new_object.save
