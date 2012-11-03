@@ -30,7 +30,6 @@ describe 'related objects' do
     
     it "supports creating related objects directly on parents" do
       a_task = Task.create(:name => 'Walk the Dog')
-      Debug.info "Task assignees are: #{a_task.assignees.inspect}"
       a_task.assignees.create(:assignee_name => 'bob')
       a_task.assignees.length.should == 1
       a_task.assignees.first.assignee_name.should == 'bob'
@@ -99,23 +98,9 @@ describe 'related objects' do
       Assignee.first.task.name.should == "Walk the Dog"
     end
 
-    # it "lets you change your mind about what an object belongs to" do
-    #   t1 = Task.create(:name => "Walk the Dog")
-    #   a1 = Assignee.create :assignee_name => "Jim"
-    #   a1.task = t1
-    #   a1.save
-    #   t1.assignees.count.should == 1
-    #   t1.assignees.first.name.should == "Walk the Dog"
-
-    #   t2 = Task.create :name => "Feed the cat"
-    #   a1.task = t2
-    #   a1.save
-    #   t2.assignees.count.should == 1
-    #   t2.assignees.first.name.should == "Feed the Cat"
-    # end
-
-    describe "mind changing behavior in belongs_to" do
+    describe "belongs_to reassignment" do
       before do
+        Task.delete_all
         @t1 = Task.create(:name => "Walk the Dog")
         @t2 = Task.create :name => "Feed the cat"
         @a1 = Assignee.create :assignee_name => "Jim"
@@ -141,25 +126,39 @@ describe 'related objects' do
 
       describe "when pushing assignees onto two different tasks" do
         before do
-          # @t1.assignees << @a1
           @t2.assignees << @a1
         end
 
-        # it "pushing assignees to two different tasks lets the last task have the assignee (count)" do
-        #   @t2.assignees.count.should == 1
-        # end
+        it "pushing assignees to two different tasks lets the last task have the assignee (count)" do
+          @t2.assignees.count.should == 1
+        end
 
-        # it "pushing assignees to two different tasks removes the assignee from the first task (count)" do
-        #   @t1.assignees.count.should == 0
-        # end
+        it "pushing assignees to two different tasks removes the assignee from the first task (count)" do
+          @t1.assignees.count.should == 0
+        end
 
-        # it "pushing assignees to two different tasks lets the last task have the assignee (assignee name)" do
-        #   @t2.assignees.first.assignee_name.should == "Jim"
-        # end
+        it "pushing assignees to two different tasks lets the last task have the assignee (assignee name)" do
+          @t2.assignees.first.assignee_name.should == "Jim"
+        end
 
         it "pushing assignees to two different tasks lets the last task have the assignee (back reference)" do
-          puts "ID is #{@a1.task_id}"
           @a1.task.name.should == "Feed the cat"
+        end
+      end
+      
+      describe "directly assigning to child" do        
+        it "directly assigning a different task to an assignee changes the assignee's task" do
+          @a1.task = @t1.id
+          @a1.save
+          @t1.assignees.count.should == 1
+          @t1.assignees.first.assignee_name.should == @a1.assignee_name
+        end
+        
+        it "directly assigning an instance of a task to an assignee changes the assignee's task" do
+          @a1.task = @t1
+          @a1.save
+          @t1.assignees.count.should == 1
+          @t1.assignees.first.assignee_name.should == @a1.assignee_name
         end
       end
     end 

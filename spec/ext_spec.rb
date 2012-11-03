@@ -41,7 +41,7 @@ describe 'Extensions' do
     end
 
     it "handles person to people pluralizing" do
-      Inflector.inflections.singularize('person').should == 'people'
+      Inflector.inflections.pluralize('person').should == 'people'
     end
   end
   

@@ -21,11 +21,10 @@ class TypeCast
 end
 
 describe "Creating a model" do
-  before do
-    Task.delete_all
-  end
-
   describe 'column macro behavior' do
+    before do
+      Task.delete_all
+    end
 
     it 'succeeds when creating a valid model from attributes' do
       a_task = Task.new(:name => 'name', :details => 'details')
@@ -87,6 +86,10 @@ describe "Creating a model" do
   end
 
   describe "ID handling" do
+    before do
+      Task.delete_all
+    end
+
 
     it 'creates an id if none present' do
       task = Task.create
@@ -105,6 +108,9 @@ describe "Creating a model" do
   end
 
   describe 'count and length methods' do
+    before do
+      Task.delete_all
+    end
 
     it 'has a length method' do
       Task.should.respond_to(:length)
@@ -131,20 +137,23 @@ describe "Creating a model" do
 
   end
 
-  
   describe 'deleting' do
     before do
-      10.times {|i| Task.create(:name => "task #{i}")}
+      Task.delete_all
+      Task.bulk_update do
+        1.upto(10) {|i| Task.create(:name => "task #{i}")}
+      end
     end
     
     it 'deletes a row' do
       target = Task.find(:name).eq('task 3').first
+      target.should.not == nil
       target.delete
       Task.find(:name).eq('task 3').count.should.equal 0
     end
     
     it 'deleting a row changes length' do
-      target = Task.find(:name).eq('task 3').first
+      target = Task.find(:name).eq('task 2').first
       lambda{target.delete}.should.change{Task.length}
     end
   end
@@ -218,66 +227,3 @@ describe "Creating a model" do
         
   end
 end
-
-class NotifiableTask
-  include MotionModel::Model
-  columns :name
-  has_many :assignees
-  
-  attr_accessor :notification_called, :notification_details
-  
-  def hookup_events
-    NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', name:'MotionModelDataDidChangeNotification', object:nil)
-    @notification_details = nil
-  end
-
-  def dataDidChange(notification)
-    @notification_called = true
-    @notification_details = notification.userInfo
-  end
-
-  def teardown_events
-    NSNotificationCenter.defaultCenter.removeObserver self
-  end
-end
-
-describe 'data change notifications' do
-  before do
-    @task = NotifiableTask.new
-    @task.hookup_events
-  end
-  
-  after do
-    @task.teardown_events
-  end
-  
-  it "fires a change notification when an item is added" do
-    @task.notification_called = false
-    lambda{@task.save}.should.change{@task.notification_called}
-  end
-  
-  it "contains an add notification for new objects" do
-    @task.save
-    @task.notification_details[:action].should == 'add'
-  end
-  
-  it "contans an update notification for an updated object" do
-    @task.save
-    @task.name = "Bill"
-    @task.save
-    @task.notification_details[:action].should == 'update'
-  end
-  
-  it "contains a delete notification for a deleted object" do
-    @task.save
-    @task.delete
-    @task.notification_details[:action].should == 'delete'
-  end
-  
-  it "does not get a delete notification for delete_all" do
-    @task = NotifiableTask.create :name => 'Bob'
-    @task.notification_called = nil
-    lambda{NotifiableTask.delete_all}.should.not.change{@task.notification_called}
-  end
-end
-
