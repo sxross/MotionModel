@@ -21,7 +21,9 @@ module MotionModel
             error = error_ptr[0]
             raise MotionModel::PersistFileFailureError.new "Error when reading the data: #{error}"
           else
-            collection = NSKeyedUnarchiver.unarchiveObjectWithData(data)
+            bulk_update do
+              collection = NSKeyedUnarchiver.unarchiveObjectWithData(data)
+            end
             return self
           end
         else
@@ -63,6 +65,7 @@ module MotionModel
 
       new_tag_id = 1
       columns.each do |attr|
+        next if self.class.has_relation?(attr)
         # If a model revision has taken place, don't try to decode
         # something that's not there.
         if coder.containsValueForKey(attr.to_s)
