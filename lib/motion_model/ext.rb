@@ -34,14 +34,20 @@ class Inflector
   end
   
   def reset
+    # Put singular-form to plural form transformations here
     @plurals = [
+      [/^person$/, 'people'],
+      [/^child$/, 'children'],
       [/^(.*)ee$/i, '\1ees'],     # attendee => attendees
       [/^(.*)us$/i, '\1i'],       # alumnus  => alumni
       [/^(.*s)$/i, '\1es'],       # pass     => passes
       [/^(.*)$/, '\1s']           # normal   => normals
     ]
 
+    # Put plural-form to singular form transformations here
     @singulars = [
+      [/^people$/, 'person'],
+      [/^children$/, 'child'],
       [/^(.*)ees$/i, '\1ee'],     # attendees  => attendee
       [/^(.*)es$/i, '\1'],        # passes     => pass
       [/^(.*)i$/i, '\1us'],       # alumni     => alumnus
@@ -49,10 +55,6 @@ class Inflector
     ]
     
     @irregulars = [
-      ['person', 'people'],
-      ['people', 'person'],
-      ['children', 'child'],
-      ['child', 'children']
     ]
     
     @uncountables = [
