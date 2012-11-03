@@ -43,11 +43,12 @@ module MotionModel
   module Model
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set("@_columns", [])         # Columns in model
-      base.instance_variable_set("@_column_hashes", {})   # Hashes to for quick column lookup
-      base.instance_variable_set("@_relations", {})       # relations
-      base.instance_variable_set("@collection", [])       # Actual data
-      base.instance_variable_set("@_next_id", 1)          # Next assignable id
+      base.instance_variable_set("@_columns", [])               # Columns in model
+      base.instance_variable_set("@_column_hashes", {})         # Hashes to for quick column lookup
+      base.instance_variable_set("@_relations", {})             # relations
+      base.instance_variable_set("@collection", [])             # Actual data
+      base.instance_variable_set("@_next_id", 1)                # Next assignable id
+      base.instance_variable_set("@_issue_notifications", true) # Next assignable id
     end
     
     module ClassMethods
@@ -55,14 +56,15 @@ module MotionModel
       # making repeated calls to a delegate. E.g., when syncing
       # with an external data source.
       def bulk_update(&block)
-        @call_delegate_method = false
-        yield
-        @call_delegate_method = true
+        @_issue_notifications = false
+        class_eval &block
+        @_issue_notifications = true
       end
       
-      def call_delegate(object, info) #nodoc
-        @call_delegate_method = true if @call_delegate_method.nil?
-        NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info) if @call_delegate_method && !object.nil?
+      def issue_notification(object, info) #nodoc
+        if @_issue_notifications == true && !object.nil?
+          NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info)
+        end
       end
 
       def define_accessor_methods(name)
@@ -70,18 +72,21 @@ module MotionModel
           @data[name]
         }
         define_method("#{name}=".to_sym) { |value|
-          base_method = name.match(/^[^=]*/)[0].to_sym
-          @data[base_method] = cast_to_type(base_method, value)
+          @data[name] = cast_to_type(name, value)
         }
       end
 
       def define_belongs_to_methods(name)
         define_method(name) {
-          relation_for(name)
-         }
+          col = column_named(name)
+          parent_id = @data[self.class.belongs_to_id(col.name)]
+          col.classify.find(parent_id)
+        }
         define_method("#{name}=") { |value|
-          relation_for(name, value[:id])
-         }
+          col = column_named(name)
+          parent_id = self.class.belongs_to_id(col.name)
+          @data[parent_id.to_sym] = value.to_i
+        }
       end
 
       def define_has_many_methods(name)
@@ -269,11 +274,11 @@ module MotionModel
         # cascades are called, then empty the
         # collection and compact the array.
         bulk_update do
-          self.each{|item| item.delete}
+          @collection.each{|item| item.delete}
         end
-        @collection = [] # TODO: Handle cascading or let GC take care of it.
+        @collection = []
         @_next_id = 1
-        @collection.compact!
+        # @collection.compact!
       end
 
       # Finds row(s) within the data store. E.g.,
@@ -330,7 +335,7 @@ module MotionModel
  
     ####### Instance Methods #######
     def initialize(options = {})
-      @data ||= {}
+      @data ||= {}  # REVIEW: Why make this conditional?
       
       # Time zone, for future use.
       @tz_offset ||= NSDate.date.to_s.gsub(/^.*?( -\d{4})/, '\1')
@@ -358,6 +363,10 @@ module MotionModel
       end
       
       dirty = true
+    end
+
+    def to_i
+      @data[:id].to_i
     end
 
     def cast_to_type(column_name, arg)
@@ -398,14 +407,15 @@ module MotionModel
       else
         collection << self
       end
-      self.class.call_delegate(self, :action => action)
+      self.class.issue_notification(self, :action => action)
     end
     
     def delete
       collection = self.class.instance_variable_get('@collection')
+            
       target_index = collection.index{|item| item.id == self.id}
       collection.delete_at(target_index)
-      self.class.call_delegate(self, :action => 'delete')
+      self.class.issue_notification(self, :action => 'delete')
     end
 
     def length
@@ -484,6 +494,7 @@ module MotionModel
       raise NoMethodError.new("nil column #{method} accessed from #{caller[1]}.") if col.nil?
 
       unless col.type == :belongs_to_id
+        Debug.error "method missing for #{base_method}"
         has_relation = relation_for(col) if self.class.has_relation?(col)
         return has_relation if has_relation
       end
