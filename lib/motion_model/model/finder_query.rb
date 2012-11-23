@@ -42,7 +42,7 @@ module MotionModel
     
     ######## relational operators ########
     def translate_case(item, case_sensitive)#nodoc
-      item = item.downcase if case_sensitive === false && item.respond_to?(:downcase)
+      item = item.underscore if case_sensitive === false && item.respond_to?(:underscore)
       item
     end
     
@@ -198,7 +198,7 @@ module MotionModel
     def new(options = {})
       raise ArgumentError.new("Creating on a relation requires the parent be saved first.") if @related_object.nil?
       
-      id_field = (@related_object.class.to_s.downcase + '_id').to_sym
+      id_field = (@related_object.class.to_s.underscore + '_id').to_sym
       new_obj = @klass.new(options.merge(id_field => @related_object.id))
       
       new_obj
@@ -216,7 +216,7 @@ module MotionModel
     # This both establishes the relation and saves the related
     # object, so make sure the related object is valid.
     def push(object)
-      id_field = (@related_object.class.to_s.downcase + '_id=').to_sym
+      id_field = (@related_object.class.to_s.underscore + '_id=').to_sym
       object.send(id_field, @related_object.id)
       result = object.save
       result ||= @related_object.save

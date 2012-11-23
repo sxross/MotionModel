@@ -12,5 +12,6 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.name          = "motion_model"
   gem.require_paths = ["lib"]
+  gem.add_dependency 'bubble-wrap', '~> 1.1.4'
   gem.version       = MotionModel::VERSION
 end

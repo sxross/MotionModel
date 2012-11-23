@@ -182,7 +182,7 @@ module MotionModel
       end
       
       def belongs_to_id(relation)
-        (relation.downcase + '_id').to_sym
+        (relation.to_s.underscore + '_id').to_sym
       end
 
       # Use at class level, as follows
@@ -342,7 +342,7 @@ module MotionModel
 
       @cached_date_formatter = NSDateFormatter.alloc.init # Create once, as they are expensive to create
       @cached_date_formatter.dateFormat = "MM-dd-yyyy HH:mm"
-
+      
       unless options[:id]
         options[:id] = self.class.next_id
       else
@@ -489,7 +489,6 @@ module MotionModel
     # Date is a real date object.
     def method_missing(method, *args, &block)      
       base_method = method.to_s.gsub('=', '').to_sym
-      
       col = column_named(base_method)
       raise NoMethodError.new("nil column #{method} accessed from #{caller[1]}.") if col.nil?
 

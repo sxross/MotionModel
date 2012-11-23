@@ -37,6 +37,7 @@ class Inflector
     # Put singular-form to plural form transformations here
     @plurals = [
       [/^person$/, 'people'],
+      [/^identity$/, 'identities'],
       [/^child$/, 'children'],
       [/^(.*)ee$/i, '\1ees'],     # attendee => attendees
       [/^(.*)us$/i, '\1i'],       # alumnus  => alumni
@@ -47,6 +48,7 @@ class Inflector
     # Put plural-form to singular form transformations here
     @singulars = [
       [/^people$/, 'person'],
+      [/^identities$/, 'identity'],
       [/^children$/, 'child'],
       [/^(.*)ees$/i, '\1ee'],     # attendees  => attendee
       [/^(.*)es$/i, '\1'],        # passes     => pass
