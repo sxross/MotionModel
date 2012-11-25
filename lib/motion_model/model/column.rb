@@ -21,9 +21,9 @@ module MotionModel
       def classify
         case @type
         when :belongs_to
-          @klass ||= Object.const_get @name.to_s.downcase.capitalize
+          @klass ||= Object.const_get(@name.to_s.camelize)
         when :has_many
-          @klass ||= Object.const_get @name.to_s.downcase.singularize.capitalize
+          @klass ||= Object.const_get(@name.to_s.singularize.camelize)
         else
           raise "#{@name} is not a relation. This isn't supposed to happen."
         end
