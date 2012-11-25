@@ -13,10 +13,37 @@ class Task
 end
 
 
+class User
+  include MotionModel::Model
+  columns :name => :string
+  
+  has_many :email_accounts
+end
+
+class EmailAccount
+  include MotionModel::Model
+  columns :name => :string
+  belongs_to :user
+end
+  
 Inflector.inflections.irregular 'assignees', 'assignee'
 Inflector.inflections.irregular 'assignee', 'assignees'
 
 describe 'related objects' do
+  describe "supporting belongs_to and has_many with camelcased relations" do
+    before do
+      EmailAccount.delete_all
+      User.delete_all
+    end
+
+    it "camelcased style" do
+      t = User.create(:name => "Arkan")
+      t.email_accounts.create(:name => "Gmail")
+      EmailAccount.first.user.name.should == "Arkan"
+      User.last.email_accounts.last.name.should == "Gmail"
+    end
+  end
+
   describe 'has_many' do
     it "is wired up right" do
       lambda {Task.new}.should.not.raise
