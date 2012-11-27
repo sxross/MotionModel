@@ -237,6 +237,8 @@ module MotionModel
       end
       
       def has_relation?(col)
+        return false if col.nil?
+
         col = case col
         when MotionModel::Model::Column
           column_named(col.name)
@@ -487,34 +489,12 @@ module MotionModel
     #     date = Task.date
     # 
     # Date is a real date object.
-    def method_missing(method, *args, &block)      
-      base_method = method.to_s.gsub('=', '').to_sym
-      col = column_named(base_method)
-      raise NoMethodError.new("nil column #{method} accessed from #{caller[1]}.") if col.nil?
-
-      unless col.type == :belongs_to_id
-        Debug.error "method missing for #{base_method}"
-        has_relation = relation_for(col) if self.class.has_relation?(col)
-        return has_relation if has_relation
-      end
-      
-      unless col.nil?
-        if method.to_s.include?('=')
-          @dirty = true
-          return @data[base_method] = col.type == :belongs_to_id ? args[0] : self.cast_to_type(base_method, args[0])
-        else
-          return @data[base_method]
-        end
+    def method_missing(method, *args, &block)
+      if self.respond_to? method
+        return method(args, &block)
       else
-        exception = NoMethodError.new(<<ERRORINFO
-method: #{method}
-args:   #{args.inspect}
-in:     #{self.class.name}
-ERRORINFO
-)
-        raise exception
+        raise NoMethodError.new("nil column #{method} accessed from #{caller[1]}.")
       end
     end
-
   end
 end
