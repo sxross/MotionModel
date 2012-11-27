@@ -39,6 +39,7 @@
     
 module MotionModel
   class PersistFileError < Exception; end
+  class RelationIsNilError < Exception; end
   
   module Model
     def self.included(base)
@@ -455,25 +456,16 @@ module MotionModel
     def relation_for(col)
       # relation is a belongs_to or a has_many
       col = column_named(col)
+      raise RelationIsNilError.new("nil relation #{col} accessed from #{caller[1]}.") if col.nil?
+
       case col.type
         when :belongs_to
-          result = col.classify.find(       # for clarity, we get the class
-            @data.send(                     # and look inside it to find the
-              :[], :id                      # parent element that the current 
-            )                               # object belongs to.
-          )
-          result
-        when :has_many
+          return col.classify.find(@data[:id])
+         when :has_many
           belongs_to_id = self.class.send(:belongs_to_id, self.class.to_s)
-          
-          # For has_many to work, the finder query needs the
-          # actual object, and the class of the relation
-          result = col.classify.find(belongs_to_id).belongs_to(self, col.classify).eq(    # find all elements of belongs_to 
-              @data.send(:[], :id)                                                # class that have the ID of this element       Task.find(:assignee_id).eq(3)
-            )
-          result
+          return col.classify.find(belongs_to_id).belongs_to(self, col.classify).eq(@data[:id])
         else
-          nil
+          false
       end
     end
     
