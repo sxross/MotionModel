@@ -68,16 +68,17 @@ module MotionModel
         end
       end
 
-      def define_accessor_methods(name)
+      def define_accessor_methods(name) #nodoc
         define_method(name.to_sym) {
           @data[name]
         }
         define_method("#{name}=".to_sym) { |value|
           @data[name] = cast_to_type(name, value)
+          @dirty = true
         }
       end
 
-      def define_belongs_to_methods(name)
+      def define_belongs_to_methods(name) #nodoc
         define_method(name) {
           col = column_named(name)
           parent_id = @data[self.class.belongs_to_id(col.name)]
@@ -90,7 +91,7 @@ module MotionModel
         }
       end
 
-      def define_has_many_methods(name)
+      def define_has_many_methods(name) #nodoc
         define_method(name) {
           relation_for(name)
         }
@@ -133,26 +134,48 @@ module MotionModel
         
         case fields.first
         when Hash
-          fields.first.each_pair do |name, options|
-            raise ArgumentError.new("you cannot use `description' as a column name because of a conflict with Cocoa.") if name.to_s == 'description'
-            
-            case options
-            when Symbol, String
-              add_field(name, options)
-            when Hash
-              add_field(name, options[:type], options[:default])
-            else
-              raise ArgumentError.new("arguments to fields must be a symbol, a hash, or a hash of hashes.")
-            end
-          end
+          column_from_hash fields
+        when String, Symbol
+          column_from_string_or_sym fields
         else
-          fields.each do |name|
-            add_field(name, :string)
-          end
+          raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes -- was #{fields.first}.")
         end
 
         unless self.respond_to?(:id)
           add_field(:id, :integer)
+        end
+      end
+
+      # This populates a column from something like:
+      #
+      #   columns :name => :string, :age => :integer
+      #
+      #   or
+      #
+      #   columns :name => {:type => :string, :default => 'Joe Bob'}, :age => :integer
+
+      def column_from_hash(hash) #nodoc
+        hash.first.each_pair do |name, options|
+          raise ArgumentError.new("you cannot use `description' as a column name because of a conflict with Cocoa.") if name.to_s == 'description'
+          
+          case options
+          when Symbol, String
+            add_field(name, options)
+          when Hash
+            add_field(name, options[:type], options[:default])
+          else
+            raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes.")
+          end
+        end
+      end
+
+      # This populates a column from something like:
+      #
+      #   columns :name, :age, :hobby
+
+      def column_from_string_or_sym(string) #nodoc
+        string.each do |name|
+          add_field(name.to_sym, :string)
         end
       end
       
@@ -175,6 +198,7 @@ module MotionModel
       #
       # This must be used with a belongs_to macro in the related model class
       # if you want to be able to access the inverse relation.
+
       def has_many(*relations)
         relations.each do |relation|
           raise ArgumentError.new("arguments to has_many must be a symbol, a string or an array of same.") unless relation.is_a?(Symbol) || relation.is_a?(String)
@@ -365,7 +389,7 @@ module MotionModel
         end
       end
       
-      dirty = true
+      @dirty = true
     end
 
     def to_i

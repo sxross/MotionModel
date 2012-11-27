@@ -158,10 +158,34 @@ describe "Creating a model" do
     end
   end
   
-  describe 'Handling Attribute method_missing Implementation' do
+  describe 'Handling Attribute Implementation' do
     it 'raises a NoMethodError exception when an unknown attribute it referenced' do
       task = Task.new
       lambda{task.bar}.should.raise(NoMethodError)
+    end
+
+    it 'successfully retrieves by attribute' do
+      task = Task.create(:name => 'my task')
+      task.name.should == 'my task'
+    end
+
+    describe "dirty" do
+      before do
+        @new_task = Task.new
+      end
+
+      it 'marks a new object as dirty' do
+        @new_task.should.be.dirty
+      end
+
+      it 'marks a saved object as clean' do
+        lambda{@new_task.save}.should.change{@new_task.dirty?}
+      end
+
+      it 'marks a modified object as dirty' do
+        @new_task.save
+        lambda{@new_task.name = 'now dirty'}.should.change{@new_task.dirty?}
+      end
     end
   end
   
