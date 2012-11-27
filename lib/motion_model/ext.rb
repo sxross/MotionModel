@@ -52,11 +52,11 @@ end
 # words. It is very much based on the Rails
 # ActiveSupport implementation or Inflector
 class Inflector
-  def self.instance
+  def self.instance #nodoc
     @__instance__ ||= new
   end
 
-  def initialize
+  def initialize #nodoc
     reset
   end
 
@@ -123,32 +123,28 @@ class Inflector
     false
   end
 
-  def singularize(word)
+  def inflect(word, direction) #nodoc
     return word if uncountable?(word)
-    plural = word.dup
+
+    subject = word.dup
 
     @irregulars.each do |rule|
-      return plural if plural.gsub!(rule.first, rule.last)
+      return subject if subject.gsub!(rule.first, rule.last)
     end
 
-    @singulars.each do |rule|
-      return plural if plural.gsub!(rule.first, rule.last)
+    sense_group = direction == :singularize ? @singulars : @plurals
+    sense_group.each do |rule|
+      return subject if subject.gsub!(rule.first, rule.last)
     end
-    plural
+    subject
+  end
+
+  def singularize(word)
+     inflect word, :singularize
   end
 
   def pluralize(word)
-    return word if uncountable?(word)
-    singular = word.dup
-
-    @irregulars.each do |rule|
-      return singular if singular.gsub!(rule.first, rule.last)
-    end
-
-    @plurals.each do |rule|
-      return singular if singular.gsub!(rule.first, rule.last)
-    end
-    singular
+    inflect word, :pluralize
   end
 end
 
