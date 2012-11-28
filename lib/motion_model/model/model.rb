@@ -484,9 +484,12 @@ module MotionModel
 
       return case type(column_name)
       when :string then arg.to_s
-      when :int, :integer, :belongs_to_id then arg.is_a?(Integer) ? arg : arg.to_i
-      when :float, :double then arg.is_a?(Float) ? arg : arg.to_f
-      when :date then NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+      when :int, :integer, :belongs_to_id
+        arg.is_a?(Integer) ? arg : arg.to_i
+      when :float, :double
+        arg.is_a?(Float) ? arg : arg.to_f
+      when :date
+        arg.is_a?(NSDate) ? arg : NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
       else
         raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
       end
