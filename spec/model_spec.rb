@@ -3,6 +3,10 @@ class Task
   columns       :name => :string, 
   							:details => :string,
   							:some_day => :date
+
+  def custom_attribute_by_method
+    "#{name} - #{details}"
+  end
 end
 
 class ATask
@@ -130,11 +134,41 @@ describe "Creating a model" do
       Task.count.should.equal(1)
     end
 
+    it 'instance variables have access to length and count' do
+      task = Task.create
+      task.length.should.equal(1)
+      task.count.should.equal(1)
+    end
+
     it 'when there is more than one element, length returned is correct' do
       10.times { Task.create }
       Task.length.should.equal(10)
     end
 
+  end
+
+  describe 'adding or updating' do
+    before do
+      Task.delete_all
+    end
+
+    it 'adds to the collection when a new task is saved' do
+      task = Task.new
+      lambda{task.save}.should.change{Task.count}
+    end
+
+    it 'does not add to the collection when an existing task is saved' do
+      task = Task.create(:name => 'updateable')
+      task.name = 'updated'
+      lambda{task.save}.should.not.change{Task.count}
+    end
+
+    it 'updates data properly' do
+      task = Task.create(:name => 'updateable')
+      task.name = 'updated'
+      Task.where(:name).eq('updated').should == 0
+      lambda{task.save}.should.change{Task.where(:name).eq('updated')}
+    end
   end
 
   describe 'deleting' do
@@ -155,6 +189,14 @@ describe "Creating a model" do
     it 'deleting a row changes length' do
       target = Task.find(:name).eq('task 2').first
       lambda{target.delete}.should.change{Task.length}
+    end
+
+    it 'undeleting a row restores it' do
+      target = Task.find(:name).eq('task 3').first
+      target.should.not == nil
+      target.delete
+      target.undelete
+      Task.find(:name).eq('task 3').count.should.equal 1
     end
   end
   
@@ -248,6 +290,16 @@ describe "Creating a model" do
     it 'the date field should be the same as it was in string form' do
       @convertible.a_date.to_s.should.match(/^2012-09-15/)
     end
-        
+  end
+
+  describe 'defining custom attributes' do
+    before do
+      Task.delete_all
+      @task = Task.create :name => 'Feed the Cat', :details => 'Get food, pour out'
+    end
+
+    it 'uses a custom attribute by method' do
+      @task.custom_attribute_by_method.should == 'Feed the Cat - Get food, pour out'
+    end
   end
 end

@@ -2,7 +2,7 @@ module MotionModel
   class PersistFileError < Exception; end
   
   module Model
-    module ClassMethods
+    module PublicClassMethods
       # Returns the unarchived object if successful, otherwise false
       #
       # Note that subsequent calls to serialize/deserialize methods

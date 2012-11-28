@@ -43,7 +43,8 @@ module MotionModel
   
   module Model
     def self.included(base)
-      base.extend(ClassMethods)
+      base.extend(PrivateClassMethods)
+      base.extend(PublicClassMethods)
       base.instance_variable_set("@_columns", [])               # Columns in model
       base.instance_variable_set("@_column_hashes", {})         # Hashes to for quick column lookup
       base.instance_variable_set("@_relations", {})             # relations
@@ -52,7 +53,7 @@ module MotionModel
       base.instance_variable_set("@_issue_notifications", true) # Next assignable id
     end
     
-    module ClassMethods
+    module PublicClassMethods
       # Use to do bulk insertion, updating, or deleting without
       # making repeated calls to a delegate. E.g., when syncing
       # with an external data source.
@@ -62,56 +63,6 @@ module MotionModel
         @_issue_notifications = true
       end
       
-      def issue_notification(object, info) #nodoc
-        if @_issue_notifications == true && !object.nil?
-          NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info)
-        end
-      end
-
-      def define_accessor_methods(name) #nodoc
-        define_method(name.to_sym) {
-          @data[name]
-        }
-        define_method("#{name}=".to_sym) { |value|
-          @data[name] = cast_to_type(name, value)
-          @dirty = true
-        }
-      end
-
-      def define_belongs_to_methods(name) #nodoc
-        define_method(name) {
-          col = column_named(name)
-          parent_id = @data[self.class.belongs_to_id(col.name)]
-          col.classify.find(parent_id)
-        }
-        define_method("#{name}=") { |value|
-          col = column_named(name)
-          parent_id = self.class.belongs_to_id(col.name)
-          @data[parent_id.to_sym] = value.to_i
-        }
-      end
-
-      def define_has_many_methods(name) #nodoc
-        define_method(name) {
-          relation_for(name)
-        }
-      end
-
-      def add_field(name, type, default = nil) #nodoc
-        col = Column.new(name, type, default)
-        @_columns.push col
-        @_column_hashes[col.name.to_sym] = col
-
-        case type
-          when :has_many
-            define_has_many_methods(name)
-          when :belongs_to
-            define_belongs_to_methods(name)
-          else
-            define_accessor_methods(name)
-          end
-      end
-
       # Macro to define names and types of columns. It can be used in one of
       # two forms:
       #
@@ -146,39 +97,6 @@ module MotionModel
         end
       end
 
-      # This populates a column from something like:
-      #
-      #   columns :name => :string, :age => :integer
-      #
-      #   or
-      #
-      #   columns :name => {:type => :string, :default => 'Joe Bob'}, :age => :integer
-
-      def column_from_hash(hash) #nodoc
-        hash.first.each_pair do |name, options|
-          raise ArgumentError.new("you cannot use `description' as a column name because of a conflict with Cocoa.") if name.to_s == 'description'
-          
-          case options
-          when Symbol, String
-            add_field(name, options)
-          when Hash
-            add_field(name, options[:type], options[:default])
-          else
-            raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes.")
-          end
-        end
-      end
-
-      # This populates a column from something like:
-      #
-      #   columns :name, :age, :hobby
-
-      def column_from_string_or_sym(string) #nodoc
-        string.each do |name|
-          add_field(name.to_sym, :string)
-        end
-      end
-      
       # Use at class level, as follows:
       #
       #   class Task
@@ -206,8 +124,8 @@ module MotionModel
         end
       end
       
-      def belongs_to_id(relation)
-        (relation.to_s.underscore + '_id').to_sym
+      def generate_belongs_to_id(relation)
+        (relation.to_s.singularize.underscore + '_id').to_sym
       end
 
       # Use at class level, as follows
@@ -223,27 +141,7 @@ module MotionModel
       #   Assignee.find(:assignee_name).like('smith').first.task
       def belongs_to(relation)
         add_field relation, :belongs_to
-        add_field belongs_to_id(relation), :belongs_to_id    # a relation is singular.
-      end
-      
-      # Returns a column denoted by +name+
-      def column_named(name)
-        @_column_hashes[name.to_sym]
-      end
-
-      # Returns next available id
-      def next_id #nodoc
-        @_next_id
-      end
-
-      # Sets next available id
-      def next_id=(value)
-        @_next_id = value
-      end
-
-      # Increments next available id
-      def increment_id #nodoc
-        @_next_id += 1
+        add_field generate_belongs_to_id(relation), :belongs_to_id    # a relation is singular.
       end
 
       # Returns true if a column exists on this model, otherwise false.
@@ -259,18 +157,6 @@ module MotionModel
       # returns default value for this column or nil.
       def default(column)
         column_named(column).default || nil
-      end
-      
-      def has_relation?(col)
-        return false if col.nil?
-
-        col = case col
-        when MotionModel::Model::Column
-          column_named(col.name)
-        else
-          column_named(col)
-        end
-        col.type == :has_many || col.type == :belongs_to
       end
       
       # Creates an object and saves it. E.g.:
@@ -305,7 +191,6 @@ module MotionModel
         end
         @collection = []
         @_next_id = 1
-        # @collection.compact!
       end
 
       # Finds row(s) within the data store. E.g.,
@@ -324,7 +209,8 @@ module MotionModel
         end
         
         unless args[0].is_a?(Symbol) || args[0].is_a?(String)
-          return @collection.select{|c| c.id == args[0].to_i}.first || nil
+          target_id = args[0].to_i
+          return @collection.select{|element| element.id == target_id}.first
         end
         
         FinderQuery.new(args[0].to_sym, @collection)
@@ -359,77 +245,163 @@ module MotionModel
         @collection.empty?
       end
     end
- 
-    ####### Instance Methods #######
-    def initialize(options = {})
-      @data ||= {}  # REVIEW: Why make this conditional?
-      
-      # Time zone, for future use.
-      @tz_offset ||= NSDate.date.to_s.gsub(/^.*?( -\d{4})/, '\1')
 
-      @cached_date_formatter = NSDateFormatter.alloc.init # Create once, as they are expensive to create
-      @cached_date_formatter.dateFormat = "MM-dd-yyyy HH:mm"
-      
-      unless options[:id]
-        options[:id] = self.class.next_id
-      else
-        self.class.next_id = [options[:id].to_i, self.class.next_id].max
+    module PrivateClassMethods
+      # This populates a column from something like:
+      #
+      #   columns :name => :string, :age => :integer
+      #
+      #   or
+      #
+      #   columns :name => {:type => :string, :default => 'Joe Bob'}, :age => :integer
+
+      def column_from_hash(hash) #nodoc
+        hash.first.each_pair do |name, options|
+          raise ArgumentError.new("you cannot use `description' as a column name because of a conflict with Cocoa.") if name.to_s == 'description'
+          
+          case options
+          when Symbol, String
+            add_field(name, options)
+          when Hash
+            add_field(name, options[:type], options[:default])
+          else
+            raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes.")
+          end
+        end
       end
-      self.class.increment_id
+
+      # This populates a column from something like:
+      #
+      #   columns :name, :age, :hobby
+
+      def column_from_string_or_sym(string) #nodoc
+        string.each do |name|
+          add_field(name.to_sym, :string)
+        end
+      end
+      
+      def issue_notification(object, info) #nodoc
+        if @_issue_notifications == true && !object.nil?
+          NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info)
+        end
+      end
+
+      def define_accessor_methods(name) #nodoc
+        define_method(name.to_sym) {
+          @data[name]
+        }
+        define_method("#{name}=".to_sym) { |value|
+          @data[name] = cast_to_type(name, value)
+          @dirty = true
+        }
+      end
+
+      def define_belongs_to_methods(name) #nodoc
+        define_method(name) {
+          col = column_named(name)
+          parent_id = @data[self.class.generate_belongs_to_id(col.name)]
+          col.classify.find(parent_id)
+        }
+        define_method("#{name}=") { |value|
+          col = column_named(name)
+          parent_id = self.class.generate_belongs_to_id(col.name)
+          @data[parent_id.to_sym] = value.to_i
+        }
+      end
+
+      def define_has_many_methods(name) #nodoc
+        define_method(name) {
+          relation_for(name)
+        }
+      end
+
+      def add_field(name, type, default = nil) #nodoc
+        col = Column.new(name, type, default)
+        @_columns.push col
+        @_column_hashes[col.name.to_sym] = col
+
+        case type
+          when :has_many then define_has_many_methods(name)
+          when :belongs_to then define_belongs_to_methods(name)
+          else
+            define_accessor_methods(name)
+          end
+      end
+
+      # Returns a column denoted by +name+
+      def column_named(name) #nodoc
+        @_column_hashes[name.to_sym]
+      end
+
+      # Returns next available id
+      def next_id #nodoc
+        @_next_id
+      end
+
+      # Sets next available id
+      def next_id=(value) #nodoc
+        @_next_id = value
+      end
+
+      # Increments next available id
+      def increment_id #nodoc
+        @_next_id += 1
+      end
+
+      def has_relation?(col) #nodoc
+        return false if col.nil?
+
+        col = case col
+        when MotionModel::Model::Column
+          column_named(col.name)
+        else
+          column_named(col)
+        end
+        col.type == :has_many || col.type == :belongs_to
+      end
+      
+    end
+ 
+    def initialize(options = {})
+      @data ||= {}
+      
+      assign_id options
 
       columns.each do |col|
-        unless [:belongs_to, :belongs_to_id, :has_many].include? column_named(col).type
-          options[col] ||= self.class.default(col)
-          cast_value = cast_to_type(col, options[col])
-          @data[col] = cast_value
+        unless relation_column?(col) # all data columns
+          initialize_data_columns col, options
         else
-          if column_named(col).type == :belongs_to_id
-            @data[col] = options[col]
-          end
+          @data[col] = options[col] if column_named(col).type == :belongs_to_id
         end
       end
       
       @dirty = true
     end
 
+    # Default to_i implementation returns value of id column, much as
+    # in Rails.
+
     def to_i
       @data[:id].to_i
     end
 
-    def cast_to_type(column_name, arg)
-      return nil if arg.nil?
-      
-      return_value = arg
-      
-      case type(column_name)
-      when :string
-        return_value = arg.to_s
-      when :int, :integer, :belongs_to_id
-        return_value = arg.is_a?(Integer) ? arg : arg.to_i
-      when :float, :double
-        return_value = arg.is_a?(Float) ? arg : arg.to_f
-      when :date
-        return arg if arg.is_a?(NSDate)
-        return_value = NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
-      else
-        raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
-      end
-      return_value
-    end
-
+    # Default to_s implementation returns a list of columns and values
+    # separated by newlines.
     def to_s
       columns.each{|c| "#{c}: #{self.send(c)}\n"}
     end
-    
+
+    # Save current object. Speaking from the context of relational
+    # databases, this inserts a row if it's a new one, or updates
+    # in place if not.
     def save
-      collection = self.class.instance_variable_get('@collection')
       @dirty = false
       
       # Existing object implies update in place
       # TODO: Optimize location of existing id
       action = 'add'
       if obj = collection.find{|o| o.id == @data[:id]}
-        collection = self
+        obj = self
         action = 'update'
       else
         collection << self
@@ -437,37 +409,45 @@ module MotionModel
       self.class.issue_notification(self, :action => action)
     end
     
+    # Deletes the current object. The object can still be used.
+    
     def delete
-      collection = self.class.instance_variable_get('@collection')
-            
       target_index = collection.index{|item| item.id == self.id}
       collection.delete_at(target_index)
       self.class.issue_notification(self, :action => 'delete')
     end
 
-    def length
-      @collection.length
-    end
-    
-    alias_method :count, :length
-      
-    def column?(target_key)
-      self.class.column?(target_key.to_sym)
+    # Undelete does pretty much as its name implies. However,
+    # the natural sort order is not preserved.
+
+    def undelete
+      collection << self
+      self.class.issue_notification(self, :action => 'add')
     end
 
+    # Count of objects in the current collection
+    def length
+      collection.length
+    end
+    alias_method :count, :length
+      
+    # True if the column exists, otherwise false
+    def column?(column_name)
+      self.class.column?(column_name.to_sym)
+    end
+
+    # Returns list of column names as an array
     def columns
       self.class.columns
     end
 
-    def column_named(name)
-      self.class.column_named(name.to_sym)
-    end
-
-    def type(field_name)
-      self.class.type(field_name)
+    # Type of a given column
+    def type(column_name)
+      self.class.type(column_name)
     end
     
-    # Modify respond_to? to add model's attributes.
+    # True if this object responds to the method or
+    # property, otherwise false.
     alias_method :old_respond_to?, :respond_to?
     def respond_to?(method)
       column_named(method) || old_respond_to?(method)
@@ -477,21 +457,67 @@ module MotionModel
       @dirty      
     end
     
-    def relation_for(col)
-      # relation is a belongs_to or a has_many
-      col = column_named(col)
-      raise RelationIsNilError.new("nil relation #{col} accessed from #{caller[1]}.") if col.nil?
 
-      case col.type
-        when :belongs_to
-          return col.classify.find(@data[:id])
-         when :has_many
-          belongs_to_id = self.class.send(:belongs_to_id, self.class.to_s)
-          return col.classify.find(belongs_to_id).belongs_to(self, col.classify).eq(@data[:id])
-        else
-          false
+    private
+
+    def assign_id(options) #nodoc
+      unless options[:id]
+        options[:id] = self.class.next_id
+      else
+        self.class.next_id = [options[:id].to_i, self.class.next_id].max
+      end
+      self.class.increment_id
+    end
+
+    def relation_column?(column) #nodoc
+      [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
+    end
+
+    def initialize_data_columns(column, options) #nodoc
+      options[column] ||= self.class.default(column)
+      cast_value = cast_to_type(column, options[column])
+      @data[column] = cast_value
+    end
+
+    def cast_to_type(column_name, arg) #nodoc
+      return nil if arg.nil?
+
+      return case type(column_name)
+      when :string then arg.to_s
+      when :int, :integer, :belongs_to_id then arg.is_a?(Integer) ? arg : arg.to_i
+      when :float, :double then arg.is_a?(Float) ? arg : arg.to_f
+      when :date then NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+      else
+        raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
       end
     end
+    
+    def collection #nodoc
+      self.class.instance_variable_get('@collection')
+    end
+    
+    def column_named(name) #nodoc
+      self.class.column_named(name.to_sym)
+    end
+
+    def generate_belongs_to_id(class_or_column) # nodoc
+      self.class.generate_belongs_to_id(self.class)
+    end
+
+    def relation_for(col) # nodoc
+      col = column_named(col)
+      related_klass = col.classify
+      
+      case col.type
+        when :belongs_to
+          related_klass.find(@data[:id])
+        when :has_many
+          related_klass.find(generate_belongs_to_id(self.class)).belongs_to(self, related_klass).eq(@data[:id])
+        else
+          nil
+      end
+    end
+
     
     # Handle attribute retrieval
     # 
@@ -505,11 +531,11 @@ module MotionModel
     #     date = Task.date
     # 
     # Date is a real date object.
-    def method_missing(method, *args, &block)
+    def method_missing(method, *args, &block) #nodoc
       if self.respond_to? method
         return method(args, &block)
       else
-        raise NoMethodError.new("nil column #{method} accessed from #{caller[1]}.")
+        raise NoMethodError.new("nil column #{self.class}##{method} accessed from #{caller[1]}.")
       end
     end
   end

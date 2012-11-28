@@ -45,6 +45,11 @@ describe 'related objects' do
   end
 
   describe 'has_many' do
+    before do
+      Task.delete_all
+      Assignee.delete_all
+    end
+
     it "is wired up right" do
       lambda {Task.new}.should.not.raise
       lambda {Task.new.assignees}.should.not.raise
@@ -58,7 +63,7 @@ describe 'related objects' do
     it "supports creating related objects directly on parents" do
       a_task = Task.create(:name => 'Walk the Dog')
       a_task.assignees.create(:assignee_name => 'bob')
-      a_task.assignees.length.should == 1
+      a_task.assignees.count.should == 1
       a_task.assignees.first.assignee_name.should == 'bob'
       Assignee.count.should == 1
     end
@@ -71,7 +76,7 @@ describe 'related objects' do
         @tasks = []
         @assignees = []
         1.upto(3) do |task|
-          t = Task.create(:name => "task #{task}")
+          t = Task.create(:name => "task #{task}", :id => task)
           assignee_index = 1
           @tasks << t
           1.upto(task * 2) do |assignee|
@@ -94,13 +99,14 @@ describe 'related objects' do
         Task.find(2).name.should == @tasks[1].name
         Task.find(2).assignees.first.assignee_name.should == @assignees[2].assignee_name
       end
-    end
     
-    it 'supports adding related objects to parents' do
-      assignee = Assignee.new(:assignee_name => 'Zoe')
-      assignee_count = Task.find(3).assignees.count
-      Task.find(3).assignees.push(assignee)
-      Task.find(3).assignees.count.should == assignee_count + 1
+      it 'supports adding related objects to parents' do
+        assignee = Assignee.new(:assignee_name => 'Zoe')
+        Task.count.should == 3
+        assignee_count = Task.find(3).assignees.count
+        Task.find(3).assignees.push(assignee)
+        Task.find(3).assignees.count.should == assignee_count + 1
+      end
     end
     
     it "supports creating blank (empty) scratchpad associated objects" do
