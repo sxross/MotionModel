@@ -1,3 +1,18 @@
+2012-12-07: Added MIT license file.
+
+2012-12-06: Work on has_many to add cascading delete
+
+MotionModel: POTENTIAL CODE-BREAKING CHANGE. has_many now takes two arguments
+             only. Previously, it would allow a list of symbols or strings,
+             now it conforms more to the Rails way of one call per relation.
+             E.g.:
+
+             has_many :pets
+
+             -or-
+
+             has_many :pets, :delete => :destroy  # cascade delete.
+
 2012-10-14: Primary New Feature: Notifications
 
 MotionModel: Added bulk update, which suppresses notifications and added it to delete_all.
@@ -17,15 +32,15 @@ to the column metadata.
 
 * Default values have been added to fill in values
   if not specified in new or create.
-  
+
 2012-09-06: Added block-style finders. Added delete method.
 
 2012-09-07: IMPORTANT! PLEASE READ! Two new methods were added
             to MotionModel to support persistence:
-            
+
             Task#serialize_to_file(file_name)
             Task.deserialize_from_file(file_name)
-            
+
             Note that serialize operates on an instance and
             deserialize is a class method that creates an
             instance.

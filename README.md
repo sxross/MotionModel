@@ -26,6 +26,9 @@ are:
   helpers are certainly not the focus of this release, but
   I am using these in an app to create Apple-like input forms in
   static tables.
+
+MotionModel is MIT licensed, which means you can pretty much do whatever
+you like with it. See the LICENSE file in this project.
   
 Getting Going
 ================
