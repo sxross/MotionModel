@@ -1,24 +1,24 @@
 module MotionModel
   module InputHelpers
     class ModelNotSetError < RuntimeError; end
-    
+
     # FieldBindingMap contains a simple label to model
     # field binding, and is decorated by a tag to be
     # used on the UI control.
     class FieldBindingMap
       attr_accessor :label, :name, :tag
-      
+
       def initialize(options = {})
         @name = options[:name]
         @label = options[:label]
       end
     end
-    
+
     def self.included(base)
       base.extend(ClassMethods)
       base.instance_variable_set('@binding_data', [])
     end
-    
+
     module ClassMethods
       # +field+ is a declarative macro that specifies
       # the field name (i.e., the model field name)
@@ -41,15 +41,15 @@ module MotionModel
         @binding_data << FieldBindingMap.new(:label => label, :name => field)
       end
     end
-    
+
     # +model+ is a mandatory method in which you
     # specify the instance of the model to which
     # your fields are bound.
-    
+
     def model(model_instance)
       @model = model_instance
     end
-    
+
     # +field_count+ specifies how many fields have
     # been bound.
     #
@@ -66,10 +66,10 @@ module MotionModel
     # +field_at+ retrieves the field at a given index.
     #
     # Usage:
-    #  
+    #
     #     field = field_at(indexPath.row)
     #     label_view = subview(UILabel, :label_frame, text: field.label)
-    
+
     def field_at(index)
       data = self.class.instance_variable_get('@binding_data'.to_sym)
       data[index].tag = index + 1
@@ -86,7 +86,7 @@ module MotionModel
     def value_at(field)
       @model.send(field.name)
     end
-    
+
     # +fields+ is the iterator for all fields
     # mapped for this class.
     #
@@ -95,11 +95,11 @@ module MotionModel
     #     fields do |field|
     #       do_something_with field.label, field.value
     #     end
-    
+
     def fields
       self.class.instance_variable_get('@binding_data'.to_sym).each{|datum| yield datum}
     end
-    
+
     # +bind+ fetches all mapped fields from
     # any subview of the current +UIView+
     # and transfers the contents to the
@@ -107,7 +107,7 @@ module MotionModel
     # specified by the +model+ method.
     def bind
       raise ModelNotSetError.new("You must set the model before binding it.") unless @model
-      
+
       fields do |field|
         view_obj = self.view.viewWithTag(field.tag)
         @model.send("#{field.name}=".to_sym, view_obj.text) if view_obj.respond_to?(:text)
@@ -149,7 +149,6 @@ module MotionModel
       animationCurve = notification.userInfo.valueForKey(UIKeyboardAnimationCurveUserInfoKey)
       animationDuration = notification.userInfo.valueForKey(UIKeyboardAnimationDurationUserInfoKey)
       keyboardEndRect = notification.userInfo.valueForKey(UIKeyboardFrameEndUserInfoKey)
-      
       keyboardEndRect = view.convertRect(keyboardEndRect.CGRectValue, fromView:App.delegate.window)
 
       UIView.beginAnimations "changeTableViewContentInset", context:nil
@@ -158,28 +157,29 @@ module MotionModel
 
       intersectionOfKeyboardRectAndWindowRect = CGRectIntersection(App.delegate.window.frame, keyboardEndRect)
       bottomInset = intersectionOfKeyboardRectAndWindowRect.size.height;
-    
+
       @table.contentInset = UIEdgeInsetsMake(0, 0, bottomInset, 0)
 
+      UIView.commitAnimations
+
+
+      @table.scrollToRowAtIndexPath(owner_cell_index_path,
+          atScrollPosition:UITableViewScrollPositionMiddle,
+          animated: true)
+    end
+
+    def owner_cell_index_path
       # Find active cell
       indexPathOfOwnerCell = nil
       numberOfCells = @table.dataSource.tableView(@table, numberOfRowsInSection:0)
       0.upto(numberOfCells) do |index|
         indexPath = NSIndexPath.indexPathForRow(index, inSection:0)
         cell = @table.cellForRowAtIndexPath(indexPath)
-        if cell_has_first_responder?(cell)
-          indexPathOfOwnerCell = indexPath
-          break
-        end
+        return indexPath if find_first_responder(cell)
       end
 
-      UIView.commitAnimations
-
-      if indexPathOfOwnerCell
-        @table.scrollToRowAtIndexPath(indexPathOfOwnerCell, 
-          atScrollPosition:UITableViewScrollPositionMiddle,
-          animated: true)
-      end
+      # By default use the first section, first row.
+      NSIndexPath.indexPathForRow 0, inSection: 0
     end
 
     # Undo all the rejiggering when the keyboard slides
@@ -194,25 +194,28 @@ module MotionModel
       if UIEdgeInsetsEqualToEdgeInsets(@table.contentInset, UIEdgeInsetsZero)
         return
       end
-    
+
       animationCurve = notification.userInfo.valueForKey(UIKeyboardAnimationCurveUserInfoKey)
       animationDuration = notification.userInfo.valueForKey(UIKeyboardAnimationDurationUserInfoKey)
-    
+
       UIView.beginAnimations("changeTableViewContentInset", context:nil)
       UIView.setAnimationDuration(animationDuration)
       UIView.setAnimationCurve(animationCurve)
-    
+
       @table.contentInset = UIEdgeInsetsZero;
-    
-      UIView.commitAnimations    
+
+      UIView.commitAnimations
     end
-    
-    def cell_has_first_responder?(cell)
-      return false unless cell.respond_to?(:subviews)
-      cell.subviews.each do |subview|
-        return true if subview.isFirstResponder
+
+    def find_first_responder(parent)
+      return parent if parent.isFirstResponder
+
+      parent.subviews.each do |subview|
+        first_responder = find_first_responder(subview)
+        return first_responder if first_responder
       end
-      false
+
+      return false
     end
   end
 end

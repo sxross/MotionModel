@@ -28,7 +28,7 @@
 # * :float
 #
 # Assuming you have a bunch of tasks in your data store, you can do this:
-# 
+#
 #    tasks_this_week = Task.where(:due_date).ge(beginning_of_week).and(:due_date).le(end_of_week).order(:due_date)
 #
 # Partial queries are supported so you can do:
@@ -36,11 +36,11 @@
 #    tasks_this_week = Task.where(:due_date).ge(beginning_of_week).and(:due_date).le(end_of_week)
 #    ordered_tasks_this_week = tasks_this_week.order(:due_date)
 #
-    
+
 module MotionModel
   class PersistFileError < Exception; end
   class RelationIsNilError < Exception; end
-  
+
   module Model
     def self.included(base)
       base.extend(PrivateClassMethods)
@@ -52,7 +52,7 @@ module MotionModel
       base.instance_variable_set("@_next_id", 1)                # Next assignable id
       base.instance_variable_set("@_issue_notifications", true) # Next assignable id
     end
-    
+
     module PublicClassMethods
       # Use to do bulk insertion, updating, or deleting without
       # making repeated calls to a delegate. E.g., when syncing
@@ -62,7 +62,7 @@ module MotionModel
         class_eval &block
         @_issue_notifications = true
       end
-      
+
       # Macro to define names and types of columns. It can be used in one of
       # two forms:
       #
@@ -73,16 +73,16 @@ module MotionModel
       # Pass a hash of hashes and you can specify defaults such as:
       #
       #   columns :name => {:type => :string, :default => 'Joe Bob'}, :age => :integer
-      #   
+      #
       # Pass an array, and you create column names, all of which have type +:string+.
-      #   
+      #
       #   columns :name, :age, :hobby
-      
+
       def columns(*fields)
         return @_columns.map{|c| c.name} if fields.empty?
 
-        col = Column.new
-        
+        # col = Column.new    # REVIEW: Dead code?
+
         case fields.first
         when Hash
           column_from_hash fields
@@ -117,13 +117,11 @@ module MotionModel
       # This must be used with a belongs_to macro in the related model class
       # if you want to be able to access the inverse relation.
 
-      def has_many(*relations)
-        relations.each do |relation|
-          raise ArgumentError.new("arguments to has_many must be a symbol, a string or an array of same.") unless relation.is_a?(Symbol) || relation.is_a?(String)
-          add_field relation, :has_many                                   # Relation must be plural
-        end
+      def has_many(relation, options = {})
+        raise ArgumentError.new("arguments to has_many must be a symbol or string.") unless [Symbol, String].include? relation.class
+        add_field relation, :has_many, options        # Relation must be plural
       end
-      
+
       def generate_belongs_to_id(relation)
         (relation.to_s.singularize.underscore + '_id').to_sym
       end
@@ -148,17 +146,17 @@ module MotionModel
       def column?(column)
         respond_to?(column)
       end
-      
+
       # Returns type of this column.
       def type(column)
         column_named(column).type || nil
       end
-      
+
       # returns default value for this column or nil.
       def default(column)
         column_named(column).default || nil
       end
-      
+
       # Creates an object and saves it. E.g.:
       #
       #   @bob = Person.create(:name => 'Bob', :hobby => 'Bird Watching')
@@ -168,20 +166,22 @@ module MotionModel
         row = self.new(options)
         row.before_create if row.respond_to?(:before_create)
         row.before_save   if row.respond_to?(:before_save)
-        
+
         # TODO: Check for Validatable and if it's
         # present, check valid? before saving.
 
         row.save
         row
       end
-      
+
       def length
         @collection.length
       end
       alias_method :count, :length
 
-      # Empties the entire store.
+      # Deletes all rows in the model -- no hooks are called and
+      # deletes are not cascading so this does not affected related
+      # data.
       def delete_all
         # Do each delete so any on_delete and
         # cascades are called, then empty the
@@ -191,6 +191,19 @@ module MotionModel
         end
         @collection = []
         @_next_id = 1
+      end
+
+      # Destroys all rows in the model -- before_delete and after_delete
+      # hooks are called and deletes are not cascading if declared with
+      # :delete => destroy in the has_many macro.
+      def destroy_all
+        ids = self.all.map{|item| item.id}
+        bulk_update do
+          ids.each do |item| 
+            find(item).destroy
+          end
+        end
+        # Note collection is not emptied, and next_id is not reset.
       end
 
       # Finds row(s) within the data store. E.g.,
@@ -207,40 +220,40 @@ module MotionModel
           end.compact
           return FinderQuery.new(matches)
         end
-        
+
         unless args[0].is_a?(Symbol) || args[0].is_a?(String)
           target_id = args[0].to_i
           return @collection.select{|element| element.id == target_id}.first
         end
-        
+
         FinderQuery.new(args[0].to_sym, @collection)
       end
       alias_method :where, :find
-      
+
       # Retrieves first row of query
       def first
         @collection.first
       end
-    
+
       # Retrieves last row of query
       def last
         @collection.last
       end
-    
+
       # Returns query result as an array
       def all
         @collection
       end
-      
+
       def order(field_name = nil, &block)
         FinderQuery.new(@collection).order(field_name, &block)
       end
-      
+
       def each(&block)
         raise ArgumentError.new("each requires a block") unless block_given?
         @collection.each{|item| yield item}
-      end      
-      
+      end
+
       def empty?
         @collection.empty?
       end
@@ -258,12 +271,12 @@ module MotionModel
       def column_from_hash(hash) #nodoc
         hash.first.each_pair do |name, options|
           raise ArgumentError.new("you cannot use `description' as a column name because of a conflict with Cocoa.") if name.to_s == 'description'
-          
+
           case options
           when Symbol, String
             add_field(name, options)
           when Hash
-            add_field(name, options[:type], options[:default])
+            add_field(name, options[:type], :default => options[:default])
           else
             raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes.")
           end
@@ -279,7 +292,7 @@ module MotionModel
           add_field(name.to_sym, :string)
         end
       end
-      
+
       def issue_notification(object, info) #nodoc
         if @_issue_notifications == true && !object.nil?
           NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info)
@@ -315,8 +328,9 @@ module MotionModel
         }
       end
 
-      def add_field(name, type, default = nil) #nodoc
-        col = Column.new(name, type, default)
+      def add_field(name, type, options = {:default => nil}) #nodoc
+        col = Column.new(name, type, options)
+
         @_columns.push col
         @_column_hashes[col.name.to_sym] = col
 
@@ -359,12 +373,12 @@ module MotionModel
         end
         col.type == :has_many || col.type == :belongs_to
       end
-      
+
     end
- 
+
     def initialize(options = {})
       @data ||= {}
-      
+
       assign_id options
 
       columns.each do |col|
@@ -374,7 +388,7 @@ module MotionModel
           @data[col] = options[col] if column_named(col).type == :belongs_to_id
         end
       end
-      
+
       @dirty = true
     end
 
@@ -396,7 +410,7 @@ module MotionModel
     # in place if not.
     def save
       @dirty = false
-      
+
       # Existing object implies update in place
       # TODO: Optimize location of existing id
       action = 'add'
@@ -408,17 +422,39 @@ module MotionModel
       end
       self.class.issue_notification(self, :action => action)
     end
-    
+
     # Deletes the current object. The object can still be used.
-    
+
     def delete
       target_index = collection.index{|item| item.id == self.id}
       collection.delete_at(target_index)
       self.class.issue_notification(self, :action => 'delete')
     end
 
+    # Destroys the current object. The difference between delete
+    # and destroy is that destroy calls <tt>before_delete</tt>
+    # and <tt>after_delete</tt> hooks. As well, it will cascade
+    # into related objects, deleting them if they are related
+    # using <tt>:delete => :destroy</tt> in the <tt>has_many</tt>
+    # declaration
+    def destroy
+      before_delete if respond_to? :before_delete
+      has_many_columns.each do |col|
+        delete_candidates = self.send(col.name)
+
+        delete_candidates.each do |candidate|
+          candidate.delete if col.destroy == :delete
+          candidate.destroy if col.destroy == :destroy
+        end
+      end
+      delete
+      after_delete if respond_to? :after_delete
+    end
+
     # Undelete does pretty much as its name implies. However,
-    # the natural sort order is not preserved.
+    # the natural sort order is not preserved. IMPORTANT: If
+    # you are trying to undo a cascading delete, this will not
+    # work. It only undeletes the object you still own.
 
     def undelete
       collection << self
@@ -430,7 +466,7 @@ module MotionModel
       collection.length
     end
     alias_method :count, :length
-      
+
     # True if the column exists, otherwise false
     def column?(column_name)
       self.class.column?(column_name.to_sym)
@@ -445,18 +481,18 @@ module MotionModel
     def type(column_name)
       self.class.type(column_name)
     end
-    
+
     # True if this object responds to the method or
     # property, otherwise false.
     alias_method :old_respond_to?, :respond_to?
     def respond_to?(method)
       column_named(method) || old_respond_to?(method)
     end
-    
+
     def dirty?
-      @dirty      
+      @dirty
     end
-    
+
 
     private
 
@@ -494,23 +530,27 @@ module MotionModel
         raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
       end
     end
-    
+
     def collection #nodoc
       self.class.instance_variable_get('@collection')
     end
-    
+
     def column_named(name) #nodoc
       self.class.column_named(name.to_sym)
     end
 
-    def generate_belongs_to_id(class_or_column) # nodoc
+    def has_many_columns
+      columns.map{|col| column_named(col)}.select{|col| col.type == :has_many}
+    end
+
+   def generate_belongs_to_id(class_or_column) # nodoc
       self.class.generate_belongs_to_id(self.class)
     end
 
     def relation_for(col) # nodoc
       col = column_named(col)
       related_klass = col.classify
-      
+
       case col.type
         when :belongs_to
           related_klass.find(@data[:id])
@@ -521,18 +561,18 @@ module MotionModel
       end
     end
 
-    
+
     # Handle attribute retrieval
-    # 
+    #
     # Gets and sets work as expected, and type casting occurs
     # For example:
-    # 
+    #
     #     Task.date = '2012-09-15'
-    # 
+    #
     # This creates a real Date object in the data store.
-    # 
+    #
     #     date = Task.date
-    # 
+    #
     # Date is a real date object.
     def method_missing(method, *args, &block) #nodoc
       if self.respond_to? method

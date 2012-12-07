@@ -6,7 +6,7 @@ end
 
 class Task
   include MotionModel::Model
-  columns       :name => :string, 
+  columns       :name => :string,
   							:details => :string,
   							:some_day => :date
   has_many :assignees
@@ -16,7 +16,7 @@ end
 class User
   include MotionModel::Model
   columns :name => :string
-  
+
   has_many :email_accounts
 end
 
@@ -25,7 +25,7 @@ class EmailAccount
   columns :name => :string
   belongs_to :user
 end
-  
+
 Inflector.inflections.irregular 'assignees', 'assignee'
 Inflector.inflections.irregular 'assignee', 'assignees'
 
@@ -54,12 +54,12 @@ describe 'related objects' do
       lambda {Task.new}.should.not.raise
       lambda {Task.new.assignees}.should.not.raise
     end
-  
+
     it 'relation objects are empty on initialization' do
       a_task = Task.create
       a_task.assignees.all.should.be.empty
     end
-    
+
     it "supports creating related objects directly on parents" do
       a_task = Task.create(:name => 'Walk the Dog')
       a_task.assignees.create(:assignee_name => 'bob')
@@ -67,12 +67,12 @@ describe 'related objects' do
       a_task.assignees.first.assignee_name.should == 'bob'
       Assignee.count.should == 1
     end
-    
+
     describe "supporting has_many" do
       before do
         Task.delete_all
         Assignee.delete_all
-      
+
         @tasks = []
         @assignees = []
         1.upto(3) do |task|
@@ -88,18 +88,18 @@ describe 'related objects' do
 
       it "is wired up right" do
         Task.count.should == 3
-        Assignee.count.should == 12        
+        Assignee.count.should == 12
       end
-      
+
       it "has 2 assignees for the first task" do
         Task.first.assignees.count.should == 2
       end
-      
+
       it "the first assignee for the second task is employee 7" do
         Task.find(2).name.should == @tasks[1].name
         Task.find(2).assignees.first.assignee_name.should == @assignees[2].assignee_name
       end
-    
+
       it 'supports adding related objects to parents' do
         assignee = Assignee.new(:assignee_name => 'Zoe')
         Task.count.should == 3
@@ -107,8 +107,9 @@ describe 'related objects' do
         Task.find(3).assignees.push(assignee)
         Task.find(3).assignees.count.should == assignee_count + 1
       end
+
     end
-    
+
     it "supports creating blank (empty) scratchpad associated objects" do
       task = Task.create :name => 'watch a movie'
       assignee = task.assignees.new
@@ -118,7 +119,7 @@ describe 'related objects' do
       task.assignees.first.assignee_name.should == 'Chloe'
     end
   end
-  
+
   describe "supporting belongs_to" do
     before do
       Task.delete_all
@@ -178,15 +179,15 @@ describe 'related objects' do
           @a1.task.name.should == "Feed the cat"
         end
       end
-      
-      describe "directly assigning to child" do        
+
+      describe "directly assigning to child" do
         it "directly assigning a different task to an assignee changes the assignee's task" do
           @a1.task = @t1.id
           @a1.save
           @t1.assignees.count.should == 1
           @t1.assignees.first.assignee_name.should == @a1.assignee_name
         end
-        
+
         it "directly assigning an instance of a task to an assignee changes the assignee's task" do
           @a1.task = @t1
           @a1.save
@@ -194,7 +195,7 @@ describe 'related objects' do
           @t1.assignees.first.assignee_name.should == @a1.assignee_name
         end
       end
-    end 
+    end
   end
 end
 

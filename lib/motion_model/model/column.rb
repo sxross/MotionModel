@@ -4,20 +4,25 @@ module MotionModel
       attr_accessor :name
       attr_accessor :type
       attr_accessor :default
+      attr_accessor :destroy
 
-      def initialize(name = nil, type = nil, default = nil)
+      def initialize(name = nil, type = nil, options = {})
         @name = name
         @type = type
-        @default = default || nil
+        @default = options[:default]
+        @destroy = options[:dependent]
       end
-      
-      def add_attr(name, type, default = nil)
+
+      # REVIEW: Dead code?
+      def add_attr(name, type, options)
         @name = name
         @type = type
-        @default = default || nil
+        @default = options[:default]
+        @destroy = options[:dependent]
       end
+
       alias_method :add_attribute, :add_attr
-      
+
       def classify
         case @type
         when :belongs_to
