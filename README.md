@@ -242,11 +242,45 @@ Using MotionModel
   Assignee.first.task.name            # => "Walk the Dog"
   ```
   
-  At this point, there are a few methods that need to be added
-  for relations, and they will.
+There are four ways to delete objects from your data store:
+
+* `object.delete     #` just deletes the object and ignores all relations
+* `object.destroy    #` deletes the object and honors any cascading declarations
+* `Class.delete_all  #` just deletes all objects of this class and ignores all relations
+* `Class.destroy_all #` deletes all objects of this class and honors any cascading declarations
   
-  * destroy
-  
+The key to how the `destroy` variants work in how the relation is declared. You can declare:
+
+```ruby
+  class Task
+    include MotionModel::Model
+    columns     :name => :string
+    has_many    :assignees
+  end
+```
+
+and `assignees` will *not be considered* when deleting `Task`s. However, by modifying the `has_many`,
+
+```ruby
+    has_many    :assignees, :dependent => :destroy
+```
+
+When you `destroy` an object, all of the objects related to it, and only those related
+to that object, are also destroyed. So, if you call `task.destroy` and there are 5
+`assignees` related to that task, they will also be destroyed. Any other `assignees`
+are left untouched.
+
+You can also specify:
+
+```ruby
+    has_many    :assignees, :dependent => :delete
+```
+
+The difference here is that the cascade stops as the `assignees` are deleted so anything
+related to the assignees remains intact.
+
+Note: This syntax is modeled on the Rails `:dependent => :destroy` options in `ActiveRecord`.
+
 Notifications
 -------------
 
