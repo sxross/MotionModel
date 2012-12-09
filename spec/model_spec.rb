@@ -16,7 +16,8 @@ end
 
 class TypeCast
   include MotionModel::Model
-  columns :an_int => {:type => :int, :default => 3},
+  columns :a_boolean => :boolean,
+          :an_int => {:type => :int, :default => 3},
           :an_integer => :integer,
           :a_float => :float,
           :a_double => :double,
@@ -235,6 +236,7 @@ describe "Creating a model" do
   describe 'Type casting' do
     before do
       @convertible = TypeCast.new
+      @convertible.a_boolean = 'false'
       @convertible.an_int = '1'
       @convertible.an_integer = '2'
       @convertible.a_float = '3.7'
@@ -244,6 +246,7 @@ describe "Creating a model" do
     end
     
     it 'does the type casting on instantiation' do
+      @convertible.a_boolean.should.is_a FalseClass
       @convertible.an_int.should.is_a Integer
       @convertible.an_integer.should.is_a Integer
       @convertible.a_float.should.is_a Float
@@ -251,7 +254,45 @@ describe "Creating a model" do
       @convertible.a_date.should.is_a NSDate
       @convertible.an_array.should.is_a Array
     end
-    
+
+    it 'returns a boolean for a boolean field' do
+      @convertible.a_boolean.should.is_a(FalseClass)
+    end
+
+    it 'the boolean field should be the same as it was in string form' do
+      @convertible.a_boolean.to_s.should.equal('false')
+    end
+
+    it 'the boolean field accepts a non-zero integer as true' do
+      @convertible.a_boolean = 1
+      @convertible.a_boolean.should.is_a(TrueClass)
+    end
+
+    it 'the boolean field accepts a zero valued integer as false' do
+      @convertible.a_boolean = 0
+      @convertible.a_boolean.should.is_a(FalseClass)
+    end
+
+    it 'the boolean field accepts a string that starts with "true" as true' do
+      @convertible.a_boolean = 'true'
+      @convertible.a_boolean.should.is_a(TrueClass)
+    end
+
+    it 'the boolean field treats a string with "true" not at the start as false' do
+      @convertible.a_boolean = 'something true'
+      @convertible.a_boolean.should.is_a(FalseClass)
+    end
+
+    it 'the boolean field accepts a string that does not contain "true" as false' do
+      @convertible.a_boolean = 'something'
+      @convertible.a_boolean.should.is_a(FalseClass)
+    end
+
+    it 'the boolean field accepts nil as false' do
+      @convertible.a_boolean = nil
+      @convertible.a_boolean.should.is_a(FalseClass)
+    end
+
     it 'returns an integer for an int field' do
       @convertible.an_int.should.is_a(Integer)
     end
