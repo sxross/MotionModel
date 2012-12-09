@@ -21,7 +21,8 @@ class TypeCast
           :a_float => :float,
           :a_double => :double,
           :a_date => :date,
-          :a_time => :time
+          :a_time => :time,
+          :an_array => :array
 end
 
 describe "Creating a model" do
@@ -239,6 +240,7 @@ describe "Creating a model" do
       @convertible.a_float = '3.7'
       @convertible.a_double = '3.41459'
       @convertible.a_date = '2012-09-15'
+      @convertible.an_array = 1..10
     end
     
     it 'does the type casting on instantiation' do
@@ -247,6 +249,7 @@ describe "Creating a model" do
       @convertible.a_float.should.is_a Float
       @convertible.a_double.should.is_a Float
       @convertible.a_date.should.is_a NSDate
+      @convertible.an_array.should.is_a Array
     end
     
     it 'returns an integer for an int field' do
@@ -289,6 +292,14 @@ describe "Creating a model" do
     
     it 'the date field should be the same as it was in string form' do
       @convertible.a_date.to_s.should.match(/^2012-09-15/)
+    end
+
+    it 'returns an Array for an array field' do
+      @convertible.an_array.should.is_a(Array)
+    end
+
+    it 'the array field should be the same as the range form' do
+      (@convertible.an_array.first..@convertible.an_array.last).should.equal(1..10)
     end
   end
 

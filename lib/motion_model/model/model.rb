@@ -526,6 +526,8 @@ module MotionModel
         arg.is_a?(Float) ? arg : arg.to_f
       when :date
         arg.is_a?(NSDate) ? arg : NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+      when :array
+        arg.is_a?(Array) ? arg : arg.to_a
       else
         raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
       end
