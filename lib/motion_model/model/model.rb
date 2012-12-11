@@ -426,9 +426,11 @@ module MotionModel
     # Deletes the current object. The object can still be used.
 
     def delete
+      before_delete if respond_to? :before_delete
       target_index = collection.index{|item| item.id == self.id}
       collection.delete_at(target_index)
       self.class.issue_notification(self, :action => 'delete')
+      after_delete if respond_to? :after_delete
     end
 
     # Destroys the current object. The difference between delete
@@ -438,7 +440,7 @@ module MotionModel
     # using <tt>:delete => :destroy</tt> in the <tt>has_many</tt>
     # declaration
     def destroy
-      before_delete if respond_to? :before_delete
+      before_destroy if respond_to? :before_destroy
       has_many_columns.each do |col|
         delete_candidates = self.send(col.name)
 
@@ -448,7 +450,7 @@ module MotionModel
         end
       end
       delete
-      after_delete if respond_to? :after_delete
+      after_destroy if respond_to? :after_destroy
     end
 
     # Undelete does pretty much as its name implies. However,
