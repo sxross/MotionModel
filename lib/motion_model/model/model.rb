@@ -516,16 +516,26 @@ module MotionModel
     end
 
     def cast_to_type(column_name, arg) #nodoc
-      return nil if arg.nil?
+      return nil if arg.nil? && ![ :boolean, :bool ].include?(type(column_name))
 
       return case type(column_name)
       when :string then arg.to_s
+      when :boolean, :bool
+        case arg
+          when NilClass then false
+          when TrueClass, FalseClass then arg
+          when Integer then arg != 0
+          when String then (arg =~ /^true/i) != nil
+          else raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
+        end
       when :int, :integer, :belongs_to_id
         arg.is_a?(Integer) ? arg : arg.to_i
       when :float, :double
         arg.is_a?(Float) ? arg : arg.to_f
       when :date
         arg.is_a?(NSDate) ? arg : NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+      when :array
+        arg.is_a?(Array) ? arg : arg.to_a
       else
         raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
       end
