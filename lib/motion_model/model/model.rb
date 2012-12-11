@@ -36,7 +36,6 @@
 #    tasks_this_week = Task.where(:due_date).ge(beginning_of_week).and(:due_date).le(end_of_week)
 #    ordered_tasks_this_week = tasks_this_week.order(:due_date)
 #
-
 module MotionModel
   class PersistFileError < Exception; end
   class RelationIsNilError < Exception; end
@@ -164,12 +163,6 @@ module MotionModel
       # returns the object created or false.
       def create(options = {})
         row = self.new(options)
-        row.before_create if row.respond_to?(:before_create)
-        row.before_save   if row.respond_to?(:before_save)
-
-        # TODO: Check for Validatable and if it's
-        # present, check valid? before saving.
-
         row.save
         row
       end
@@ -409,28 +402,40 @@ module MotionModel
     # databases, this inserts a row if it's a new one, or updates
     # in place if not.
     def save
-      @dirty = false
+      call_hooks 'save' do
+        @dirty = false
 
-      # Existing object implies update in place
-      # TODO: Optimize location of existing id
-      action = 'add'
-      if obj = collection.find{|o| o.id == @data[:id]}
-        obj = self
-        action = 'update'
-      else
-        collection << self
+        # Existing object implies update in place
+        action = 'add'
+        if obj = collection.find{|o| o.id == @data[:id]}
+          obj = self
+          action = 'update'
+        else
+          collection << self
+        end
+        self.class.issue_notification(self, :action => action)
       end
-      self.class.issue_notification(self, :action => action)
     end
 
     # Deletes the current object. The object can still be used.
 
+    def call_hook(hook_name, postfix)
+      hook = "#{hook_name}_#{postfix}"
+      self.send(hook, self) if respond_to? hook.to_sym
+    end
+
+    def call_hooks(hook_name, &block)
+      call_hook('before', hook_name)
+      block.call
+      call_hook('after', hook_name)
+    end
+
     def delete
-      before_delete if respond_to? :before_delete
-      target_index = collection.index{|item| item.id == self.id}
-      collection.delete_at(target_index)
-      self.class.issue_notification(self, :action => 'delete')
-      after_delete if respond_to? :after_delete
+      call_hooks('delete') do
+        target_index = collection.index{|item| item.id == self.id}
+        collection.delete_at(target_index)
+        self.class.issue_notification(self, :action => 'delete')
+      end
     end
 
     # Destroys the current object. The difference between delete
@@ -439,8 +444,10 @@ module MotionModel
     # into related objects, deleting them if they are related
     # using <tt>:delete => :destroy</tt> in the <tt>has_many</tt>
     # declaration
+    #
+    # Note: lifecycle hooks are only called when individual objects
+    # are deleted.
     def destroy
-      before_destroy if respond_to? :before_destroy
       has_many_columns.each do |col|
         delete_candidates = self.send(col.name)
 
@@ -450,7 +457,6 @@ module MotionModel
         end
       end
       delete
-      after_destroy if respond_to? :after_destroy
     end
 
     # Undelete does pretty much as its name implies. However,
@@ -517,32 +523,6 @@ module MotionModel
       @data[column] = cast_value
     end
 
-    def cast_to_type(column_name, arg) #nodoc
-      return nil if arg.nil? && ![ :boolean, :bool ].include?(type(column_name))
-
-      return case type(column_name)
-      when :string then arg.to_s
-      when :boolean, :bool
-        case arg
-          when NilClass then false
-          when TrueClass, FalseClass then arg
-          when Integer then arg != 0
-          when String then (arg =~ /^true/i) != nil
-          else raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
-        end
-      when :int, :integer, :belongs_to_id
-        arg.is_a?(Integer) ? arg : arg.to_i
-      when :float, :double
-        arg.is_a?(Float) ? arg : arg.to_f
-      when :date
-        arg.is_a?(NSDate) ? arg : NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
-      when :array
-        arg.is_a?(Array) ? arg : arg.to_a
-      else
-        raise ArgumentError.new("type #{column_name} : #{type(column_name)} is not possible to cast.")
-      end
-    end
-
     def collection #nodoc
       self.class.instance_variable_get('@collection')
     end
@@ -573,19 +553,8 @@ module MotionModel
       end
     end
 
-
-    # Handle attribute retrieval
-    #
-    # Gets and sets work as expected, and type casting occurs
-    # For example:
-    #
-    #     Task.date = '2012-09-15'
-    #
-    # This creates a real Date object in the data store.
-    #
-    #     date = Task.date
-    #
-    # Date is a real date object.
+    # Any way you reach this means you've tried to access a method
+    # not defined on this model.
     def method_missing(method, *args, &block) #nodoc
       if self.respond_to? method
         return method(args, &block)
