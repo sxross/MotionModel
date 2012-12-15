@@ -1,5 +1,7 @@
 module MotionModel
   module Validatable
+    class ValidationSpecificationError < RuntimeError;  end
+
     def self.included(base)
       base.extend(ClassMethods)
       base.instance_variable_set('@validations', [])
@@ -12,53 +14,140 @@ module MotionModel
           raise ex
         end
     
-        if validation_type == {} # || !(validation_type is_a?(Hash))
+        if validation_type == {}
           ex = ValidationSpecificationError.new('validation type not present or not a hash')
           raise ex
         end
     
         @validations << {field => validation_type}
-      end      
+      end
+      alias :validate, :validates
+
+      def validations
+        @validations
+      end
     end
   
+    # This has two functions:
+    # 
+    # * First, it triggers validations.
+    #
+    # * Second, it returns the result of performing the validations.
     def valid?
       @messages = []
       @valid = true
-      self.class.instance_variable_get(@validations).each do |validations|
+      self.class.validations.each do |validations|
         validate_each(validations)
       end
       @valid
     end
 
-    def validate_each(validations)
+    # Raw array of hashes of error messages.
+    def error_messages
+      @messages
+    end
+
+    # Array of messages for a given field. Results are always an array
+    # because a field can fail multiple validations.
+    def error_messages_for(field)
+      key = field.to_sym
+      error_messages.select{|message| message.has_key?(key)}.map{|message| message[key]}
+    end
+
+    def validate_each(validations) #nodoc
       validations.each_pair do |field, validation|
-        validate_one field, validation
+        @valid &&= validate_one field, validation
       end
     end
-  
-    def validate_one(field, validation)
-      validation.each_pair do |validation_type, setting|
-        case validation_type
-        when :presence
-          @valid &&= validate_presence(field)
-          if setting
-            additional_message = "non-empty"
-          else
-            additional_message = "empty"
-          end
-          @valid = !@valid if setting == false
-          @messages << {field => "incorrect value supplied for #{field.to_s} -- should be #{additional_message}"}
-        else
-          @valid = false
-          ex = ValidationSpecificationError.new("unknown validation type :#{validation_type.to_s}")
+
+    def validation_method(validation_type) #nodoc
+      validation_method = "validate_#{validation_type}".to_sym
+    end
+
+    def each_validation_for(field) #nodoc
+      self.class.validations.select{|validation| validation.has_key?(field)}.each do |validation|
+        validation.each_pair do |field, validation_hash|
+          yield validation_hash
         end
       end
     end
+
+    # Validates an arbitrary string against a specific field's validators.
+    # Useful before setting the value of a model's field. I.e., you get data
+    # from a form, do a <tt>validate_for(:my_field, that_data)</tt> and
+    # if it succeeds, you do <tt>obj.my_field = that_data</tt>.
+    def validate_for(field, value)
+      @messages = []
+      key = field.to_sym
+      result = true
+      each_validation_for(key) do |validation|
+        validation.each_pair do |validation_type, setting|
+          method = validation_method(validation_type)
+          if self.respond_to? method
+            value.strip! if value.is_a?(String)
+            result &&= self.send(method, field, value, setting)
+          end
+        end
+      end
+      result
+    end
   
-    def validate_presence(field)
-      value = self.send(field.to_s)
-      return false if value.nil?
-      return value.strip.length > 0
+    def validate_one(field, validation) #nodoc
+      result = true
+      validation.each_pair do |validation_type, setting|
+        if self.respond_to? validation_method(validation_type)
+          value = self.send(field)
+          value.strip! if value.is_a?(String)
+          result &&= self.send(validation_method(validation_type), field, value, setting)
+        else
+          ex = ValidationSpecificationError.new("unknown validation type :#{validation_type.to_s}")
+        end
+      end
+      result
+    end
+
+    # Validates that something has been entered in a field
+    def validate_presence(field, value, setting)
+      if value.is_a?(String) || value.nil?
+        result = value.nil? || ((value.length == 0) == setting)
+        additional_message = setting ? "non-empty" : "non-empty"
+        add_message(field, "incorrect value supplied for #{field.to_s} -- should be #{additional_message}.") if result
+        return !result
+      end
+      return false
+    end
+
+    # Validates that the length is in a given range of characters. E.g.,
+    #
+    #     validate :name,   :length => 5..8
+    def validate_length(field, value, setting)
+      if value.is_a?(String) || value.nil?
+        result = value.nil? || (value.length < setting.first || value.length > setting.last)
+        add_message(field, "incorrect value supplied for #{field.to_s} -- should be between #{setting.first} and #{setting.last} characters long.") if result
+        return !result
+      end
+      return false
+    end
+
+    def validate_email(field, value, setting)
+      if value.is_a?(String) || value.nil?
+        result = value.nil? || value.match(/\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\Z/i).nil?
+        add_message(field, "#{field.to_s} does not appear to be an email address.") if result
+      end
+      return !result
+    end
+
+    # Validates contents of field against a given Regexp. This can be tricky because you need
+    # to anchor both sides in most cases using \A and \Z to get a reliable match.
+    def validate_format(field, value, setting)
+      result = value.nil? || setting.match(value).nil?
+      add_message(field, "#{field.to_s} does not appear to be in the proper format.") if result
+      return !result
+    end
+
+    # Add a message for <tt>field</tt> to the messages collection.
+    def add_message(field, message)
+      @messages.push({field.to_sym => message})
     end
   end
 end

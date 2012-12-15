@@ -128,6 +128,46 @@ a_task = Task.create(:name => 'joe-bob', :due_date => '2012-09-15')     # due_da
 a_task.due_date = '2012-09-19'    # due_date is cast to NSDate
 ```
 
+Currently supported types are:
+
+* `:string`
+* `:boolean`, `:bool`
+* `:int`, `:integer`
+* `:float`, `:double`
+* `:date`
+* `:array`
+
+You are really not encouraged to stuff big things in your models, which is why a blob type
+is not implemented. The smaller your data, the less overhead involved in saving/loading.
+
+What Validation Methods Exist
+-----------------
+
+    validate :field_name, :presence => true
+    validate :field_name, :length => 5..8 # specify a range
+    validate :field_name, :email
+    validate :field_name, :format
+
+The framework is sufficiently flexible that you can add in custom validators like so:
+
+```ruby
+module MotionModel
+  module Validatable
+    def validate_foo(field, value, setting)
+      # do whatever you need to make sure that the value
+      # denoted by *value* for the field corresponds to
+      # whatever is passed in setting.
+    end
+  end
+end
+
+validate  :my_field, :foo => 42
+```
+
+In the above example, your new `validate_foo` method will get the arguments
+pretty much as you expect. The value of the
+last hash is passed intact via the `settings` argument.
+
 Model Instances and Unique IDs
 -----------------
 

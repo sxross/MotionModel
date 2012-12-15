@@ -13,16 +13,6 @@ module MotionModel
         @destroy = options[:dependent]
       end
 
-      # REVIEW: Dead code?
-      def add_attr(name, type, options)
-        @name = name
-        @type = type
-        @default = options[:default]
-        @destroy = options[:dependent]
-      end
-
-      alias_method :add_attribute, :add_attr
-
       def classify
         case @type
         when :belongs_to

@@ -7,7 +7,7 @@ module MotionModel
       @collection = args.last
     end
     
-    def belongs_to(obj, klass = nil)
+    def belongs_to(obj, klass = nil) #nodoc
       @related_object = obj
       @klass          = klass
       self
@@ -18,8 +18,6 @@ module MotionModel
     # Task.find(:name => 'bob').and(:gender).eq('M')
     # Task.asignees.where(:assignee_name).eq('bob')
     def and(field_name)
-      # TODO: Allow for Task.assignees.where(:assignee_name => 'bob')
-
       @field_name = field_name
       self
     end
@@ -40,7 +38,6 @@ module MotionModel
       self
     end
     
-    ######## relational operators ########
     def translate_case(item, case_sensitive)#nodoc
       item = item.underscore if case_sensitive === false && item.respond_to?(:underscore)
       item
@@ -204,6 +201,7 @@ module MotionModel
       new_obj
     end
     
+    # Returns number of objects (rows) in collection
     def length
       @collection.length
     end
@@ -223,7 +221,5 @@ module MotionModel
       result
     end
     alias_method :<<, :push
-    
-    
   end
 end

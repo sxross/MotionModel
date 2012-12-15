@@ -16,9 +16,6 @@
 #
 # Now, you can write code like:
 #
-#    Task.create :task_name => 'Walk the dog',
-#                :details   => 'Pick up after yourself',
-#                :due_date  => '2012-09-17'
 #
 # Recognized types are:
 #
@@ -79,8 +76,6 @@ module MotionModel
 
       def columns(*fields)
         return @_columns.map{|c| c.name} if fields.empty?
-
-        # col = Column.new    # REVIEW: Dead code?
 
         case fields.first
         when Hash
