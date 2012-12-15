@@ -21,7 +21,7 @@ module MotionModel
     
         @validations << {field => validation_type}
       end
-      alias :validate, :validates
+      alias_method :validates, :validate
 
       def validations
         @validations
