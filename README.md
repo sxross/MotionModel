@@ -19,15 +19,12 @@ are:
   counting.
   
 - validatable.rb: Provides a basic validation framework for any
-  arbitrary class. Right now, it can only validate for presence,
-  but expect that to change soon.
+  arbitrary class. You can also create custom validations to suit
+  your app's unique needs.
   
-- input_helpers: Hooking an array up to a data form, populating
-  it, and retrieving the data afterwards can be a bunch of code.
-  Not something I'd like to write more often that I have to. These
-  helpers are certainly not the focus of this release, but
-  I am using these in an app to create Apple-like input forms in
-  static tables.
+- input_helpers: Hooking a collection up to a data form, populating
+  the form, and retrieving the data afterwards can be a bunch of code.
+  Not something I'd like to write more often that I have to.
 
 MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
@@ -94,12 +91,12 @@ class Task
 end
 ```          
 
-You can also include the `Validations` module to get field validation. For example:
+You can also include the `Validatable` module to get field validation. For example:
 
 ```ruby
 class Task
   include MotionModel::Model
-  include MotionModel::Validations
+  include MotionModel::Validatable
 
   columns :name        => :string,
           :description => :string,
