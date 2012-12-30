@@ -9,8 +9,14 @@ module MotionModel
       def initialize(name = nil, type = nil, options = {})
         @name = name
         @type = type
-        @default = options[:default]
-        @destroy = options[:dependent]
+        raise RuntimeError.new "columns need a type declared." if type.nil?
+        @default = options.delete :default
+        @destroy = options.delete :dependent
+        @options = options
+      end
+
+      def options
+        @options
       end
 
       def classify

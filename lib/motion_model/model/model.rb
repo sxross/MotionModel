@@ -264,7 +264,7 @@ module MotionModel
           when Symbol, String
             add_field(name, options)
           when Hash
-            add_field(name, options[:type], :default => options[:default])
+            add_field(name, options.delete(:type), options)
           else
             raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes.")
           end
@@ -483,6 +483,18 @@ module MotionModel
     # Type of a given column
     def type(column_name)
       self.class.type(column_name)
+    end
+
+    # Options hash for column, excluding the core
+    # options such as type, default, etc.
+    #
+    # Options are completely arbitrary so you can
+    # stuff anything in this hash you want. For
+    # example:
+    #
+    #    columns :date => {:type => :date, :formotion => {:picker_type => :date_time}}
+    def options(column_name)
+      column_named(column_name).options
     end
 
     # True if this object responds to the method or
