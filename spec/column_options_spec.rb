@@ -16,7 +16,6 @@ describe "column options" do
 
   it "retrieves correct options for a column declaration" do
     instance = ModelWithOptions.new
-    puts instance.options(:date)
     instance.options(:date)[:formotion].should.not.be.nil
     instance.options(:date)[:formotion][:picker_type].should == :date_time
   end

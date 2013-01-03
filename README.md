@@ -128,6 +128,7 @@ a_task.due_date = '2012-09-19'    # due_date is cast to NSDate
 Currently supported types are:
 
 * `:string`
+* `text`
 * `:boolean`, `:bool`
 * `:int`, `:integer`
 * `:float`, `:double`
@@ -449,10 +450,56 @@ Core Extensions
   Again, a reversing rule is required for both singularize and 
   pluralize to work properly.
 
-Things In The Pipeline
+Experimental: Formotion Support
 ----------------------
 
-- Adding validations and custom validations
+MotionModel now has support for the cool [Formotion gem](https://github.com/clayallsopp/formotion).
+Note that the Formotion project on GitHub appears to be way ahead of the gem on Rubygems, so you
+might want to build it yourself if you want the latest gee-whiz features (like `:picker_type`, as
+I've shown in this example).
+
+This feature is extremely experimental, but here's how it works:
+
+```ruby
+class Event
+  include MotionModel::Model
+  include MotionModel::Formotion  # <== Formotion support
+
+  columns :name => :string,
+          :date => {:type => :date, :formotion => {:picker_type => :date_time}},
+          :location => :string
+end
+```
+
+This declares the class. The only difference is that you include `MotionModel::Formotion`.
+If you want to pass additional information on to Formotion, simply include it in the
+`:formotion` hash as shown above.
+
+MotionModel has sensible defaults for each type supported, so any field of `:date`
+type will default to a date picker in the Formotion form. However, if you want it
+to be a string for some reason, just pass in:
+
+```ruby
+:date => {:type => :date, :formotion => {:type => :string}}
+```
+
+To initialize a form from a model in your controller:
+
+```ruby
+@form = Formotion::Form.new(@event.to_formotion('event details'))
+@form_controller = MyFormController.alloc.initWithForm(@form)
+```
+
+The magic is in: `MotionModel::Model#to_formotion(section_header)`.
+
+and on the flip side you do something like this in your submit handler:
+
+```ruby
+@event.from_formotion!(data)
+```
+
+This performs sets on each field. You'll, of course, want to check your
+validations before dismissing the form.
 
 Problems/Comments
 ------------------

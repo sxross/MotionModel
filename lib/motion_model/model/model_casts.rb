@@ -19,7 +19,14 @@ module MotionModel
     end
 
     def cast_to_date(arg)
-      arg.is_a?(NSDate) ? arg : NSDate.dateWithNaturalLanguageString(arg, locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+      case arg
+        when String
+          return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+        when Time
+          return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+        else
+          return arg
+      end
     end
 
     def cast_to_array(arg)

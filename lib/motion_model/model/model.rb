@@ -525,9 +525,7 @@ module MotionModel
     end
 
     def initialize_data_columns(column, options) #nodoc
-      options[column] ||= self.class.default(column)
-      cast_value = cast_to_type(column, options[column])
-      @data[column] = cast_value
+       self.send("#{column}=".to_sym, options[column] || self.class.default(column))
     end
 
     def collection #nodoc
