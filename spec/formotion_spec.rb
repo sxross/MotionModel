@@ -4,7 +4,18 @@ class ModelWithOptions
 
   columns :name => :string,
           :date => {:type => :date, :formotion => {:picker_type => :date_time}},
-          :location => :string
+          :location => :string,
+          :created_at => :date,
+          :updated_at => :date
+
+  has_many :related_models
+end
+
+class RelatedModel
+  include MotionModel::Model
+
+  columns :name => :string
+  belongs_to :model_with_options
 end
 
 describe "formotion" do
@@ -29,5 +40,19 @@ describe "formotion" do
     @subject.name.should == '007 Reunion'
     @subject.date.strftime("%Y-%d-%d %H:%M:%S").should == '2013-03-03 12:00:00'
     @subject.location.should == "Q's Lab"
+  end
+
+  it "does not include auto date fields in the hash by default" do
+    @subject.to_formotion[:sections].first[:rows].has_hash_key?(:created_at).should == false
+    @subject.to_formotion[:sections].first[:rows].has_hash_key?(:updated_at).should == false
+  end
+
+  it "can optionally include auto date fields in the hash" do
+    result = @subject.to_formotion(nil, true)[:sections].first[:rows].has_hash_value?(:created_at).should == true
+    result = @subject.to_formotion(nil, true)[:sections].first[:rows].has_hash_value?(:updated_at).should == true
+  end
+
+  it "does not include related columns in the collection" do
+    result = @subject.to_formotion[:sections].first[:rows].has_hash_value?(:related_models).should == false
   end
 end

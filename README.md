@@ -3,32 +3,32 @@
 MotionModel -- Simple Model, Validation, and Input Mixins for RubyMotion
 ================
 
-MotionModel is for cases where Core Data is too heavy to lift but you are
-still intending to work with your data.
+MotionModel is a DSL for cases where Core Data is too heavy to lift but you are
+still intending to work with your data, its types, and its relations.
 
-MotionModel is a bunch of "I don't ever want to have to write that code
-again if I can help it" things extracted into modules. The four modules
-are:
-
-- ext: Core Extensions that provide a few Rails-like niceties. Nothing
-  new here, moving on...
-  
-- model.rb: You can read about it in "What Model Can Do" but it's a
-  mixin that provides you accessible attributes, row indexing,
-  serialization for persistence, and some other niceties like row
-  counting.
-  
-- validatable.rb: Provides a basic validation framework for any
-  arbitrary class. You can also create custom validations to suit
-  your app's unique needs.
-  
-- input_helpers: Hooking a collection up to a data form, populating
-  the form, and retrieving the data afterwards can be a bunch of code.
-  Not something I'd like to write more often that I have to.
+File                 | Module                    | Description
+---------------------|---------------------------|------------------------------------
+**ext.rb**           | N/A                       | Core Extensions that provide a few Rails-like niceties. Nothing new here, moving on...
+**model.rb**         | MotionModel::Model        | You can read about it in "What Model Can Do" but it's a mixin that provides you accessible attributes, row indexing, serialization for persistence, and some other niceties like row counting.
+**validatable.rb**   | MotionModel::Validatable  | Provides a basic validation framework for any arbitrary class. You can also create custom validations to suit your app's unique needs.
+**input_helpers**    | MotionModel::InputHelpers | Helps hook a collection up to a data form, populate the form, and retrieve the data afterwards. Note: *MotionModel supports Formotion for input handling as well as these input helpers*.
+**formotion.rb**     | MotionModel::Formotion    | Provides an interface between MotionModel and Formotion
 
 MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
   
+* [Getting Going][]
+* [What Model Can Do][]
+* [Model Data Types][]
+* [Validation Methods][]
+* [Model Instances and Unique IDs][]
+* [Using MotionModel][]
+* [Notifications][]
+* [Core Extensions][]
+* [Formotion Support][]
+* [Problems/Comments][]
+* [pSubmissions/Patches][]
+
 Getting Going
 ================
 
@@ -125,6 +125,9 @@ a_task = Task.create(:name => 'joe-bob', :due_date => '2012-09-15')     # due_da
 a_task.due_date = '2012-09-19'    # due_date is cast to NSDate
 ```
 
+Model Data Types
+-----------
+
 Currently supported types are:
 
 * `:string`
@@ -138,8 +141,28 @@ Currently supported types are:
 You are really not encouraged to stuff big things in your models, which is why a blob type
 is not implemented. The smaller your data, the less overhead involved in saving/loading.
 
-What Validation Methods Exist
+### Special Columns
+
+The two column names, `created_at` and `updated_at` will be adjusted automatically if they
+are declared. They need to be of type `:date`. The `created_at` column will be set only when
+the object is created (i.e., on first save). The `updated_at` column will change every time
+the object is saved.
+
+Validation Methods
 -----------------
+
+To use validations in your model, declare your model as follows:
+
+```ruby
+class MyValidatableModel
+  include MotionModel::Model
+  include MotionModel::Validatable
+
+  # All other model-y stuff here
+end
+```
+
+Here are some sample validations:
 
     validate :field_name, :presence => true
     validate :field_name, :length => 5..8 # specify a range
@@ -166,11 +189,17 @@ In the above example, your new `validate_foo` method will get the arguments
 pretty much as you expect. The value of the
 last hash is passed intact via the `settings` argument.
 
+You are responsible for adding an error message using:
+
+    add_message(field, "incorrect value foo #{the_foo} -- should be something else.")
+
+You must return `true` from your validator if the value passes validation otherwise `false`.
+
 Model Instances and Unique IDs
 -----------------
 
 It is assumed that models can be created from an external source (JSON from a Web 
-application or NSCoder from the device) or simply be a stand-alone data store. 
+application or `NSCoder` from the device) or simply be a stand-alone data store. 
 To identify rows properly, the model tracks a special field called `:id`. If it's
 already present, it's left alone. If it's missing, then it is created for you.
 Each row id is guaranteed to be unique, so you can use this when communicating
@@ -300,7 +329,7 @@ The key to how the `destroy` variants work in how the relation is declared. You 
 and `assignees` will *not be considered* when deleting `Task`s. However, by modifying the `has_many`,
 
 ```ruby
-    has_many    :assignees, :dependent => :destroy
+has_many    :assignees, :dependent => :destroy
 ```
 
 When you `destroy` an object, all of the objects related to it, and only those related
@@ -311,7 +340,7 @@ are left untouched.
 You can also specify:
 
 ```ruby
-    has_many    :assignees, :dependent => :delete
+has_many    :assignees, :dependent => :delete
 ```
 
 The difference here is that the cascade stops as the `assignees` are deleted so anything
@@ -322,34 +351,36 @@ Note: This syntax is modeled on the Rails `:dependent => :destroy` options in `A
 Notifications
 -------------
 
-  Notifications are issued on object save, update, and delete. They work like this:
+Notifications are issued on object save, update, and delete. They work like this:
   
-  ```ruby
-  def viewDidAppear(animated)
-    super
-    # other stuff here to set up your view
-    
-    NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', name:'MotionModelDataDidChangeNotification', object:nil)
-  end
+```ruby
+def viewDidAppear(animated)
+  super
+  # other stuff here to set up your view
   
-  def viewWillDisappear(animated)
-    super
-    NSNotificationCenter.defaultCenter.removeObserver self
-  end
+  NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', 
+                                                           name:'MotionModelDataDidChangeNotification', 
+                                                         object:nil)
+end
+
+def viewWillDisappear(animated)
+  super
+  NSNotificationCenter.defaultCenter.removeObserver self
+end
+
+# ... more stuff ...
+
+def dataDidChange(notification)
+  # code to update or refresh your view based on the object passed back
+  # and the userInfo. userInfo keys are:
+  #   action
+  #     'add'
+  #     'update'
+  #     'delete'
+end
+```
   
-  # ... more stuff ...
-  
-  def dataDidChange(notification)
-    # code to update or refresh your view based on the object passed back
-    # and the userInfo. userInfo keys are:
-    #   action
-    #     'add'
-    #     'update'
-    #     'delete'
-  end
-  ```
-  
-  In your dataDidChange notification handler, you can respond to the `'MotionModelDataDidChangeNotification'` notification any way you like,
+  In your `dataDidChange` notification handler, you can respond to the `MotionModelDataDidChangeNotification` notification any way you like,
   but in the instance of a tableView, you might want to use the id of the object passed back to locate
   the correct row in the table and act upon it instead of doing a wholesale `reloadData`.
   
@@ -361,35 +392,35 @@ Notifications
   MotionModel does not currently send notification messages that differentiate by class, so if your
   UI presents `Task`s and you get a notification that an `Assignee` has changed:
   
-  ```ruby
-  class Task
-    include MotionModel::Model
-    has_many :assignees
-    # etc
-  end
-  
-  class Assignee
-    include MotionModel::Model
-    belongs_to :task
-    # etc
-  end
+```ruby
+class Task
+  include MotionModel::Model
+  has_many :assignees
+  # etc
+end
 
-  # ...
-  
-  task = Task.create :name => 'Walk the dog'  # Triggers notification with a task object
-  task.assignees.create :name => 'Adam'       # Triggers notification with an assignee object
-  
-  # ...
-  
-  # We set up observers for `MotionModelDataDidChangeNotification` someplace and:
-  def dataDidChange(notification)
-  if notification.object is_a?(Task)
-    # Update our UI
-  else
-    # This notification is not for us because
-    # We don't display anything other than tasks
-  end
-  ```
+class Assignee
+  include MotionModel::Model
+  belongs_to :task
+  # etc
+end
+
+# ...
+
+task = Task.create :name => 'Walk the dog'  # Triggers notification with a task object
+task.assignees.create :name => 'Adam'       # Triggers notification with an assignee object
+
+# ...
+
+# We set up observers for `MotionModelDataDidChangeNotification` someplace and:
+def dataDidChange(notification)
+if notification.object is_a?(Task)
+  # Update our UI
+else
+  # This notification is not for us because
+  # We don't display anything other than tasks
+end
+```
   
   The above example implies you are only presenting, say, a list of tasks in the current
   view. If, however, you are presenting a list of tasks along with their assignees and
@@ -397,6 +428,7 @@ Notifications
   should recognize the change to assignee objects.
   
 Core Extensions
+----------------
 
   - String#humanize
   - String#titleize
@@ -450,7 +482,7 @@ Core Extensions
   Again, a reversing rule is required for both singularize and 
   pluralize to work properly.
 
-Experimental: Formotion Support
+Formotion Support
 ----------------------
 
 MotionModel now has support for the cool [Formotion gem](https://github.com/clayallsopp/formotion).
@@ -492,7 +524,15 @@ To initialize a form from a model in your controller:
 
 The magic is in: `MotionModel::Model#to_formotion(section_header)`.
 
-and on the flip side you do something like this in your submit handler:
+The auto_date fields `created_at` and `updated_at` are not sent to
+Formotion by default. If you want them sent to Formotion, set the
+second argument to true. E.g.,
+
+```ruby
+@form = Formotion::Form.new(@event.to_formotion('event details', true))
+```
+
+On the flip side you do something like this in your Formotion submit handler:
 
 ```ruby
 @event.from_formotion!(data)

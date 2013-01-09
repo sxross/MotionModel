@@ -402,8 +402,10 @@ module MotionModel
 
         # Existing object implies update in place
         action = 'add'
+        set_auto_date_field 'created_at'
         if obj = collection.find{|o| o.id == @data[:id]}
           obj = self
+          set_auto_date_field 'updated_at'
           action = 'update'
         else
           collection << self
@@ -412,8 +414,12 @@ module MotionModel
       end
     end
 
-    # Deletes the current object. The object can still be used.
+    # Set created_at and updated_at fields
+    def set_auto_date_field(field_name)
+      self.send("#{field_name}=", Time.now) if self.respond_to? field_name
+    end
 
+    # Deletes the current object. The object can still be used.
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}"
       self.send(hook, self) if respond_to? hook.to_sym

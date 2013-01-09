@@ -1,3 +1,11 @@
+2012-01-09: Added automatic date/timestamp support for created_at and updated_at columns
+            Added Hash extension except, Array introspection methods has_hash_key? and
+            has_hash_value?
+            Commit of Formotion module including optional inclusion/suppression of the
+            auto-date fields
+            Specs
+
+
 2012-12-30: Added Formotion module. This allows for tighter integration with Formotion
             Changed options for columns such that any arbitrary values can be inserted
             allowing for future expansion.

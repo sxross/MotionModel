@@ -1,9 +1,3 @@
-class Hash
-  def except(keys)
-    self.dup.reject{|k, v| keys.include?(k)}
-  end
-end
-
 class ValidatableTask
   include MotionModel::Model
   include MotionModel::Validatable
