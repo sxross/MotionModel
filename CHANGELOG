@@ -1,3 +1,11 @@
+2012-01-14: Fixed problem where data returned from forms was of type NSString, which
+            confused some monkey-patching code.
+            Changed before_ hooks such that handlers returning false would terminate
+            the process. So, if before_save returns anything other than false, the
+            save continues. Only if before_save returns false does the save get
+            interrupted.
+            Fixed immutable string issue in validations.
+
 2012-01-09: Added automatic date/timestamp support for created_at and updated_at columns
             Added Hash extension except, Array introspection methods has_hash_key? and
             has_hash_value?

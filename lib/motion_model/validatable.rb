@@ -97,8 +97,7 @@ module MotionModel
       validation.each_pair do |validation_type, setting|
         if self.respond_to? validation_method(validation_type)
           value = self.send(field)
-          value.strip! if value.is_a?(String)
-          result &&= self.send(validation_method(validation_type), field, value, setting)
+          result &&= self.send(validation_method(validation_type), field, value.is_a?(String) ? value.strip : value, setting)
         else
           ex = ValidationSpecificationError.new("unknown validation type :#{validation_type.to_s}")
         end
