@@ -12,16 +12,42 @@ module MotionModel
       :text     => :text
     }
 
-    def returnable_columns
-      cols = columns.select do |column|
-        exposed = @expose_auto_date_fields ? true : ![:created_at, :updated_at].include?(column)
-        column != :id &&                # don't ship back id by default
-        !relation_column?(column) &&    # don't ship back relations -- formotion doesn't get them
-        exposed                         # don't expose auto_date fields unless specified
-      end
-      cols
+    def should_return(column) #nodoc
+      skippable = [:id]
+      skippable += [:created_at, :updated_at] unless @expose_auto_date_fields
+      !skippable.include?(column) && !relation_column?(column)
     end
 
+    def returnable_columns #nodoc
+      columns.select{|column| should_return(column)}
+    end
+
+    def default_hash_for(column, value)
+      {:key         => column.to_sym,
+       :title       => column.to_s.humanize,
+       :type        => FORMOTION_MAP[type(column)],
+       :placeholder => column.to_s.humanize,
+       :value       => value
+       }
+    end
+
+    def value_for(column) #nodoc
+      value = self.send(column)
+      value = value.to_f if type(column) == :date && !value.nil?
+    end
+
+    def combine_options(column, hash) #nodoc
+      options = column_named(column).options[:formotion]
+      options ? hash.merge(options) : hash
+    end
+
+    # <tt>to_formotion</tt> maps a MotionModel into a hash suitable for creating
+    # a Formotion form. By default, the auto date fields, <tt>created_at</tt>
+    # and <tt>updated_at</tt> are suppressed. If you want these shown in
+    # your Formotion form, set <tt>expose_auto_date_fields</tt> to <tt>true</tt>
+    #
+    # If you want a title for your Formotion form, set the <tt>section_title</tt>
+    # argument to a string that will become that title.
     def to_formotion(section_title = nil, expose_auto_date_fields = false)
       @expose_auto_date_fields = expose_auto_date_fields
       form = {
@@ -33,23 +59,23 @@ module MotionModel
       section[:rows] = []
 
       returnable_columns.each do |column|
-        value = self.send(column)
-        value = value.to_f if type(column) == :date && value
-        h = {:key         => column.to_sym,
-             :title       => column.to_s.humanize,
-             :type        => FORMOTION_MAP[type(column)],
-             :placeholder => column.to_s.humanize,
-             :value       => value
-             }
-        options = column_named(column).options[:formotion]
-        h.merge!(options) if options
-        section[:rows].push h
+        value = value_for(column)
+        h = default_hash_for(column, value)
+        section[:rows].push(combine_options(column, h))
       end
       form
     end
     
+    # <tt>from_formotion</tt> takes the information rendered from a Formotion
+    # form and stuffs it back into a MotionModel. This data is not saved until
+    # you say so, offering you the opportunity to validate your form data.
     def from_formotion!(data)
-      self.returnable_columns.each{|column| self.send("#{column}=", data[column])}
+      self.returnable_columns.each{|column|
+        if type(column) == :date && !data[column].nil?
+          data[column] = Time.at(data[column]) 
+        end
+        value = self.send("#{column}=", data[column])
+      }
     end
   end
 end
