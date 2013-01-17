@@ -18,6 +18,18 @@ class RelatedModel
   belongs_to :model_with_options
 end
 
+def section(subject)
+  subject[:sections]
+end
+
+def rows(subject)
+  section(subject).first[:rows]
+end
+
+def first_row(subject)
+  rows(subject).first
+end
+
 describe "formotion" do
   before do
     @subject = ModelWithOptions.create(:name => 'get together', :date => '12-11-13 @ 9:00 PM', :location => 'my house')
@@ -33,6 +45,10 @@ describe "formotion" do
 
   it "has 3 rows" do
     @subject.to_formotion('test section')[:sections].first[:rows].length.should == 3
+  end
+
+  it "value of name row is 'get together'" do
+    first_row(@subject.to_formotion)[:value].should == 'get together'
   end
 
   it "binds data from rendered form into model fields" do
