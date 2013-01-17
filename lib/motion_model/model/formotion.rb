@@ -34,6 +34,7 @@ module MotionModel
     def value_for(column) #nodoc
       value = self.send(column)
       value = value.to_f if type(column) == :date && !value.nil?
+      value
     end
 
     def combine_options(column, hash) #nodoc
