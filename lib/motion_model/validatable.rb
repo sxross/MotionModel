@@ -110,7 +110,7 @@ module MotionModel
       if value.is_a?(String) || value.nil?
         result = value.nil? || ((value.length == 0) == setting)
         additional_message = setting ? "non-empty" : "non-empty"
-        add_message(field, "incorrect value supplied for #{field.to_s} -- should be #{additional_message}.") if result
+        add_message(field, "incorrect value supplied for #{field.to_s.humanize} -- should be #{additional_message}.") if result
         return !result
       end
       return false
