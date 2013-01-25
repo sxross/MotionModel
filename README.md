@@ -18,18 +18,18 @@ File                 | Module                    | Description
 MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
   
-* [Getting Going][]
-* [What Model Can Do][]
-* [Model Data Types][]
-* [Validation Methods][]
-* [Model Instances and Unique IDs][]
-* [Using MotionModel][]
-* [Transactions and Undo/Cancel][]
-* [Notifications][]
-* [Core Extensions][]
-* [Formotion Support][]
-* [Problems/Comments][]
-* [pSubmissions/Patches][]
+* [Getting Going](#getting-going)
+* [What Model Can Do](#what-model-can-do)
+* [Model Data Types](#model-data-types)
+* [Validation Methods](#validation-methods)
+* [Model Instances and Unique IDs](#model-instances-and-unique-ids)
+* [Using MotionModel](#using-motionmodel)
+* [Transactions and Undo/Cancel](#transactions-and-undocancel)
+* [Notifications](#notifications)
+* [Core Extensions](#core-extensions)
+* [Formotion Support](#formotion-support)
+* [Problems/Comments](#problemscomments)
+* [Submissions/Patches](#submissionspatches)
 
 Getting Going
 ================
