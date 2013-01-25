@@ -1,4 +1,4 @@
-[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/sxross/MotionModel)
+````[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/sxross/MotionModel)
 
 MotionModel -- Simple Model, Validation, and Input Mixins for RubyMotion
 ================
@@ -13,6 +13,7 @@ File                 | Module                    | Description
 **validatable.rb**   | MotionModel::Validatable  | Provides a basic validation framework for any arbitrary class. You can also create custom validations to suit your app's unique needs.
 **input_helpers**    | MotionModel::InputHelpers | Helps hook a collection up to a data form, populate the form, and retrieve the data afterwards. Note: *MotionModel supports Formotion for input handling as well as these input helpers*.
 **formotion.rb**     | MotionModel::Formotion    | Provides an interface between MotionModel and Formotion
+**transaction.rb**   | MotionModel::Model::Transactions | Provides transaction support for model modifications
 
 MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
@@ -23,6 +24,7 @@ you like with it. See the LICENSE file in this project.
 * [Validation Methods][]
 * [Model Instances and Unique IDs][]
 * [Using MotionModel][]
+* [Transactions and Undo/Cancel][]
 * [Notifications][]
 * [Core Extensions][]
 * [Formotion Support][]
@@ -347,6 +349,31 @@ The difference here is that the cascade stops as the `assignees` are deleted so 
 related to the assignees remains intact.
 
 Note: This syntax is modeled on the Rails `:dependent => :destroy` options in `ActiveRecord`.
+
+## Transactions and Undo/Cancel
+
+MotionModel is not ActiveRecord. MotionModel is not a database-backed mapper. The bottom line is that when you change a field in a model, even if you don't save it, you are partying on the central object store. In part, this is because Ruby copies objects by reference, so when you do a find, you get a reference to the object *in the central object store*.
+
+The upshot of this is that MotionModel can be wicked fast because it isn't moving much more than pointers around in memory when you do assignments. However, it can be surprising if you are used to a database-backed mapper.
+
+You could easily build an app and never run across a problem with this, but in the case where you present a dialog with a cancel button, you will need a way to back out. Here's how:
+
+```ruby
+# in your form presentation view...
+include MotionModel::Model::Transactions
+
+person.transaction do
+  result = do_something_that_changes_person
+  person.rollback unless result
+end
+
+def do_something_that_changes_person
+  # stuff
+  return it_worked
+end
+```
+
+You can have nested transactions and each has its own context so you don't wind up rolling back to the wrong state. However, everything that you wrap in a transaction must be wrapped in the `transaction` block. That means you need to have some outer calling method that can wrap a series of delegated changes. Explained differently, you can't start a transaction, have a delegate method handle a cancel button click and roll back the transaction from inside the delegate method. When the block is exited, the transaction context is removed.
 
 Notifications
 -------------

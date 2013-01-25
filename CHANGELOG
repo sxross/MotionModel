@@ -1,3 +1,5 @@
+2012-01-24: Added block-structured transactions.
+
 2012-01-14: Fixed problem where data returned from forms was of type NSString, which
             confused some monkey-patching code.
             Changed before_ hooks such that handlers returning false would terminate
