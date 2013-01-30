@@ -20,9 +20,13 @@
 # Recognized types are:
 #
 # * :string
+# * :text
 # * :date (must be in YYYY-mm-dd form)
+# * :time
 # * :integer
 # * :float
+# * :boolean
+# * :array
 #
 # Assuming you have a bunch of tasks in your data store, you can do this:
 #

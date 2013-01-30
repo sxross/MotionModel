@@ -3,6 +3,7 @@ module MotionModel
     FORMOTION_MAP = {
       :string   => :string,
       :date     => :date,
+      :time     => :date,
       :int      => :number,
       :integer  => :number,
       :float    => :number,
@@ -72,8 +73,8 @@ module MotionModel
     # you say so, offering you the opportunity to validate your form data.
     def from_formotion!(data)
       self.returnable_columns.each{|column|
-        if type(column) == :date && !data[column].nil?
-          data[column] = Time.at(data[column]) 
+        if type(column) == :date || type(column) == :time
+          data[column] = Time.at(data[column]) unless data[column].nil?
         end
         value = self.send("#{column}=", data[column])
       }

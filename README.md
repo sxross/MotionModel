@@ -1,4 +1,4 @@
-````[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/sxross/MotionModel)
+[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/sxross/MotionModel)
 
 MotionModel -- Simple Model, Validation, and Input Mixins for RubyMotion
 ================
@@ -133,7 +133,7 @@ Model Data Types
 Currently supported types are:
 
 * `:string`
-* `text`
+* `:text`
 * `:boolean`, `:bool`
 * `:int`, `:integer`
 * `:float`, `:double`
