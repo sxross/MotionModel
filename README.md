@@ -197,6 +197,14 @@ You are responsible for adding an error message using:
 
 You must return `true` from your validator if the value passes validation otherwise `false`.
 
+An important note about `save` once you include `Validatable`, you have two flavors
+of save:
+
+Method                 | Meaning              
+-----------------------|---------------------------
+`save(options)`        |Just saves the data if it is valid (passes validations) or if you have specified `:validate => false`
+`save!`                |Saves the data if it is valid, otherwise raises a `MotionModel::Validatable::RecordInvalid` exception
+
 Model Instances and Unique IDs
 -----------------
 
