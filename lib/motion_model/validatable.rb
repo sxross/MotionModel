@@ -1,6 +1,8 @@
 module MotionModel
   module Validatable
     class ValidationSpecificationError < RuntimeError;  end
+    class RecordInvalid < RuntimeError; end
+
 
     def self.included(base)
       base.extend(ClassMethods)
@@ -13,6 +15,8 @@ module MotionModel
           ex = ValidationSpecificationError.new('field not present in validation call')
           raise ex
         end
+
+
     
         if validation_type == {}
           ex = ValidationSpecificationError.new('validation type not present or not a hash')
@@ -28,6 +32,17 @@ module MotionModel
       end
     end
   
+     # It doesn't save when validations fails
+    def save(options={ :validate => true})
+      (valid? || !options[:validate]) ? super : false
+    end
+
+    # it fails loudly
+    def save!
+      raise RecordInvalid.new('failed validation') unless valid?
+      save
+    end
+
     # This has two functions:
     # 
     # * First, it triggers validations.
