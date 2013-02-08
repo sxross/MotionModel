@@ -400,7 +400,7 @@ module MotionModel
     # Save current object. Speaking from the context of relational
     # databases, this inserts a row if it's a new one, or updates
     # in place if not.
-    def save
+    def save(*)
       call_hooks 'save' do
         @dirty = false
 
