@@ -1,4 +1,4 @@
-[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/sxross/MotionModel)
+[![Code Climate](https://codeclimate.com/github/sxross/MotionModel.png)](https://codeclimate.com/github/sxross/MotionModel)
 
 MotionModel -- Simple Model, Validation, and Input Mixins for RubyMotion
 ================
@@ -17,7 +17,7 @@ File                 | Module                    | Description
 
 MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
-  
+
 * [Getting Going](#getting-going)
 * [What Model Can Do](#what-model-can-do)
 * [Model Data Types](#model-data-types)
@@ -87,11 +87,11 @@ Models support default values, so if you specify your model like this, you get d
 ```ruby
 class Task
   include MotionModel::Model
-  
+
   columns :name     => :string,
           :due_date => {:type => :date, :default => '2012-09-15'}
 end
-```          
+```
 
 You can also include the `Validatable` module to get field validation. For example:
 
@@ -200,8 +200,8 @@ You must return `true` from your validator if the value passes validation otherw
 Model Instances and Unique IDs
 -----------------
 
-It is assumed that models can be created from an external source (JSON from a Web 
-application or `NSCoder` from the device) or simply be a stand-alone data store. 
+It is assumed that models can be created from an external source (JSON from a Web
+application or `NSCoder` from the device) or simply be a stand-alone data store.
 To identify rows properly, the model tracks a special field called `:id`. If it's
 already present, it's left alone. If it's missing, then it is created for you.
 Each row id is guaranteed to be unique, so you can use this when communicating
@@ -214,24 +214,24 @@ Using MotionModel
   This should make transitioning from Rails or any ORM that follows the
   ActiveRecord pattern pretty easy. Some of the finder syntactic sugar is
   similar to that of Sequel or DataMapper.
-  
+
   * Finders are implemented using chaining. Here is an examples:
 
-    ```ruby  
+    ```ruby
     @tasks = Task.where(:assigned_to).eq('bob').and(:location).contains('seattle')
     @tasks.all.each { |task| do_something_with(task) }
     ```
-    
+
     You can use a block with find:
-    
-    ```ruby  
+
+    ```ruby
     @tasks = Task.find{|task| task.name =~ /dog/i && task.assigned_to == 'Bob'}
     ```
-    
+
     Note that finders always return a proxy (`FinderQuery`). You must use `first`, `last`, or `all`
     to get useful results.
-    
-    ```ruby  
+
+    ```ruby
     @tasks = Task.where(:owner).eq('jim')   # => A FinderQuery.
     @tasks.all                              # => An array of matching results.
     @tasks.first                            # => The first result
@@ -256,68 +256,68 @@ Using MotionModel
   ```ruby
     @tasks = Task.deserialize_from_file('tasks.dat')
   ```
-  
+
   and of course on the "save" side:
-  
+
   ```ruby
     Task.serialize_to_file('tasks.dat')
   end
   ```
   After the first serialize or deserialize, your model will remember the file
   name so you can call these methods without the filename argument.
-  
+
   Implementation note: that the this serialization of any arbitrarily complex set of relations
   is automatically handled by `NSCoder` provided you conform to the coding
   protocol (which MotionModel does). When you declare your columns, `MotionModel` understands how to
   serialize your data so you need take no specific action.
-  
+
   **Warning**: As of this release, persistence will serialize only one
   model at a time and not your entire data store.
-  
+
   * Relations
-  
+
   ```ruby
   class Task
     include MotionModel::Model
     columns     :name => :string
     has_many    :assignees
   end
-  
+
   class Assignee
     include MotionModel::Model
     columns     :assignee_name => :string
     belongs_to  :task
   end
-  
+
   # Create a task, then create an assignee as a
   # related object on that task
   a_task = Task.create(:name => "Walk the Dog")
   a_task.assignees.create(:assignee_name => "Howard")
-  
+
   # See? It works.
   a_task.assignees.assignee_name      # => "Howard"
   Task.first.assignees.assignee_name  # => "Howard"
-  
+
   # Create another assignee but don't save
   # Add to assignees collection. Both objects
   # are saved.
   another_assignee = Assignee.new(:name => "Douglas")
   a_task.assignees << another_assignee  # adds to relation and saves both objects
-  
+
   # The count of assignees accurately reflects current state
   a_task.assignees.count              # => 2
-  
+
   # And backreference access through belongs_to works.
   Assignee.first.task.name            # => "Walk the Dog"
   ```
-  
+
 There are four ways to delete objects from your data store:
 
 * `object.delete     #` just deletes the object and ignores all relations
 * `object.destroy    #` deletes the object and honors any cascading declarations
 * `Class.delete_all  #` just deletes all objects of this class and ignores all relations
 * `Class.destroy_all #` deletes all objects of this class and honors any cascading declarations
-  
+
 The key to how the `destroy` variants work in how the relation is declared. You can declare:
 
 ```ruby
@@ -379,14 +379,14 @@ Notifications
 -------------
 
 Notifications are issued on object save, update, and delete. They work like this:
-  
+
 ```ruby
 def viewDidAppear(animated)
   super
   # other stuff here to set up your view
-  
-  NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:', 
-                                                           name:'MotionModelDataDidChangeNotification', 
+
+  NSNotificationCenter.defaultCenter.addObserver(self, selector:'dataDidChange:',
+                                                           name:'MotionModelDataDidChangeNotification',
                                                          object:nil)
 end
 
@@ -406,11 +406,11 @@ def dataDidChange(notification)
   #     'delete'
 end
 ```
-  
+
   In your `dataDidChange` notification handler, you can respond to the `MotionModelDataDidChangeNotification` notification any way you like,
   but in the instance of a tableView, you might want to use the id of the object passed back to locate
   the correct row in the table and act upon it instead of doing a wholesale `reloadData`.
-  
+
   Note that if you do a delete_all, no notifications are issued because there is no single object
   on which to report. You pretty much know what you need to do: Refresh your view.
 
@@ -418,7 +418,7 @@ end
   like a remote synch operation but still be confident you will be updating the UI only on the main thread.
   MotionModel does not currently send notification messages that differentiate by class, so if your
   UI presents `Task`s and you get a notification that an `Assignee` has changed:
-  
+
 ```ruby
 class Task
   include MotionModel::Model
@@ -448,12 +448,12 @@ else
   # We don't display anything other than tasks
 end
 ```
-  
+
   The above example implies you are only presenting, say, a list of tasks in the current
   view. If, however, you are presenting a list of tasks along with their assignees and
   the assignees could change as a result of a background sync, then your code could and
   should recognize the change to assignee objects.
-  
+
 Core Extensions
 ----------------
 
@@ -466,47 +466,47 @@ Core Extensions
   - Array#empty?
   - Hash#empty?
   - Symbol#titleize
-  
+
   Also in the extensions is a `Debug` class to log stuff to the console.
   It uses NSLog so you will have a separate copy in your application log.
   This may be preferable to `puts` just because it's easier to spot in
   your code and it gives you the exact level and file/line number of the
   info/warning/error in your console output:
-  
+
   - Debug.info(message)
   - Debug.warning(message)
   - Debug.error(message)
   - Debug.silence / Debug.resume to turn on and off logging
   - Debug.colorize (true/false) for pretty console display
-  
+
   Finally, there is an inflector singleton class based around the one
   Rails has implemented. You don't need to dig around in this class
   too much, as its core functionality is exposed through two methods:
-  
+
   String#singularize
   String#pluralize
-  
+
   These work, with the caveats that 1) The inflector is English-language
   based; 2) Irregular nouns are not handled; 3) Singularizing a singular
   or pluralizing a plural makes for good cocktail-party stuff, but in
   code, it mangles things pretty badly.
-  
+
   You may want to get into customizing your inflections using:
-  
+
   - Inflector.inflections.singular(rule, replacement)
   - Inflector.inflections.plural(rule, replacement)
   - Inflector.inflections.irregular(rule, replacement)
-  
+
   These allow you to add to the list of rules the inflector uses when
   processing singularize and pluralize. For each singular rule, you will
   probably want to add a plural one. Note that order matters for rules,
   so if your inflection is getting chewed up in one of the baked-in
   inflections, you may have to use Inflector.inflections.reset to empty
   them all out and build your own.
-  
+
   Of particular note is Inflector.inflections.irregular. This is for words
   that defy regular rules such as 'man' => 'men' or 'person' => 'people'.
-  Again, a reversing rule is required for both singularize and 
+  Again, a reversing rule is required for both singularize and
   pluralize to work properly.
 
 Formotion Support

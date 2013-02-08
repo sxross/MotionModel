@@ -38,7 +38,7 @@ module MotionModel
       # want to use. If you omit this, it will use the last
       # remembered file name.
       #
-      # Raises a +MotionModel::PersistFileFailureError+ on failure.
+      # Raises a +MotionModel::PersistFileError+ on failure.
       def serialize_to_file(file_name = nil)
         @file_name = file_name if file_name
         error_ptr = Pointer.new(:object)
@@ -49,7 +49,7 @@ module MotionModel
           error = error_ptr[0]
 
           # Now we can use the `error' object.
-          raise MotionModel::PersistFileFailureError.new "Error when writing data: #{error}"
+          raise MotionModel::PersistFileError.new "Error when writing data: #{error}"
         end
       end
     

@@ -191,7 +191,7 @@ module MotionModel
       def destroy_all
         ids = self.all.map{|item| item.id}
         bulk_update do
-          ids.each do |item| 
+          ids.each do |item|
             find(item).destroy
           end
         end
@@ -439,7 +439,7 @@ module MotionModel
     def delete
       call_hooks('delete') do
         target_index = collection.index{|item| item.id == self.id}
-        collection.delete_at(target_index)
+        collection.delete_at(target_index) unless target_index.nil?
         self.class.issue_notification(self, :action => 'delete')
       end
     end

@@ -32,9 +32,14 @@ module MotionModel
        }
     end
 
+    def is_date_time?(column)
+      column_type = type(column)
+      [:date, :time].include?(column_type)
+     end
+
     def value_for(column) #nodoc
       value = self.send(column)
-      value = value.to_f if type(column) == :date && !value.nil?
+      value = value.to_f if value && is_date_time?(column)
       value
     end
 
@@ -67,13 +72,13 @@ module MotionModel
       end
       form
     end
-    
+
     # <tt>from_formotion</tt> takes the information rendered from a Formotion
     # form and stuffs it back into a MotionModel. This data is not saved until
     # you say so, offering you the opportunity to validate your form data.
     def from_formotion!(data)
       self.returnable_columns.each{|column|
-        if type(column) == :date || type(column) == :time
+        if data[column] && type(column) == :date || type(column) == :time
           data[column] = Time.at(data[column]) unless data[column].nil?
         end
         value = self.send("#{column}=", data[column])
