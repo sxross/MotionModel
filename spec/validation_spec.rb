@@ -3,13 +3,15 @@ class ValidatableTask
   include MotionModel::Validatable
   columns       :name => :string, 
                 :email => :string,
-                :some_day => :string
+                :some_day => :string,
+                :some_float => :float
 
   validate      :name, :presence => true
   validate      :name, :length => 2..10
   validate      :email, :email => true
   validate      :some_day, :format => /\A\d?\d-\d?\d-\d\d\Z/
   validate      :some_day, :length => 8..10
+  validate      :some_float, :presence => true
 end
 
 describe "validations" do
@@ -17,7 +19,8 @@ describe "validations" do
     @valid_tasks = {
       :name => 'bob',
       :email => 'bob@domain.com',
-      :some_day => '12-12-12'
+      :some_day => '12-12-12',
+      :some_float => 1.080
     }
   end
 
@@ -37,6 +40,16 @@ describe "validations" do
     it "is true if name is filled in" do
       task = ValidatableTask.create(@valid_tasks.except(:name))
       task.name = 'bob'
+      task.valid?.should === true
+    end
+
+    it "is false if the float is blank" do
+      task = ValidatableTask.new(@valid_tasks.except(:some_float))
+      task.valid?.should === false
+    end
+
+    it "is true if the float is filled in" do
+      task = ValidatableTask.new(@valid_tasks)
       task.valid?.should === true
     end
   end
@@ -99,7 +112,6 @@ describe "validations" do
       task = ValidatableTask.new
       task.validate_for(:some_day, 'a-12-12').should == false
     end
-
   end
 end
 

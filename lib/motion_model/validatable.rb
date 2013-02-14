@@ -122,6 +122,7 @@ module MotionModel
 
     # Validates that something has been entered in a field
     def validate_presence(field, value, setting)
+      value = value.to_s
       if value.is_a?(String) || value.nil?
         result = value.nil? || ((value.length == 0) == setting)
         additional_message = setting ? "non-empty" : "non-empty"
