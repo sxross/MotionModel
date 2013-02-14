@@ -120,9 +120,13 @@ module MotionModel
       result
     end
 
-    # Validates that something has been entered in a field
+    # Validates that something has been endntered in a field.
+    # Should catch Fixnums, Bignums and Floats. Nils and Strings should
+    # be handled as well, Arrays, Hashes and other datatypes will not.
     def validate_presence(field, value, setting)
-      if value.is_a?(String) || value.nil?
+      if(value.is_a?(Numeric)) 
+        return true
+      elsif value.is_a?(String) || value.nil?
         result = value.nil? || ((value.length == 0) == setting)
         additional_message = setting ? "non-empty" : "non-empty"
         add_message(field, "incorrect value supplied for #{field.to_s.humanize} -- should be #{additional_message}.") if result
