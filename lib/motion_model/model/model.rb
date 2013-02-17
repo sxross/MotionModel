@@ -568,14 +568,5 @@ module MotionModel
       end
     end
 
-    # Any way you reach this means you've tried to access a method
-    # not defined on this model.
-    def method_missing(method, *args, &block) #nodoc
-      if self.respond_to? method
-        return method(args, &block)
-      else
-        raise NoMethodError.new("nil column #{self.class}##{method} accessed from #{caller[1]}.")
-      end
-    end
   end
 end
