@@ -354,6 +354,14 @@ module MotionModel
         @_next_id += 1
       end
 
+      def relation_column?(column) #nodoc
+        [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
+      end
+
+      def virtual_relation_column?(column) #nodoc
+        [:belongs_to, :has_many].include? column_named(column).type
+      end
+      
       def has_relation?(col) #nodoc
         return false if col.nil?
 
@@ -374,7 +382,7 @@ module MotionModel
       assign_id options
 
       columns.each do |col|
-        unless relation_column?(col) # all data columns
+        unless self.class.relation_column?(col) # all data columns
           initialize_data_columns col, options
         else
           @data[col] = options[col] if column_named(col).type == :belongs_to_id
@@ -528,10 +536,6 @@ module MotionModel
         self.class.next_id = [options[:id].to_i, self.class.next_id].max
       end
       self.class.increment_id
-    end
-
-    def relation_column?(column) #nodoc
-      [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
     end
 
     def initialize_data_columns(column, options) #nodoc
