@@ -3,7 +3,8 @@ class Task
   attr_reader :before_save_called, :after_save_called
 
   include MotionModel::Model
-  columns       :name => :string, 
+  include MotionModel::ArrayModelAdapter
+  columns       :name => :string,
                 :details => :string,
                 :some_day => :date
 

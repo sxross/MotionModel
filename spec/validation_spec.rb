@@ -1,5 +1,6 @@
 class ValidatableTask
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Validatable
   columns       :name => :string, 
                 :email => :string,
@@ -105,6 +106,7 @@ end
 
 class VTask
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Validatable
 
   columns :name => :string

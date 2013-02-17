@@ -1,6 +1,7 @@
 class Task
   include MotionModel::Model
-  columns       :name => :string, 
+  include MotionModel::ArrayModelAdapter
+  columns       :name => :string,
   							:details => :string,
   							:some_day => :date
 end
@@ -58,6 +59,7 @@ describe 'finders' do
     it "performs set inclusion(in) queries" do
       class InTest
         include MotionModel::Model
+        include MotionModel::ArrayModelAdapter
         columns :name
       end
         

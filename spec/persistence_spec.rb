@@ -1,5 +1,6 @@
 class PersistTask
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :name, :desc
 end
 
@@ -33,6 +34,7 @@ describe 'persistence' do
     it 'column addition' do
       class Foo
         include MotionModel::Model
+        include MotionModel::ArrayModelAdapter
         columns       :name => :string
       end
       @foo = Foo.create(:name=> 'Bob')
@@ -42,6 +44,7 @@ describe 'persistence' do
   
       class Foo
         include MotionModel::Model
+        include MotionModel::ArrayModelAdapter
         columns       :name => :string,
                       :address => :string
       end
@@ -58,6 +61,7 @@ describe 'persistence' do
     it "column removal" do
       class Foo
         include MotionModel::Model
+        include MotionModel::ArrayModelAdapter
         columns       :name => :string, :desc => :string
       end
 
@@ -69,6 +73,7 @@ describe 'persistence' do
       Object.send(:remove_const, :Foo)
       class Foo
         include MotionModel::Model
+        include MotionModel::ArrayModelAdapter
         columns       :name => :string,
                       :address => :string
       end
@@ -86,6 +91,7 @@ describe 'persistence' do
   describe "remembering filename" do
     class Foo
       include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
       columns :name => :string
     end
 
@@ -142,12 +148,14 @@ end
 
 class Parent
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns   :name
   has_many  :children
 end
   
 class Child
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns     :name
   belongs_to  :parent
 end

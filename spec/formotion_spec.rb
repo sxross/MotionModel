@@ -1,5 +1,6 @@
 class ModelWithOptions
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Formotion
 
   columns :name => :string,
@@ -13,6 +14,7 @@ end
 
 class RelatedModel
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
 
   columns :name => :string
   belongs_to :model_with_options
