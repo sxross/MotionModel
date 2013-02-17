@@ -210,7 +210,7 @@ module MotionModel
           matches = @collection.collect do |item|
             item if yield(item)
           end.compact
-          return FinderQuery.new(matches)
+          return ArrayFinderQuery.new(matches)
         end
 
         unless args[0].is_a?(Symbol) || args[0].is_a?(String)
@@ -218,7 +218,7 @@ module MotionModel
           return @collection.select{|element| element.id == target_id}.first
         end
 
-        FinderQuery.new(args[0].to_sym, @collection)
+        ArrayFinderQuery.new(args[0].to_sym, @collection)
       end
       alias_method :where, :find
 
@@ -238,7 +238,7 @@ module MotionModel
       end
 
       def order(field_name = nil, &block)
-        FinderQuery.new(@collection).order(field_name, &block)
+        ArrayFinderQuery.new(@collection).order(field_name, &block)
       end
 
       def each(&block)

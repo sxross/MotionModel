@@ -47,7 +47,7 @@ describe 'finders' do
     end
       
     it 'returns a FinderQuery object' do
-      Task.where(:details).should.is_a(MotionModel::FinderQuery)
+      Task.where(:details).should.is_a(MotionModel::ArrayFinderQuery)
     end
       
     it 'using where instead of find' do
@@ -92,7 +92,7 @@ describe 'finders' do
       end
         
       it 'returns a FinderQuery' do
-        @items_less_than_5.should.is_a MotionModel::FinderQuery
+        @items_less_than_5.should.is_a MotionModel::ArrayFinderQuery
       end
         
       it 'handles block-style finders' do
