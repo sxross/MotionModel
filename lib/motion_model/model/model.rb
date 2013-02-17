@@ -402,8 +402,6 @@ module MotionModel
     # in place if not.
     def save(*)
       call_hooks 'save' do
-        @dirty = false
-
         # Existing object implies update in place
         action = 'add'
         set_auto_date_field 'created_at'
@@ -414,6 +412,7 @@ module MotionModel
         else
           collection << self
         end
+        @dirty = false
         self.class.issue_notification(self, :action => action)
       end
     end
