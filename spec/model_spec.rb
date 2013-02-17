@@ -230,6 +230,15 @@ describe "Creating a model" do
         @new_task.save
         lambda{@new_task.name = 'now dirty'}.should.change{@new_task.dirty?}
       end
+
+      it 'marks an updated object as clean' do
+        @new_task.save
+        @new_task.should.not.be.dirty
+        @new_task.name = 'now updating task'
+        @new_task.should.be.dirty
+        @new_task.save
+        @new_task.should.not.be.dirty
+      end
     end
   end
   
