@@ -89,7 +89,7 @@ describe "Creating a model" do
     end
 
     it "the type of a column can be retrieved" do
-      Task.new.type(:some_day).should.equal(:date)
+      Task.new.column_type(:some_day).should.equal(:date)
     end
 
   end

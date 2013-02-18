@@ -146,7 +146,7 @@ module MotionModel
       end
 
       # Returns type of this column.
-      def type(column)
+      def column_type(column)
         column_named(column).type || nil
       end
 
@@ -426,8 +426,8 @@ module MotionModel
     end
 
     # Type of a given column
-    def type(column_name)
-      self.class.type(column_name)
+    def column_type(column_name)
+      self.class.column_type(column_name)
     end
 
     # Options hash for column, excluding the core
