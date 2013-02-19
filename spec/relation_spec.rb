@@ -1,11 +1,13 @@
 class Assignee
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :assignee_name => :string
   belongs_to :task
 end
 
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns       :name => :string,
   							:details => :string,
   							:some_day => :date
@@ -15,6 +17,7 @@ end
 
 class User
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :name => :string
 
   has_many :email_accounts
@@ -22,6 +25,7 @@ end
 
 class EmailAccount
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :name => :string
   belongs_to :user
 end

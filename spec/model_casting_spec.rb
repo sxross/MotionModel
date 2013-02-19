@@ -1,5 +1,6 @@
 class TypeCast
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :a_boolean => :boolean,
           :an_int => {:type => :int, :default => 3},
           :an_integer => :integer,

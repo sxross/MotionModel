@@ -1,5 +1,6 @@
 class NotifiableTask
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :name
   @@notification_called = false
   @@notification_details = :none

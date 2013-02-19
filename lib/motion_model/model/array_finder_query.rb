@@ -1,5 +1,5 @@
 module MotionModel
-  class FinderQuery
+  class ArrayFinderQuery
     attr_accessor :field_name
     
     def initialize(*args)#nodoc

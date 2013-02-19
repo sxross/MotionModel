@@ -48,7 +48,6 @@ module MotionModel
       base.instance_variable_set("@_columns", [])               # Columns in model
       base.instance_variable_set("@_column_hashes", {})         # Hashes to for quick column lookup
       base.instance_variable_set("@_relations", {})             # relations
-      base.instance_variable_set("@collection", [])             # Actual data
       base.instance_variable_set("@_next_id", 1)                # Next assignable id
       base.instance_variable_set("@_issue_notifications", true) # Next assignable id
     end
@@ -155,6 +154,14 @@ module MotionModel
         column_named(column).default || nil
       end
 
+      def read(attrs)
+        new(attrs).instance_eval do
+          @new_record = false
+          @dirty = false
+          self
+        end
+      end
+
       # Creates an object and saves it. E.g.:
       #
       #   @bob = Person.create(:name => 'Bob', :hobby => 'Bird Watching')
@@ -164,25 +171,6 @@ module MotionModel
         row = self.new(options)
         row.save
         row
-      end
-
-      def length
-        @collection.length
-      end
-      alias_method :count, :length
-
-      # Deletes all rows in the model -- no hooks are called and
-      # deletes are not cascading so this does not affected related
-      # data.
-      def delete_all
-        # Do each delete so any on_delete and
-        # cascades are called, then empty the
-        # collection and compact the array.
-        bulk_update do
-          @collection.each{|item| item.delete}
-        end
-        @collection = []
-        @_next_id = 1
       end
 
       # Destroys all rows in the model -- before_delete and after_delete
@@ -198,56 +186,23 @@ module MotionModel
         # Note collection is not emptied, and next_id is not reset.
       end
 
-      # Finds row(s) within the data store. E.g.,
-      #
-      #   @post = Post.find(1)  # find a specific row by ID
-      #
-      # or...
-      #
-      #   @posts = Post.find(:author).eq('bob').all
-      def find(*args, &block)
-        if block_given?
-          matches = @collection.collect do |item|
-            item if yield(item)
-          end.compact
-          return FinderQuery.new(matches)
-        end
-
-        unless args[0].is_a?(Symbol) || args[0].is_a?(String)
-          target_id = args[0].to_i
-          return @collection.select{|element| element.id == target_id}.first
-        end
-
-        FinderQuery.new(args[0].to_sym, @collection)
-      end
-      alias_method :where, :find
-
       # Retrieves first row of query
       def first
-        @collection.first
+        all.first
       end
 
       # Retrieves last row of query
       def last
-        @collection.last
-      end
-
-      # Returns query result as an array
-      def all
-        @collection
-      end
-
-      def order(field_name = nil, &block)
-        FinderQuery.new(@collection).order(field_name, &block)
+        all.last
       end
 
       def each(&block)
         raise ArgumentError.new("each requires a block") unless block_given?
-        @collection.each{|item| yield item}
+        all.each{|item| yield item}
       end
 
       def empty?
-        @collection.empty?
+        all.empty?
       end
     end
 
@@ -339,19 +294,12 @@ module MotionModel
         @_column_hashes[name.to_sym]
       end
 
-      # Returns next available id
-      def next_id #nodoc
-        @_next_id
+      def relation_column?(column) #nodoc
+        [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
       end
 
-      # Sets next available id
-      def next_id=(value) #nodoc
-        @_next_id = value
-      end
-
-      # Increments next available id
-      def increment_id #nodoc
-        @_next_id += 1
+      def virtual_relation_column?(column) #nodoc
+        [:belongs_to, :has_many].include? column_named(column).type
       end
 
       def has_relation?(col) #nodoc
@@ -370,11 +318,10 @@ module MotionModel
 
     def initialize(options = {})
       @data ||= {}
-
-      assign_id options
+      before_initialize(options)
 
       columns.each do |col|
-        unless relation_column?(col) # all data columns
+        unless self.class.relation_column?(col) # all data columns
           initialize_data_columns col, options
         else
           @data[col] = options[col] if column_named(col).type == :belongs_to_id
@@ -382,6 +329,11 @@ module MotionModel
       end
 
       @dirty = true
+      @new_record = true
+    end
+
+    def new_record?
+      @new_record
     end
 
     # Default to_i implementation returns value of id column, much as
@@ -405,13 +357,14 @@ module MotionModel
         # Existing object implies update in place
         action = 'add'
         set_auto_date_field 'created_at'
-        if obj = collection.find{|o| o.id == @data[:id]}
-          obj = self
+        if @new_record
+          do_insert
+        else
+          do_update
           set_auto_date_field 'updated_at'
           action = 'update'
-        else
-          collection << self
         end
+        @new_record = false
         @dirty = false
         self.class.issue_notification(self, :action => action)
       end
@@ -422,7 +375,6 @@ module MotionModel
       self.send("#{field_name}=", Time.now) if self.respond_to? field_name
     end
 
-    # Deletes the current object. The object can still be used.
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}"
       self.send(hook, self) if respond_to? hook.to_sym
@@ -436,11 +388,7 @@ module MotionModel
     end
 
     def delete
-      call_hooks('delete') do
-        target_index = collection.index{|item| item.id == self.id}
-        collection.delete_at(target_index) unless target_index.nil?
-        self.class.issue_notification(self, :action => 'delete')
-      end
+      call_hooks('delete') { do_delete }
     end
 
     # Destroys the current object. The difference between delete
@@ -463,22 +411,6 @@ module MotionModel
       end
       delete
     end
-
-    # Undelete does pretty much as its name implies. However,
-    # the natural sort order is not preserved. IMPORTANT: If
-    # you are trying to undo a cascading delete, this will not
-    # work. It only undeletes the object you still own.
-
-    def undelete
-      collection << self
-      self.class.issue_notification(self, :action => 'add')
-    end
-
-    # Count of objects in the current collection
-    def length
-      collection.length
-    end
-    alias_method :count, :length
 
     # True if the column exists, otherwise false
     def column?(column_name)
@@ -518,28 +450,10 @@ module MotionModel
       @dirty
     end
 
-
     private
-
-    def assign_id(options) #nodoc
-      unless options[:id]
-        options[:id] = self.class.next_id
-      else
-        self.class.next_id = [options[:id].to_i, self.class.next_id].max
-      end
-      self.class.increment_id
-    end
-
-    def relation_column?(column) #nodoc
-      [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
-    end
 
     def initialize_data_columns(column, options) #nodoc
        self.send("#{column}=".to_sym, options[column] || self.class.default(column))
-    end
-
-    def collection #nodoc
-      self.class.instance_variable_get('@collection')
     end
 
     def column_named(name) #nodoc
@@ -568,14 +482,5 @@ module MotionModel
       end
     end
 
-    # Any way you reach this means you've tried to access a method
-    # not defined on this model.
-    def method_missing(method, *args, &block) #nodoc
-      if self.respond_to? method
-        return method(args, &block)
-      else
-        raise NoMethodError.new("nil column #{self.class}##{method} accessed from #{caller[1]}.")
-      end
-    end
   end
 end

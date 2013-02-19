@@ -1,5 +1,6 @@
 class ModelWithOptions
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
 
   columns :date => {:type => :date, :formotion => {:picker_type => :date_time}}
 end
