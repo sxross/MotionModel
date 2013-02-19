@@ -1,3 +1,13 @@
+2012-02-19: Included Doug Puchalski's great refactoring of Model that provides an
+            adapter for ArrayModelAdapter. WARNING!!! This is a breaking change
+            since version 0.3.8. You will have to include:
+
+            MotionModel::ArrayModelAdapter
+
+            after including MotionModel::Model to get the same functionality.
+            Failure to include an adapter (note: spelling counts :) will result
+            in an exception so this will not quietly fail.
+
 2012-01-24: Added block-structured transactions.
 
 2012-01-14: Fixed problem where data returned from forms was of type NSString, which

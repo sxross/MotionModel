@@ -40,6 +40,7 @@
 module MotionModel
   class PersistFileError < Exception; end
   class RelationIsNilError < Exception; end
+  class AdapterNotFoundError < Exception; end
 
   module Model
     def self.included(base)
@@ -317,6 +318,8 @@ module MotionModel
     end
 
     def initialize(options = {})
+      raise AdapterNotFoundError.new("You must specify a persistence adapter.") unless self.respond_to? :adapter
+
       @data ||= {}
       before_initialize(options)
 

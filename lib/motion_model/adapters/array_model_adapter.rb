@@ -1,5 +1,8 @@
 module MotionModel
   module ArrayModelAdapter
+    def adapter
+      'Array Model Adapter'
+    end
 
     def self.included(base)
       base.extend(PrivateClassMethods)

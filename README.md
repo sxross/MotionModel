@@ -31,6 +31,36 @@ you like with it. See the LICENSE file in this project.
 * [Problems/Comments](#problemscomments)
 * [Submissions/Patches](#submissionspatches)
 
+Most Recent Important Change
+=================
+
+Please see the CHANGELOG for update on changes.
+
+Version 0.3.8 to 0.4.0 is a minor version bump, not a patch version. Upgrading
+to 0.4.0 *will break existing code*. To update your code, simply insert the following line:
+
+```ruby
+class ModelWithAdapter
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter # <== Here!
+
+  columns :name
+end
+```
+
+This change lays the foundation for using other persistence adapters.
+If you don't want to update all your models, install the gem:
+
+```
+$ gem install motion_model -v 0.3.8
+```
+
+or if you are using bundler:
+
+```
+gem motion_model, "0.3.8"
+```
+
 Getting Going
 ================
 
@@ -200,7 +230,7 @@ You must return `true` from your validator if the value passes validation otherw
 An important note about `save` once you include `Validatable`, you have two flavors
 of save:
 
-Method                 | Meaning              
+Method                 | Meaning
 -----------------------|---------------------------
 `save(options)`        |Just saves the data if it is valid (passes validations) or if you have specified `:validate => false`
 `save!`                |Saves the data if it is valid, otherwise raises a `MotionModel::Validatable::RecordInvalid` exception
