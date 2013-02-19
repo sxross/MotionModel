@@ -16,7 +16,7 @@ module MotionModel
     def should_return(column) #nodoc
       skippable = [:id]
       skippable += [:created_at, :updated_at] unless @expose_auto_date_fields
-      !skippable.include?(column) && !relation_column?(column)
+      !skippable.include?(column) && !self.class.relation_column?(column)
     end
 
     def returnable_columns #nodoc

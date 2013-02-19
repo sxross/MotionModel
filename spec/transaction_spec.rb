@@ -1,5 +1,6 @@
 class TransactClass
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Model::Transactions
   columns :name, :age
   has_many :transaction_things
@@ -7,6 +8,7 @@ end
 
 class TransactionThing
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Model::Transactions
   columns :thingie_description
   belongs_to :transact_class

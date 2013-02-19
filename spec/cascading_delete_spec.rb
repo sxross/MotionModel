@@ -1,11 +1,13 @@
 class Assignee
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :assignee_name => :string
   belongs_to :task
 end
 
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns       :name => :string,
                 :details => :string,
                 :some_day => :date
@@ -14,6 +16,7 @@ end
 
 class CascadingTask
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns       :name => :string,
                 :details => :string,
                 :some_day => :date
@@ -22,6 +25,7 @@ end
 
 class CascadedAssignee
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns       :assignee_name => :string
   belongs_to    :cascading_task
   has_many      :employees
@@ -29,6 +33,7 @@ end
 
 class Employee
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns       :name
   belongs_to    :CascadedAssignee
 end

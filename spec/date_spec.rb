@@ -14,6 +14,7 @@ describe "time conversions" do
   it "Sets created_at when an item is created" do
     class Creatable
       include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
       columns :name => :string,
               :created_at => :date
     end
@@ -25,6 +26,7 @@ describe "time conversions" do
     it "Sets updated_at when an item is created" do
     class Updateable
       include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
       columns :name => :string,
               :created_at => :date,
               :updated_at => :date

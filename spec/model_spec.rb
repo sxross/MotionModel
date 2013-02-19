@@ -1,6 +1,7 @@
 class Task
   include MotionModel::Model
-  columns       :name => :string, 
+  include MotionModel::ArrayModelAdapter
+  columns       :name => :string,
   							:details => :string,
   							:some_day => :date
 
@@ -11,11 +12,13 @@ end
 
 class ATask
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :name, :details, :some_day
 end
 
 class TypeCast
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   columns :a_boolean => :boolean,
           :an_int => {:type => :int, :default => 3},
           :an_integer => :integer,
