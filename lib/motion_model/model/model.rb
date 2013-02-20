@@ -130,14 +130,14 @@ module MotionModel
       # Allows code like this:
       #
       #   Assignee.find(:assignee_name).like('smith').first.task
-      def belongs_to(relation)
-        add_field relation, :belongs_to
+      def belongs_to(relation, options = {})
+        add_field relation, :belongs_to, options
         add_field generate_belongs_to_id(relation), :belongs_to_id    # a relation is singular.
       end
 
       # Returns true if a column exists on this model, otherwise false.
       def column?(column)
-        respond_to?(column)
+        !column_named(column).nil?
       end
 
       # Returns type of this column.
@@ -147,9 +147,10 @@ module MotionModel
 
       # returns default value for this column or nil.
       def default(column)
-        column_named(column).default || nil
+        column_named(column).try(:default)
       end
 
+      # Build an instance that represents a saved object from the persistence layer.
       def read(attrs)
         new(attrs).instance_eval do
           @new_record = false
@@ -180,6 +181,10 @@ module MotionModel
           end
         end
         # Note collection is not emptied, and next_id is not reset.
+      end
+
+      def find_by_id(id)
+        where(id: id).first
       end
 
       # Retrieves first row of query
@@ -264,9 +269,11 @@ module MotionModel
       end
 
       def define_accessor_methods(name) #nodoc
-        define_method(name.to_sym) {
-          @data[name]
-        }
+        unless alloc.respond_to?(name.to_sym)
+          define_method(name.to_sym) {
+            @data[name]
+          }
+        end
         define_method("#{name}=".to_sym) { |value|
           @data[name] = cast_to_type(name, value)
           @dirty = true
@@ -275,14 +282,16 @@ module MotionModel
 
       def define_belongs_to_methods(name) #nodoc
         define_method(name) {
+          return @data[name] if @data[name]
           col = column_named(name)
           parent_id = @data[self.class.generate_belongs_to_id(col.name)]
-          col.classify.find(parent_id)
+          col.classify.find_by_id(parent_id)
         }
-        define_method("#{name}=") { |value|
+        define_method("#{name}=") { |parent|
+          @data[name]  = parent
           col = column_named(name)
           parent_id = self.class.generate_belongs_to_id(col.name)
-          @data[parent_id.to_sym] = value.to_i
+          @data[parent_id.to_sym] = parent.id
         }
       end
 
@@ -336,14 +345,10 @@ module MotionModel
       raise AdapterNotFoundError.new("You must specify a persistence adapter.") unless self.respond_to? :adapter
 
       @data ||= {}
-      before_initialize(options)
+      before_initialize(options) if respond_to?(:before_initialize)
 
-      columns.each do |col|
-        unless relation_column?(col) # all data columns
-          initialize_data_columns col, options
-        else
-          @data[col] = options[col] if column_named(col).type == :belongs_to_id
-        end
+      options.each do |col, value|
+        initialize_data_columns col, value
       end
 
       @dirty = true
@@ -352,6 +357,14 @@ module MotionModel
 
     def new_record?
       @new_record
+    end
+
+    def attributes
+      @data
+    end
+
+    def read_attribute(name)
+      @data[name]
     end
 
     # Default to_i implementation returns value of id column, much as
@@ -458,13 +471,6 @@ module MotionModel
       column_named(column_name).options
     end
 
-    # True if this object responds to the method or
-    # property, otherwise false.
-    alias_method :old_respond_to?, :respond_to?
-    def respond_to?(method)
-      column_named(method) || old_respond_to?(method)
-    end
-
     def dirty?
       @dirty
     end
@@ -487,8 +493,8 @@ module MotionModel
       self.class.send(:has_relation?, col)
     end
 
-    def initialize_data_columns(column, options) #nodoc
-       self.send("#{column}=".to_sym, options[column] || self.class.default(column))
+    def initialize_data_columns(column, value) #nodoc
+      self.send("#{column}=".to_sym, value || self.class.default(column))
     end
 
     def column_named(name) #nodoc
@@ -519,6 +525,16 @@ module MotionModel
 
     def issue_notification(info) #nodoc
       self.class.send(:issue_notification, self, info)
+    end
+
+    def method_missing(name, *args, &block)
+      if name.to_s[-1] == '='
+        @data["#{name[0..-2]}".to_sym] = args.first
+        return args.first
+      else
+        return @data[name] if @data.has_key?(name)
+      end
+      super
     end
 
   end

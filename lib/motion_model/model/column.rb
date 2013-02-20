@@ -20,13 +20,18 @@ module MotionModel
       end
 
       def classify
-        case @type
-        when :belongs_to
-          @klass ||= Object.const_get(@name.to_s.camelize)
-        when :has_many
-          @klass ||= Object.const_get(@name.to_s.singularize.camelize)
+        if @options[:class]
+          @options[:class]
         else
-          raise "#{@name} is not a relation. This isn't supposed to happen."
+          class_name = @options[:class_name] || @name
+          case @type
+          when :belongs_to
+            @klass ||= Object.const_get(class_name.to_s.camelize)
+          when :has_many
+            @klass ||= Object.const_get(class_name.to_s.singularize.camelize)
+          else
+            raise "#{@name} is not a relation. This isn't supposed to happen."
+          end
         end
       end
     end

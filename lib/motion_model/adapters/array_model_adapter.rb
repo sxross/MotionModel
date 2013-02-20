@@ -21,6 +21,7 @@ module MotionModel
       def insert(object)
         collection << object
       end
+      alias :<< :insert
 
       def length
         collection.length
@@ -114,7 +115,7 @@ module MotionModel
       self.class.collection
     end
 
-    # Count of objects in the current collectiona
+    # Count of objects in the current collection
     def length
       collection.length
     end
