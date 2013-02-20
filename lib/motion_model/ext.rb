@@ -11,6 +11,10 @@ class String
     self.length < 1
   end
 
+  def demodulize
+    sub(/.*::/, '')
+  end
+
   def pluralize
     Inflector.inflections.pluralize self
   end
