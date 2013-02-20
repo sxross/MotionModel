@@ -156,7 +156,8 @@ module MotionModel
 
       # returns default value for this column or nil.
       def default(column)
-        column_named(column).try(:default)
+        col = column_named(column)
+        col.nil? ? nil : col.default
       end
 
       # Build an instance that represents a saved object from the persistence layer.
@@ -355,6 +356,13 @@ module MotionModel
 
       @data ||= {}
       before_initialize(options) if respond_to?(:before_initialize)
+
+      # Gather defaults
+      columns.each do |col|
+        next if options.has_key?(col)
+        next if relation_column?(col)
+        options[col] = self.class.default(col)
+      end
 
       options.each do |col, value|
         initialize_data_columns col, value
