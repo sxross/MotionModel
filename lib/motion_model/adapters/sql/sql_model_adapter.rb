@@ -12,10 +12,6 @@ module MotionModel
 
     module PublicClassMethods
 
-      def polymorphic?
-        false
-      end
-
       def default_scope
         if @default_scope
           @default_scope.dup

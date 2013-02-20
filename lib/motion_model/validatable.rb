@@ -6,7 +6,6 @@ module MotionModel
 
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set('@validations', [])
     end
 
     module ClassMethods
@@ -23,12 +22,12 @@ module MotionModel
           raise ex
         end
     
-        @validations << {field => validation_type}
+        validations << {field => validation_type}
       end
       alias_method :validates, :validate
 
       def validations
-        @validations
+        @validations ||= []
       end
     end
   

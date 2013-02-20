@@ -49,6 +49,15 @@ module MotionModel
     end
 
     module PublicClassMethods
+
+      def new(options = {})
+        object_class = options[:inheritance_type] ? Kernel.const_get(options[:inheritance_type]) : self
+        object_class.alloc.instance_eval do
+          initialize(options)
+          self
+        end
+      end
+
       # Use to do bulk insertion, updating, or deleting without
       # making repeated calls to a delegate. E.g., when syncing
       # with an external data source.
