@@ -74,6 +74,10 @@ module MotionModel
       end
       alias_method :find, :where
 
+      def find_by_id(id)
+        where(id: id).first
+      end
+
       def do_select(scope)
         rows_attrs = scope.execute.map do |row|
           Hash[row.map { |k, v|

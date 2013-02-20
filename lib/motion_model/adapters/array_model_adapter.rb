@@ -63,6 +63,10 @@ module MotionModel
       end
       alias_method :where, :find
 
+      def find_by_id(id)
+        find(:id).eq(id).first
+      end
+
       # Returns query result as an array
       def all
         collection

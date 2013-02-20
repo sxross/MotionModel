@@ -193,10 +193,6 @@ module MotionModel
         # Note collection is not emptied, and next_id is not reset.
       end
 
-      def find_by_id(id)
-        where(id: id).first
-      end
-
       # Retrieves first row of query
       def first
         all.first
