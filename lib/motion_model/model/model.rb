@@ -374,12 +374,12 @@ module MotionModel
       call_hooks 'save' do
         # Existing object implies update in place
         action = 'add'
-        set_auto_date_field 'created_at'
-        if @new_record
+        set_auto_date_field 'updated_at'
+        if new_record?
+          set_auto_date_field 'created_at'
           do_insert
         else
           do_update
-          set_auto_date_field 'updated_at'
           action = 'update'
         end
         @new_record = false
@@ -390,7 +390,8 @@ module MotionModel
 
     # Set created_at and updated_at fields
     def set_auto_date_field(field_name)
-      self.send("#{field_name}=", Time.now) if self.respond_to? field_name
+      method = "#{field_name}="
+      self.send(method, Time.now) if self.respond_to?(method)
     end
 
     def call_hook(hook_name, postfix)

@@ -23,7 +23,7 @@ module MotionModel
         when String
           return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
         when Time
-          return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+          return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
         else
           return arg
       end
@@ -45,7 +45,7 @@ module MotionModel
       when :boolean, :bool then cast_to_bool(arg)
       when :int, :integer, :belongs_to_id then cast_to_integer(arg)
       when :float, :double then cast_to_float(arg)
-      when :date, :time then cast_to_date(arg)
+      when :date, :time, :datetime then cast_to_date(arg)
       when :text then cast_to_string(arg)
       when :array then cast_to_array(arg)
       else
