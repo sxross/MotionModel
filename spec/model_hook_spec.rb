@@ -1,3 +1,4 @@
+Object.send(:remove_const, :Task) if defined?(Task)
 class Task
   attr_reader :before_delete_called, :after_delete_called
   attr_reader :before_save_called, :after_save_called
