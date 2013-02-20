@@ -7,7 +7,9 @@ module MotionModel
     def self.included(base)
       base.extend(PrivateClassMethods)
       base.extend(PublicClassMethods)
-      base.instance_variable_set("@collection", [])             # Actual data
+      base.instance_eval do
+        _reset_next_id
+      end
     end
 
     module PublicClassMethods
@@ -32,11 +34,8 @@ module MotionModel
         # Do each delete so any on_delete and
         # cascades are called, then empty the
         # collection and compact the array.
-        bulk_update do
-          collection.each{|item| item.delete}
-        end
-        @collection = []
-        @_next_id = 1
+        bulk_update { collection.last.delete until collection.empty? }
+        _reset_next_id
       end
 
       # Finds row(s) within the data store. E.g.,
@@ -59,7 +58,7 @@ module MotionModel
           return collection.select{|element| element.id == target_id}.first
         end
 
-        ArrayFinderQuery.new(args[0].to_sym, @collection)
+        ArrayFinderQuery.new(args[0].to_sym, collection)
       end
       alias_method :where, :find
 
@@ -69,32 +68,36 @@ module MotionModel
       end
 
       def order(field_name = nil, &block)
-        ArrayFinderQuery.new(@collection).order(field_name, &block)
+        ArrayFinderQuery.new(collection).order(field_name, &block)
       end
 
     end
 
     module PrivateClassMethods
+      private
 
       # Returns next available id
-      def next_id #nodoc
+      def _next_id #nodoc
         @_next_id
       end
 
-      # Sets next available id
-      def next_id=(value) #nodoc
-        @_next_id = value
+      def _reset_next_id
+        @_next_id = 1
       end
 
       # Increments next available id
-      def increment_id #nodoc
-        @_next_id += 1
+      def increment_next_id(other_id) #nodoc
+        @_next_id = [@_next_id, other_id.to_i].max + 1
       end
 
     end
 
     def before_initialize(options)
       assign_id(options)
+    end
+
+    def increment_next_id(other_id)
+      self.class.send(:increment_next_id, other_id)
     end
 
     # Undelete does pretty much as its name implies. However,
@@ -104,10 +107,14 @@ module MotionModel
 
     def undelete
       collection << self
-      self.class.issue_notification(self, :action => 'add')
+      issue_notification(:action => 'add')
     end
 
-    # Count of objects in the current collection
+    def collection #nodoc
+      self.class.collection
+    end
+
+    # Count of objects in the current collectiona
     def length
       collection.length
     end
@@ -115,17 +122,13 @@ module MotionModel
 
     private
 
-    def assign_id(options) #nodoc
-      unless options[:id]
-        options[:id] = self.class.next_id
-      else
-        self.class.next_id = [options[:id].to_i, self.class.next_id].max
-      end
-      self.class.increment_id
+    def _next_id
+      self.class.send(:_next_id)
     end
 
-    def collection #nodoc
-      self.class.instance_variable_get('@collection')
+    def assign_id(options) #nodoc
+      options[:id] ||= _next_id
+      increment_next_id(options[:id])
     end
 
     def do_insert
@@ -138,7 +141,7 @@ module MotionModel
     def do_delete
       target_index = collection.index{|item| item.id == self.id}
       collection.delete_at(target_index) unless target_index.nil?
-      self.class.issue_notification(self, :action => 'delete')
+      issue_notification(:action => 'delete')
     end
 
   end

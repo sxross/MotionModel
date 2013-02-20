@@ -46,11 +46,6 @@ module MotionModel
     def self.included(base)
       base.extend(PrivateClassMethods)
       base.extend(PublicClassMethods)
-      base.instance_variable_set("@_columns", [])               # Columns in model
-      base.instance_variable_set("@_column_hashes", {})         # Hashes to for quick column lookup
-      base.instance_variable_set("@_relations", {})             # relations
-      base.instance_variable_set("@_next_id", 1)                # Next assignable id
-      base.instance_variable_set("@_issue_notifications", true) # Next assignable id
     end
 
     module PublicClassMethods
@@ -58,9 +53,9 @@ module MotionModel
       # making repeated calls to a delegate. E.g., when syncing
       # with an external data source.
       def bulk_update(&block)
-        @_issue_notifications = false
+        self._issue_notifications = false
         class_eval &block
-        @_issue_notifications = true
+        self._issue_notifications = true
       end
 
       # Macro to define names and types of columns. It can be used in one of
@@ -79,7 +74,7 @@ module MotionModel
       #   columns :name, :age, :hobby
 
       def columns(*fields)
-        return @_columns.map{|c| c.name} if fields.empty?
+        return _columns.map{|c| c.name} if fields.empty?
 
         case fields.first
         when Hash
@@ -208,6 +203,27 @@ module MotionModel
     end
 
     module PrivateClassMethods
+
+      private
+
+      # Hashes to for quick column lookup
+      def _column_hashes
+        @_column_hashes ||= {}
+      end
+
+      @_issue_notifications = true
+      def _issue_notifications
+        @_issue_notifications
+      end
+
+      def _issue_notifications=(value)
+        @_issue_notifications = value
+      end
+
+      def _columns
+        _column_hashes.values
+      end
+
       # This populates a column from something like:
       #
       #   columns :name => :string, :age => :integer
@@ -242,7 +258,7 @@ module MotionModel
       end
 
       def issue_notification(object, info) #nodoc
-        if @_issue_notifications == true && !object.nil?
+        if _issue_notifications == true && !object.nil?
           NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info)
         end
       end
@@ -279,8 +295,7 @@ module MotionModel
       def add_field(name, type, options = {:default => nil}) #nodoc
         col = Column.new(name, type, options)
 
-        @_columns.push col
-        @_column_hashes[col.name.to_sym] = col
+        _column_hashes[col.name.to_sym] = col
 
         case type
           when :has_many then define_has_many_methods(name)
@@ -292,7 +307,7 @@ module MotionModel
 
       # Returns a column denoted by +name+
       def column_named(name) #nodoc
-        @_column_hashes[name.to_sym]
+        _column_hashes[name.to_sym]
       end
 
       def relation_column?(column) #nodoc
@@ -324,7 +339,7 @@ module MotionModel
       before_initialize(options)
 
       columns.each do |col|
-        unless self.class.relation_column?(col) # all data columns
+        unless relation_column?(col) # all data columns
           initialize_data_columns col, options
         else
           @data[col] = options[col] if column_named(col).type == :belongs_to_id
@@ -369,7 +384,7 @@ module MotionModel
         end
         @new_record = false
         @dirty = false
-        self.class.issue_notification(self, :action => action)
+        issue_notification(:action => action)
       end
     end
 
@@ -455,12 +470,28 @@ module MotionModel
 
     private
 
+    def _column_hashes
+      self.class.send(:_column_hashes)
+    end
+
+    def relation_column?(col)
+      self.class.send(:relation_column?, col)
+    end
+
+    def virtual_relation_column?(col)
+      self.class.send(:virtual_relation_column?, col)
+    end
+
+    def has_relation?(col) #nodoc
+      self.class.send(:has_relation?, col)
+    end
+
     def initialize_data_columns(column, options) #nodoc
        self.send("#{column}=".to_sym, options[column] || self.class.default(column))
     end
 
     def column_named(name) #nodoc
-      self.class.column_named(name.to_sym)
+      self.class.send(:column_named, name.to_sym)
     end
 
     def has_many_columns
@@ -483,6 +514,10 @@ module MotionModel
         else
           nil
       end
+    end
+
+    def issue_notification(info) #nodoc
+      self.class.send(:issue_notification, self, info)
     end
 
   end
