@@ -11,7 +11,7 @@ class AppDelegate
   def application(application, didFinishLaunchingWithOptions:launchOptions)
 
     MotionModel::Store.config(MotionModel::FMDBAdapter.new('test.db'))
-    Todo.db_model_proxy.create_table unless Todo.table_exists?
+    Todo.create_table unless Todo.table_exists?
 
     Todo.create(name: "Todo for #{Time.now}")
 
