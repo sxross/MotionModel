@@ -357,7 +357,8 @@ module MotionModel
       columns.each do |col|
         next if options.has_key?(col)
         next if relation_column?(col)
-        options[col] = self.class.default(col)
+        default = self.class.default(col)
+        options[col] = default unless default.nil?
       end
 
       options.each do |col, value|
