@@ -413,6 +413,7 @@ module MotionModel
         @dirty = false
         issue_notification(:action => action)
       end
+      true
     end
 
     # Set created_at and updated_at fields
