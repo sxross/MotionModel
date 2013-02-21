@@ -51,8 +51,6 @@ describe 'persistence' do
       
       @foo = Foo.first
 
-      puts "#{__FILE__}:#{__LINE__}"
-      puts "#{__FILE__}:#{__LINE__} #{Foo.all}"
       @foo.name.should == 'Bob'
       @foo.address.should == nil
       @foo.should.respond_to :address
