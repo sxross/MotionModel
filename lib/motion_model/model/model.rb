@@ -421,8 +421,15 @@ module MotionModel
     end
 
     def call_hook(hook_name, postfix)
-      hook = "#{hook_name}_#{postfix}"
-      self.send(hook) if self.respond_to?(hook)
+      hook = "#{hook_name}_#{postfix}".to_sym
+      if self.respond_to?(hook)
+        begin
+          self.send(hook)
+        rescue NoMethodError
+          # Fail silently, sometimes RubyMotion 1.32 incorrectly reports respond_to? true
+        end
+      end
+
     end
 
     def call_hooks(hook_name, &block)
