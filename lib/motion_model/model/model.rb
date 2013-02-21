@@ -422,7 +422,7 @@ module MotionModel
 
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}"
-      self.send(hook, self) if self.respond_to?(hook)
+      self.send(hook) if self.respond_to?(hook)
     end
 
     def call_hooks(hook_name, &block)
