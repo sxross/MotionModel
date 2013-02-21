@@ -36,10 +36,10 @@ module MotionModel
       when :integer;  'integer'
       when :boolean;  'integer'
       when :float;    'real'
-      when :string;   'text'
+      when :string;   'text collate nocase'
       when :date;     'integer'
       when :datetime; 'integer'
-      else;           'text'
+      else;           'text collate nocase'
       end
     end
 
