@@ -529,20 +529,6 @@ module MotionModel
       self.class.generate_belongs_to_id(self.class)
     end
 
-    def relation_for(col) # nodoc
-      col = column_named(col)
-      related_klass = col.classify
-
-      case col.type
-        when :belongs_to
-          related_klass.find(@data[:id])
-        when :has_many
-          related_klass.find(generate_belongs_to_id(self.class)).belongs_to(self, related_klass).eq(@data[:id])
-        else
-          nil
-      end
-    end
-
     def issue_notification(info) #nodoc
       self.class.send(:issue_notification, self, info)
     end

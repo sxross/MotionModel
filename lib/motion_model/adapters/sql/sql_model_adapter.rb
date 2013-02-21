@@ -97,6 +97,10 @@ module MotionModel
         _db_adapter.build_sql_context(:delete, delete_all_sql).execute
       end
 
+      def foreign_key(associated_class)
+        "#{associated_class.name.to_s.underscore}_id".to_sym
+      end
+
     end
 
     module PrivateClassMethods
@@ -155,6 +159,22 @@ module MotionModel
 
     def _db_column_config
       self.class.send(:_db_column_config)
+    end
+
+    def relation_for(col) # nodoc
+      col = column_named(col)
+      associated_class = col.classify
+
+      case col.type
+      when :belongs_to
+        foreign_id = send(self.class.foreign_key(associated_class))
+        return nil if foreign_id.nil?
+        associated_class.where(id: foreign_id)
+      when :has_many
+        associated_class.where(associated_class.foreign_key(self.class) => id)
+      else
+        nil
+      end
     end
 
   end

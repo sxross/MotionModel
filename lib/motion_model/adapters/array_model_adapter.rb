@@ -136,6 +136,20 @@ module MotionModel
       increment_next_id(options[:id])
     end
 
+    def relation_for(col) # nodoc
+      col = column_named(col)
+      related_klass = col.classify
+
+      case col.type
+        when :belongs_to
+          related_klass.find(@data[:id])
+        when :has_many
+          related_klass.find(generate_belongs_to_id(self.class)).belongs_to(self, related_klass).eq(@data[:id])
+        else
+          nil
+      end
+    end
+
     def do_insert
       collection << self
     end
