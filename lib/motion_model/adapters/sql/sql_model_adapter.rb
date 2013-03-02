@@ -116,6 +116,9 @@ module MotionModel
         config
       end
 
+      def transaction(&block)
+        _db_adapter.transaction(&block)
+      end
     end
 
     def insert_sql
@@ -125,19 +128,48 @@ module MotionModel
     end
 
     def do_insert
-      result = _db_adapter.build_sql_context(:insert, insert_sql).execute
-      self.id = _db_adapter.last_insert_row_id if result
-      result
+      _db_transaction do
+        save_belongs_to_relations
+        result = _db_adapter.build_sql_context(:insert, insert_sql).execute
+        self.id = _db_adapter.last_insert_row_id if result
+        save_has_many_relations
+        result
+      end
+    end
+
+    def do_update
+      _db_transaction do
+        save_belongs_to_relations
+        _db_adapter.build_sql_context(:update, update_sql).execute
+        save_has_many_relations
+      end
+    end
+
+    def save_belongs_to_relations
+      self.class.belongs_to_columns.each do |name, col|
+        associate = send(name)
+        next if associate.nil? || !associate.dirty?
+        associate.save
+        foreign_key = self.class.foreign_key(associate.class)
+        self.attributes = {foreign_key => associate.id}
+      end
+    end
+
+    def save_has_many_relations
+      self.class.has_many_columns.each do |name, col|
+        self.send(name).to_a.each do |associate|
+          foreign_key = associate.class.foreign_key(self.class)
+          associate.attributes = {foreign_key => id}
+          next unless associate.dirty?
+          associate.save
+        end
+      end
     end
 
     def update_sql
       attrs = _db_typed_attributes
       attrs.delete(:id)
       _db_adapter.to_update_sql(id, self.class.where(id: id), attrs)
-    end
-
-    def do_update
-      _db_adapter.build_sql_context(:update, update_sql).execute
     end
 
     def delete_sql
@@ -161,20 +193,36 @@ module MotionModel
       self.class.send(:_db_column_config)
     end
 
-    def relation_for(col) # nodoc
-      col = column_named(col)
+    def relation_columns
+      @relation_columns ||= {}
+    end
+
+    def relations
+      @relations ||= {}
+    end
+
+    def relation_for(column_name) # nodoc
+      col = column_named(column_name)
       associated_class = col.classify
 
       case col.type
       when :belongs_to
         foreign_id = send(self.class.foreign_key(associated_class))
         return nil if foreign_id.nil?
-        associated_class.where(id: foreign_id)
+        relation_columns[col.name] = col
+        relations[col.name] ||= Relation.new(self, column_name, associated_class,
+            associated_class.where(id: foreign_id))
       when :has_many
-        associated_class.where(associated_class.foreign_key(self.class) => id)
+        relation_columns[col.name] = col
+        relations[col.name] ||= Relation.new(self, column_name, associated_class,
+            -> { id.nil? ? [] : associated_class.where(associated_class.foreign_key(self.class) => id) })
       else
         nil
       end
+    end
+
+    def _db_transaction(&block)
+      self.class.send(:transaction, &block)
     end
 
   end

@@ -11,13 +11,19 @@ module MotionModel
       @model_class.table_name
     end
 
-    def select(columns)
+    def select(select, options = {})
+      table_name = options[:table_name] || self.table_name
+      @_selects = [] unless options[:add]
       dup.instance_eval do
-        @selects ||= []
-        if columns.is_a?(Array)
-          @selects += columns.map { |c| %Q["#{table_name}".#{c.to_s}] }
+        if select.is_a?(String)
+          _selects.push(select)
         else
-          @selects << columns
+          foreign_table = table_name != self.table_name
+          _selects.push(select.map { |c|
+            str = %Q["#{table_name}".#{c.to_s}]
+            str << %Q[ AS "#{table_name}.#{c.to_s}"] if foreign_table
+            str
+          })
         end
         self
       end
@@ -26,10 +32,14 @@ module MotionModel
     def where(*args)
       dup.instance_eval do
         args.each do |clause|
-          clause.each do |key, options|
-            begin # TODO this is else fallthru if it's just a "col: value" expression
-              value = options
-              @conditions << SQLCondition.new(table_name, key.to_s, value)
+          if clause.is_a?(String)
+            @conditions << clause
+          else
+            clause.each do |key, options|
+              begin # TODO this is else fallthru if it's just a "col: value" expression
+                value = options
+                @conditions << SQLCondition.new(table_name, key.to_s, value)
+              end
             end
           end
         end
@@ -82,8 +92,24 @@ module MotionModel
       @model_class.do_delete(self)
     end
 
+    def to_sql
+      @db_adapter.send("to_#{type.to_s}_sql", self)
+    end
+
+    def each(*args, &block)
+      to_a.each(*args, &block)
+    end
+
+    def map(*args, &block)
+      to_a.map(*args, &block)
+    end
+
+    def execute
+      @db_adapter.build_sql_context(type, to_sql).execute
+    end
+
     def select_str
-      (!@selects.nil? ? @selects.join(', ') : nil) || %Q["#{table_name}".*]
+      _selects.join(', ')
     end
 
     def order_str
@@ -98,24 +124,14 @@ module MotionModel
       [SQLCondition.to_sql_str(@conditions), order_str, limit_str].compact.join(' ')
     end
 
+    private
+
+    def _selects
+      @_selects ||= [%Q["#{table_name}".*]]
+    end
+
     def type
       @type || :select
-    end
-
-    def execute
-      @db_adapter.build_sql_context(type, to_sql).execute
-    end
-
-    def to_sql
-      @db_adapter.send("to_#{type.to_s}_sql", self)
-    end
-
-    def each(*args, &block)
-      to_a.each(*args, &block)
-    end
-
-    def map(*args, &block)
-      to_a.map(*args, &block)
     end
 
   end

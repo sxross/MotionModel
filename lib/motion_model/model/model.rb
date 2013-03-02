@@ -154,6 +154,14 @@ module MotionModel
         column_named(column).type || nil
       end
 
+      def has_many_columns
+        _column_hashes.select { |name, col| col.type == :has_many}
+      end
+
+      def belongs_to_columns
+        _column_hashes.select { |name, col| col.type == :belongs_to}
+      end
+
       # returns default value for this column or nil.
       def default(column)
         col = column_named(column)
@@ -274,15 +282,23 @@ module MotionModel
         end
       end
 
-      def define_accessor_methods(name) #nodoc
+      def define_accessor_methods(name, options = {}) #nodoc
         unless alloc.respond_to?(name.to_sym)
           define_method(name.to_sym) {
-            @data[name]
+            if !@data[name].nil? && options[:symbolize]
+              @data[name].to_sym
+            else
+              @data[name]
+            end
           }
         end
         define_method("#{name}=".to_sym) { |value|
-          @data[name] = cast_to_type(name, value)
-          @dirty = true
+          old_value = @data[name]
+          new_value = cast_to_type(name, value)
+          if new_value != old_value
+            @data[name] = new_value
+            @dirty = true
+          end
         }
       end
 
@@ -291,7 +307,7 @@ module MotionModel
           return @data[name] if @data[name]
           col = column_named(name)
           parent_id = @data[self.class.generate_belongs_to_id(col.name)]
-          col.classify.find_by_id(parent_id)
+          parent_id.nil? ? nil : col.classify.find_by_id(parent_id)
         }
         define_method("#{name}=") { |parent|
           @data[name]  = parent
@@ -316,7 +332,7 @@ module MotionModel
           when :has_many then define_has_many_methods(name)
           when :belongs_to then define_belongs_to_methods(name)
           else
-            define_accessor_methods(name)
+            define_accessor_methods(name, options)
           end
       end
 
@@ -433,14 +449,7 @@ module MotionModel
 
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}".to_sym
-      if self.respond_to?(hook)
-        begin
-          self.send(hook)
-        rescue NoMethodError
-          # Fail silently, sometimes RubyMotion 1.32 incorrectly reports respond_to? true
-        end
-      end
-
+      self.send(hook) if self.respond_to?(hook)
     end
 
     def call_hooks(hook_name, &block)
@@ -464,7 +473,7 @@ module MotionModel
     # Note: lifecycle hooks are only called when individual objects
     # are deleted.
     def destroy
-      has_many_columns.each do |col|
+      self.class.has_many_columns.each do |col|
         delete_candidates = self.send(col.name)
 
         delete_candidates.each do |candidate|
@@ -506,6 +515,16 @@ module MotionModel
       @dirty
     end
 
+    #alias_method :before_model_respond_to?, :respond_to?
+    #def respond_to?(sym)
+    #  puts "==== respond_to? #{sym.to_s}"
+    #  #sym.to_s[-1] == '=' || before_model_respond_to?(sym)
+    #  r = before_model_respond_to?(sym)
+    #  #r = self.respondToSelector(sym)
+    #  #puts "==== respond_to? #{self} #{sym.class} #{sym.to_s} = #{r} or #{self.respondToSelector(sym)}"
+    #  r
+    #end
+
     private
 
     def _column_hashes
@@ -532,10 +551,6 @@ module MotionModel
       self.class.send(:column_named, name.to_sym)
     end
 
-    def has_many_columns
-      columns.map{|col| column_named(col)}.select{|col| col.type == :has_many}
-    end
-
    def generate_belongs_to_id(class_or_column) # nodoc
       self.class.generate_belongs_to_id(self.class)
     end
@@ -544,12 +559,12 @@ module MotionModel
       self.class.send(:issue_notification, self, info)
     end
 
-    def method_missing(name, *args, &block)
-      if name.to_s[-1] == '='
-        @data["#{name[0..-2]}".to_sym] = args.first
+    def method_missing(sym, *args, &block)
+      if sym.to_s[-1] == '='
+        @data["#{sym.to_s.chop}".to_sym] = args.first
         return args.first
       else
-        return @data[name] if @data.has_key?(name)
+        return @data[sym] if @data && @data.has_key?(sym)
       end
       super
     end
