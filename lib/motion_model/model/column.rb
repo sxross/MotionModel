@@ -23,7 +23,7 @@ module MotionModel
         if @options[:class]
           @options[:class]
         else
-          class_name = @options[:class_name] || @name
+          class_name = @options[:joined_class_name] || @name
           case @type
           when :belongs_to
             @klass ||= Object.const_get(class_name.to_s.camelize)

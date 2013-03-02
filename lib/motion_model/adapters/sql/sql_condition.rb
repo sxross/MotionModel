@@ -10,7 +10,9 @@ module MotionModel
 
     def self.to_sql_str(conditions)
       return nil if conditions.empty?
-      str = conditions.map(&:to_sql_str).compact.map { |s| "(#{s})" }.join(' AND ')
+      str = conditions.map { |condition|
+        condition.is_a?(String) ? condition : condition.to_sql_str
+      }.compact.map { |s| "(#{s})" }.join(' AND ')
       "WHERE #{str}"
     end
 

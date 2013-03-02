@@ -47,6 +47,23 @@ module MotionModel
       end
     end
 
+    def joins(*joins)
+      dup.instance_eval do
+        joins.each do |join_data|
+          if join_data.is_a?(Hash)
+            join_data = join_data.to_a.first
+            join_name = join_data.first
+            join_options = join_data.last
+          else
+            join_name = join_data
+            join_options = nil
+          end
+          _joins << Join.new(self, join_name, join_options)
+        end
+        self
+      end
+    end
+
     def order(options)
       dup.instance_eval do
         @orders ||= []
@@ -112,6 +129,11 @@ module MotionModel
       _selects.join(', ')
     end
 
+    def joins_str
+      return nil if _joins.empty?
+      _joins.map(&:to_sql_str).join(' ')
+    end
+
     def order_str
       @orders ? "ORDER BY #{@orders.join(', ')}" : nil
     end
@@ -128,6 +150,10 @@ module MotionModel
 
     def _selects
       @_selects ||= [%Q["#{table_name}".*]]
+    end
+
+    def _joins
+      @_joins ||= []
     end
 
     def type

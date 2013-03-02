@@ -93,9 +93,12 @@ module MotionModel
     end
 
     def to_select_sql(scope)
-      <<-SQL.strip << ';'
-        SELECT #{scope.select_str} FROM "#{scope.table_name}" #{scope.options_str}
-      SQL
+      [
+          %Q[SELECT #{scope.select_str}],
+          %Q[FROM "#{scope.table_name}"],
+          scope.joins_str,
+          scope.options_str
+      ].compact.join(' ') << ';'
     end
 
     def to_insert_sql(scope, attrs)
