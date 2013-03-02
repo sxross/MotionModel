@@ -377,6 +377,15 @@ module MotionModel
       @data
     end
 
+    def attributes=(attrs)
+      attrs.each { |k, v| send("#{k}=", v) }
+    end
+
+    def update_attributes(attrs)
+      self.attributes = attrs
+      save
+    end
+
     def read_attribute(name)
       @data[name]
     end
@@ -516,7 +525,7 @@ module MotionModel
     end
 
     def initialize_data_columns(column, value) #nodoc
-      self.send("#{column}=".to_sym, value || self.class.default(column))
+      self.attributes = {column => value || self.class.default(column)}
     end
 
     def column_named(name) #nodoc
