@@ -1,49 +1,67 @@
+# The reason the String extensions are wrapped in
+# conditional blocks is to reduce the likelihood
+# of a namespace collision with other libraries.
+
 class String
-  def humanize
-    self.split(/_|-| /).join(' ')
-  end
-
-  def titleize
-    self.split(/_|-| /).each{|word| word[0...1] = word[0...1].upcase}.join(' ')
-  end
-
-  def empty?
-    self.length < 1
-  end
-
-  def pluralize
-    Inflector.inflections.pluralize self
-  end
-
-  def singularize
-    Inflector.inflections.singularize self
-  end
-
-  def camelize(uppercase_first_letter = true)
-    string = self.dup
-    string.gsub!(/(?:_|(\/))([a-z\d]*)/i) do
-      new_word = $2.downcase
-      new_word[0] = new_word[0].upcase
-      new_word = "/#{new_word}" if $1 == '/'
-      new_word
+  unless String.instance_methods.include?(:humanize)
+    def humanize
+      self.split(/_|-| /).join(' ')
     end
-    if uppercase_first_letter && uppercase_first_letter != :lower
-      string[0] = string[0].upcase
-    else
-      string[0] = string[0].downcase
-    end
-    string.gsub!('/', '::')
-    string
   end
 
-  def underscore
-    word = self.dup
-    word.gsub!(/::/, '/')
-    word.gsub!(/([A-Z\d]+)([A-Z][a-z])/,'\1_\2')
-    word.gsub!(/([a-z\d])([A-Z])/,'\1_\2')
-    word.tr!("-", "_")
-    word.downcase!
-    word
+  unless String.instance_methods.include?(:titleize)
+    def titleize
+      self.split(/_|-| /).each{|word| word[0...1] = word[0...1].upcase}.join(' ')
+    end
+  end
+
+  unless String.instance_methods.include?(:empty?)
+    def empty?
+      self.length < 1
+    end
+  end
+
+  unless String.instance_methods.include?(:pluralize)
+    def pluralize
+      Inflector.inflections.pluralize self
+    end
+  end
+
+  unless String.instance_methods.include?(:singularize)
+    def singularize
+      Inflector.inflections.singularize self
+    end
+  end
+
+  unless String.instance_methods.include?(:camelize)
+    def camelize(uppercase_first_letter = true)
+      string = self.dup
+      string.gsub!(/(?:_|(\/))([a-z\d]*)/i) do
+        new_word = $2.downcase
+        new_word[0] = new_word[0].upcase
+        new_word = "/#{new_word}" if $1 == '/'
+        new_word
+      end
+      if uppercase_first_letter && uppercase_first_letter != :lower
+        string[0] = string[0].upcase
+      else
+        string[0] = string[0].downcase
+      end
+      string.gsub!('/', '::')
+      string
+    end
+  end
+
+  unless String.instance_methods.include?(:underscore)
+    def underscore
+      word = self.dup
+      word.gsub!(/::/, '/')
+      word.gsub!(/([A-Z\d]+)([A-Z][a-z])/,'\1_\2')
+      word.gsub!(/([a-z\d])([A-Z])/,'\1_\2')
+      word.tr!("-", "_")
+      word.downcase!
+      word
+    end
   end
 end
 

@@ -42,7 +42,7 @@ module MotionModel
   class RelationIsNilError < Exception; end
   class AdapterNotFoundError < Exception; end
 
-  module Model
+  module Model    
     def self.included(base)
       base.extend(PrivateClassMethods)
       base.extend(PublicClassMethods)
