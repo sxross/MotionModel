@@ -455,8 +455,9 @@ module MotionModel
     def call_hooks(hook_name, &block)
       result = call_hook('before', hook_name)
       # returning false from a before_ hook stops the process
-      block.call if result != false && block_given?
-      call_hook('after', hook_name)
+      result = block.call if result != false && block_given?
+      call_hook('after', hook_name) if result
+      result
     end
 
     def delete
