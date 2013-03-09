@@ -74,6 +74,13 @@ module MotionModel
       end
     end
 
+    def group(column)
+      dup.instance_eval do
+        @group = %Q["#{table_name}"."#{column.to_s}"]
+        self
+      end
+    end
+
     def limit(limit)
       dup.instance_eval do
         @limit = limit
@@ -138,12 +145,16 @@ module MotionModel
       @orders ? "ORDER BY #{@orders.join(', ')}" : nil
     end
 
+    def group_str
+      @group ? "GROUP BY #{@group}" : nil
+    end
+
     def limit_str
       @limit ? %Q[LIMIT #{@limit}] : nil
     end
 
     def options_str
-      [SQLCondition.to_sql_str(@conditions), order_str, limit_str].compact.join(' ')
+      [SQLCondition.to_sql_str(@conditions), group_str, order_str, limit_str].compact.join(' ')
     end
 
     private
