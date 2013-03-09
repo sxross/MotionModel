@@ -3,10 +3,8 @@ module MotionModel
     class ValidationSpecificationError < RuntimeError;  end
     class RecordInvalid < RuntimeError; end
 
-
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set('@validations', [])
     end
 
     module ClassMethods
@@ -16,25 +14,23 @@ module MotionModel
           raise ex
         end
 
-
-    
         if validation_type == {}
           ex = ValidationSpecificationError.new('validation type not present or not a hash')
           raise ex
         end
     
-        @validations << {field => validation_type}
+        validations << {field => validation_type}
       end
       alias_method :validates, :validate
 
       def validations
-        @validations
+        @validations ||= []
       end
     end
-  
-     # It doesn't save when validations fails
-    def save(options={ :validate => true})
-      (valid? || !options[:validate]) ? super : false
+
+    def save(options = {})
+      return false unless !options[:validate] || valid?
+      super
     end
 
     # it fails loudly

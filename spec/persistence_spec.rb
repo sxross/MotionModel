@@ -32,6 +32,7 @@ describe 'persistence' do
   
   describe 'model change resiliency' do
     it 'column addition' do
+      Object.send(:remove_const, :Foo) if defined?(Foo)
       class Foo
         include MotionModel::Model
         include MotionModel::ArrayModelAdapter
@@ -42,16 +43,14 @@ describe 'persistence' do
       
       @foo.should.not.respond_to :address
   
+      Foo.delete_all
       class Foo
-        include MotionModel::Model
-        include MotionModel::ArrayModelAdapter
-        columns       :name => :string,
-                      :address => :string
+        columns         :address => :string
       end
       Foo.deserialize_from_file('test.dat')
       
       @foo = Foo.first
-      
+
       @foo.name.should == 'Bob'
       @foo.address.should == nil
       @foo.should.respond_to :address
@@ -59,6 +58,7 @@ describe 'persistence' do
     end
     
     it "column removal" do
+      Object.send(:remove_const, :Foo) if defined?(Foo)
       class Foo
         include MotionModel::Model
         include MotionModel::ArrayModelAdapter
@@ -70,7 +70,7 @@ describe 'persistence' do
       
       @foo.should.respond_to :desc
   
-      Object.send(:remove_const, :Foo)
+      Object.send(:remove_const, :Foo) if defined?(Foo)
       class Foo
         include MotionModel::Model
         include MotionModel::ArrayModelAdapter

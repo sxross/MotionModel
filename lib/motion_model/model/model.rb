@@ -46,21 +46,25 @@ module MotionModel
     def self.included(base)
       base.extend(PrivateClassMethods)
       base.extend(PublicClassMethods)
-      base.instance_variable_set("@_columns", [])               # Columns in model
-      base.instance_variable_set("@_column_hashes", {})         # Hashes to for quick column lookup
-      base.instance_variable_set("@_relations", {})             # relations
-      base.instance_variable_set("@_next_id", 1)                # Next assignable id
-      base.instance_variable_set("@_issue_notifications", true) # Next assignable id
     end
 
     module PublicClassMethods
+
+      def new(options = {})
+        object_class = options[:inheritance_type] ? Kernel.const_get(options[:inheritance_type]) : self
+        object_class.alloc.instance_eval do
+          initialize(options)
+          self
+        end
+      end
+
       # Use to do bulk insertion, updating, or deleting without
       # making repeated calls to a delegate. E.g., when syncing
       # with an external data source.
       def bulk_update(&block)
-        @_issue_notifications = false
+        self._issue_notifications = false
         class_eval &block
-        @_issue_notifications = true
+        self._issue_notifications = true
       end
 
       # Macro to define names and types of columns. It can be used in one of
@@ -79,7 +83,7 @@ module MotionModel
       #   columns :name, :age, :hobby
 
       def columns(*fields)
-        return @_columns.map{|c| c.name} if fields.empty?
+        return _columns.map{|c| c.name} if fields.empty?
 
         case fields.first
         when Hash
@@ -120,6 +124,11 @@ module MotionModel
         add_field relation, :has_many, options        # Relation must be plural
       end
 
+      def has_one(relation, options = {})
+        raise ArgumentError.new("arguments to has_one must be a symbol or string.") unless [Symbol, String].include? relation.class
+        add_field relation, :has_one, options        # Relation must be plural
+      end
+
       def generate_belongs_to_id(relation)
         (relation.to_s.singularize.underscore + '_id').to_sym
       end
@@ -135,26 +144,40 @@ module MotionModel
       # Allows code like this:
       #
       #   Assignee.find(:assignee_name).like('smith').first.task
-      def belongs_to(relation)
-        add_field relation, :belongs_to
+      def belongs_to(relation, options = {})
+        add_field relation, :belongs_to, options
         add_field generate_belongs_to_id(relation), :belongs_to_id    # a relation is singular.
       end
 
       # Returns true if a column exists on this model, otherwise false.
       def column?(column)
-        respond_to?(column)
+        !column_named(column).nil?
       end
 
       # Returns type of this column.
-      def type(column)
+      def column_type(column)
         column_named(column).type || nil
+      end
+
+      def has_many_columns
+        _column_hashes.select { |name, col| col.type == :has_many}
+      end
+
+      def has_one_columns
+        _column_hashes.select { |name, col| col.type == :has_one}
+      end
+
+      def belongs_to_columns
+        _column_hashes.select { |name, col| col.type == :belongs_to}
       end
 
       # returns default value for this column or nil.
       def default(column)
-        column_named(column).default || nil
+        col = column_named(column)
+        col.nil? ? nil : col.default
       end
 
+      # Build an instance that represents a saved object from the persistence layer.
       def read(attrs)
         new(attrs).instance_eval do
           @new_record = false
@@ -208,6 +231,27 @@ module MotionModel
     end
 
     module PrivateClassMethods
+
+      private
+
+      # Hashes to for quick column lookup
+      def _column_hashes
+        @_column_hashes ||= {}
+      end
+
+      @_issue_notifications = true
+      def _issue_notifications
+        @_issue_notifications
+      end
+
+      def _issue_notifications=(value)
+        @_issue_notifications = value
+      end
+
+      def _columns
+        _column_hashes.values
+      end
+
       # This populates a column from something like:
       #
       #   columns :name => :string, :age => :integer
@@ -242,31 +286,43 @@ module MotionModel
       end
 
       def issue_notification(object, info) #nodoc
-        if @_issue_notifications == true && !object.nil?
+        if _issue_notifications == true && !object.nil?
           NSNotificationCenter.defaultCenter.postNotificationName('MotionModelDataDidChangeNotification', object: object, userInfo: info)
         end
       end
 
-      def define_accessor_methods(name) #nodoc
-        define_method(name.to_sym) {
-          @data[name]
-        }
+      def define_accessor_methods(name, options = {}) #nodoc
+        unless alloc.respond_to?(name.to_sym)
+          define_method(name.to_sym) {
+            if !@data[name].nil? && options[:symbolize]
+              @data[name].to_sym
+            else
+              @data[name]
+            end
+          }
+        end
         define_method("#{name}=".to_sym) { |value|
-          @data[name] = cast_to_type(name, value)
-          @dirty = true
+          old_value = @data[name]
+          new_value = cast_to_type(name, value)
+          if new_value != old_value
+            @data[name] = new_value
+            @dirty = true
+          end
         }
       end
 
       def define_belongs_to_methods(name) #nodoc
         define_method(name) {
+          return @data[name] if @data[name]
           col = column_named(name)
           parent_id = @data[self.class.generate_belongs_to_id(col.name)]
-          col.classify.find(parent_id)
+          parent_id.nil? ? nil : col.classify.find_by_id(parent_id)
         }
-        define_method("#{name}=") { |value|
+        define_method("#{name}=") { |parent|
+          @data[name]  = parent
           col = column_named(name)
           parent_id = self.class.generate_belongs_to_id(col.name)
-          @data[parent_id.to_sym] = value.to_i
+          @data[parent_id.to_sym] = parent.id
         }
       end
 
@@ -274,33 +330,53 @@ module MotionModel
         define_method(name) {
           relation_for(name)
         }
+
+        col = column_named(name)
+        if col.options[:polymorphic]
+          define_method("#{name}=") do |collection|
+            relation_for(name).collection = collection
+          end
+        end
+      end
+
+      def define_has_one_methods(name) #nodoc
+        define_method(name) {
+          relation_for(name)
+        }
+
+        col = column_named(name)
+        if col.options[:polymorphic]
+          define_method("#{name}=") do |instance|
+            relation_for(name).instance = instance
+          end
+        end
       end
 
       def add_field(name, type, options = {:default => nil}) #nodoc
         col = Column.new(name, type, options)
 
-        @_columns.push col
-        @_column_hashes[col.name.to_sym] = col
+        _column_hashes[col.name.to_sym] = col
 
         case type
-          when :has_many then define_has_many_methods(name)
-          when :belongs_to then define_belongs_to_methods(name)
+          when :has_many    then define_has_many_methods(name)
+          when :has_one     then define_has_one_methods(name)
+          when :belongs_to  then define_belongs_to_methods(name)
           else
-            define_accessor_methods(name)
+            define_accessor_methods(name, options)
           end
       end
 
       # Returns a column denoted by +name+
       def column_named(name) #nodoc
-        @_column_hashes[name.to_sym]
+        _column_hashes[name.to_sym]
       end
 
       def relation_column?(column) #nodoc
-        [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
+        [:belongs_to, :belongs_to_id, :has_many, :has_one].include? column_named(column).type
       end
 
       def virtual_relation_column?(column) #nodoc
-        [:belongs_to, :has_many].include? column_named(column).type
+        [:belongs_to, :has_many, :has_one].include? column_named(column).type
       end
 
       def has_relation?(col) #nodoc
@@ -312,7 +388,7 @@ module MotionModel
         else
           column_named(col)
         end
-        col.type == :has_many || col.type == :belongs_to
+        [:has_many, :has_one, :belongs_to].include?(col.type)
       end
 
     end
@@ -321,14 +397,18 @@ module MotionModel
       raise AdapterNotFoundError.new("You must specify a persistence adapter.") unless self.respond_to? :adapter
 
       @data ||= {}
-      before_initialize(options)
+      before_initialize(options) if respond_to?(:before_initialize)
 
+      # Gather defaults
       columns.each do |col|
-        unless self.class.relation_column?(col) # all data columns
-          initialize_data_columns col, options
-        else
-          @data[col] = options[col] if column_named(col).type == :belongs_to_id
-        end
+        next if options.has_key?(col)
+        next if relation_column?(col)
+        default = self.class.default(col)
+        options[col] = default unless default.nil?
+      end
+
+      options.each do |col, value|
+        initialize_data_columns col, value
       end
 
       @dirty = true
@@ -337,6 +417,23 @@ module MotionModel
 
     def new_record?
       @new_record
+    end
+
+    def attributes
+      @data
+    end
+
+    def attributes=(attrs)
+      attrs.each { |k, v| send("#{k}=", v) }
+    end
+
+    def update_attributes(attrs)
+      self.attributes = attrs
+      save
+    end
+
+    def read_attribute(name)
+      @data[name]
     end
 
     # Default to_i implementation returns value of id column, much as
@@ -355,39 +452,42 @@ module MotionModel
     # Save current object. Speaking from the context of relational
     # databases, this inserts a row if it's a new one, or updates
     # in place if not.
-    def save(*)
+    def save(options = {})
       call_hooks 'save' do
         # Existing object implies update in place
         action = 'add'
-        set_auto_date_field 'created_at'
-        if @new_record
-          do_insert
+        set_auto_date_field 'updated_at'
+        if new_record?
+          set_auto_date_field 'created_at'
+          result = do_insert(options)
         else
-          do_update
-          set_auto_date_field 'updated_at'
+          result = do_update(options)
           action = 'update'
         end
         @new_record = false
         @dirty = false
-        self.class.issue_notification(self, :action => action)
+        issue_notification(:action => action)
+        result
       end
     end
 
     # Set created_at and updated_at fields
     def set_auto_date_field(field_name)
-      self.send("#{field_name}=", Time.now) if self.respond_to? field_name
+      method = "#{field_name}="
+      self.send(method, Time.now) if self.respond_to?(method)
     end
 
     def call_hook(hook_name, postfix)
-      hook = "#{hook_name}_#{postfix}"
-      self.send(hook, self) if respond_to? hook.to_sym
+      hook = "#{hook_name}_#{postfix}".to_sym
+      self.send(hook) if self.respond_to?(hook)
     end
 
     def call_hooks(hook_name, &block)
       result = call_hook('before', hook_name)
       # returning false from a before_ hook stops the process
-      block.call if result != false && block_given?
-      call_hook('after', hook_name)
+      result = block.call if result != false && block_given?
+      call_hook('after', hook_name) if result
+      result
     end
 
     def delete
@@ -399,12 +499,13 @@ module MotionModel
     # and <tt>after_delete</tt> hooks. As well, it will cascade
     # into related objects, deleting them if they are related
     # using <tt>:delete => :destroy</tt> in the <tt>has_many</tt>
-    # declaration
+    # and <tt>has_one></tt> declarations
     #
     # Note: lifecycle hooks are only called when individual objects
     # are deleted.
     def destroy
-      has_many_columns.each do |col|
+      cols = self.class.has_many_columns + self.class.has_one_columns
+      cols.each do |col|
         delete_candidates = self.send(col.name)
 
         delete_candidates.each do |candidate|
@@ -426,8 +527,8 @@ module MotionModel
     end
 
     # Type of a given column
-    def type(column_name)
-      self.class.type(column_name)
+    def column_type(column_name)
+      self.class.column_type(column_name)
     end
 
     # Options hash for column, excluding the core
@@ -442,47 +543,62 @@ module MotionModel
       column_named(column_name).options
     end
 
-    # True if this object responds to the method or
-    # property, otherwise false.
-    alias_method :old_respond_to?, :respond_to?
-    def respond_to?(method)
-      column_named(method) || old_respond_to?(method)
-    end
-
     def dirty?
       @dirty
     end
 
+    #alias_method :before_model_respond_to?, :respond_to?
+    #def respond_to?(sym)
+    #  puts "==== respond_to? #{sym.to_s}"
+    #  #sym.to_s[-1] == '=' || before_model_respond_to?(sym)
+    #  r = before_model_respond_to?(sym)
+    #  #r = self.respondToSelector(sym)
+    #  #puts "==== respond_to? #{self} #{sym.class} #{sym.to_s} = #{r} or #{self.respondToSelector(sym)}"
+    #  r
+    #end
+
     private
 
-    def initialize_data_columns(column, options) #nodoc
-       self.send("#{column}=".to_sym, options[column] || self.class.default(column))
+    def _column_hashes
+      self.class.send(:_column_hashes)
+    end
+
+    def relation_column?(col)
+      self.class.send(:relation_column?, col)
+    end
+
+    def virtual_relation_column?(col)
+      self.class.send(:virtual_relation_column?, col)
+    end
+
+    def has_relation?(col) #nodoc
+      self.class.send(:has_relation?, col)
+    end
+
+    def initialize_data_columns(column, value) #nodoc
+      self.attributes = {column => value || self.class.default(column)}
     end
 
     def column_named(name) #nodoc
-      self.class.column_named(name.to_sym)
-    end
-
-    def has_many_columns
-      columns.map{|col| column_named(col)}.select{|col| col.type == :has_many}
+      self.class.send(:column_named, name.to_sym)
     end
 
    def generate_belongs_to_id(class_or_column) # nodoc
       self.class.generate_belongs_to_id(self.class)
     end
 
-    def relation_for(col) # nodoc
-      col = column_named(col)
-      related_klass = col.classify
+    def issue_notification(info) #nodoc
+      self.class.send(:issue_notification, self, info)
+    end
 
-      case col.type
-        when :belongs_to
-          related_klass.find(@data[:id])
-        when :has_many
-          related_klass.find(generate_belongs_to_id(self.class)).belongs_to(self, related_klass).eq(@data[:id])
-        else
-          nil
+    def method_missing(sym, *args, &block)
+      if sym.to_s[-1] == '='
+        @data["#{sym.to_s.chop}".to_sym] = args.first
+        return args.first
+      else
+        return @data[sym] if @data && @data.has_key?(sym)
       end
+      super
     end
 
   end

@@ -21,7 +21,7 @@ module MotionModel
       end
 
       def columns_without_relations
-        columns.select{|col| ![:has_many, :belongs_to].include?(type(col))}
+        columns.select{|col| ![:has_many, :belongs_to].include?(column_type(col))}
       end
 
       def restore_attributes

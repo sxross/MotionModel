@@ -186,7 +186,7 @@ describe 'related objects' do
 
       describe "directly assigning to child" do
         it "directly assigning a different task to an assignee changes the assignee's task" do
-          @a1.task = @t1.id
+          @a1.task_id = @t1.id
           @a1.save
           @t1.assignees.count.should == 1
           @t1.assignees.first.assignee_name.should == @a1.assignee_name

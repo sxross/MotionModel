@@ -74,7 +74,7 @@ describe "cascading deletes" do
       1.upto(3) do |item|
         task = CascadingTask.create :name => "Task #{item}"
         1.upto(3) do |assignee|
-          task.cascaded_assignees.create :name => "assignee #{assignee} for task #{task}"
+          task.cascaded_assignees.create :assignee_name => "assignee #{assignee} for task #{task}"
         end
       end
       CascadingTask.count.should == 3
