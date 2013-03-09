@@ -1,33 +1,38 @@
 module MotionModel
   class Join
-    def initialize(foreign_class, sym, options = {})
-      @foreign_class = foreign_class
+    def initialize(relation_type, joining_class, sym, options = nil)
+      @relation_type = relation_type
+      @joining_class = joining_class
       @joined_class = Kernel.const_get(sym.to_s.singularize.classify)
-      @options = options
+      @options = options || {}
     end
 
     def joined_table_name
       @joined_class.table_name
     end
 
-    def foreign_table_name
-      @foreign_class.table_name
+    def joining_table_name
+      @joining_class.table_name
     end
 
-    def primary_key
-      'id'
+    def joined_table_key
+      @relation_type == :belongs_to ? 'id' : "#{@joining_class.name.underscore}_id"
+    end
+
+    def joining_table_key
+      @relation_type == :has_many ? 'id' : "#{@joined_class.name.underscore}_id"
     end
 
     def type
-      @options[:outer] ? 'LEFT OUTER JOIN' : 'LEFT INNER JOIN'
-    end
-
-    def foreign_key
-      @options[:foreign_key] || "#{@joined_class.name.underscore}_id"
+      @options[:outer] ? 'LEFT OUTER JOIN' : 'INNER JOIN'
     end
 
     def on_str
-      @options[:on] || %Q["#{joined_table_name}"."#{primary_key}" = "#{foreign_table_name}"."#{foreign_key}"]
+      @options[:on] || build_on_str
+    end
+
+    def build_on_str
+      %Q["#{joined_table_name}"."#{joined_table_key}" = "#{joining_table_name}"."#{joining_table_key}"]
     end
 
     def to_sql_str

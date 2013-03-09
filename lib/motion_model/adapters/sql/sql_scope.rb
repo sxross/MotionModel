@@ -50,15 +50,20 @@ module MotionModel
     def joins(*joins)
       dup.instance_eval do
         joins.each do |join_data|
-          if join_data.is_a?(Hash)
-            join_data = join_data.to_a.first
-            join_name = join_data.first
-            join_options = join_data.last
+          if join_data.is_a?(String)
+            _joins << join_data
           else
-            join_name = join_data
-            join_options = nil
+            if join_data.is_a?(Hash)
+              join_data = join_data.to_a.first
+              join_name = join_data.first
+              join_options = join_data.last
+            else
+              join_name = join_data
+              join_options = nil
+            end
+            join_column = @model_class.send(:column_named, join_name)
+            _joins << Join.new(join_column.type, @model_class, join_name, join_options)
           end
-          _joins << Join.new(self, join_name, join_options)
         end
         self
       end
@@ -104,7 +109,7 @@ module MotionModel
     end
 
     def do_select
-      @model_class.do_select(self)
+      @model_class.nil? ? [] : @model_class.do_select(self)
     end
 
     def first
@@ -150,7 +155,7 @@ module MotionModel
 
     def joins_str
       return nil if _joins.empty?
-      _joins.map(&:to_sql_str).join(' ')
+      _joins.map{ |j| j.is_a?(String) ? j : j.to_sql_str }.join(' ')
     end
 
     def order_str

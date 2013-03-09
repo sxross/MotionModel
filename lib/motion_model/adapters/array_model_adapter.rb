@@ -150,11 +150,11 @@ module MotionModel
       end
     end
 
-    def do_insert
+    def do_insert(options)
       collection << self
     end
 
-    def do_update
+    def do_update(options)
     end
 
     def do_delete

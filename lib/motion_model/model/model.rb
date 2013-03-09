@@ -124,6 +124,11 @@ module MotionModel
         add_field relation, :has_many, options        # Relation must be plural
       end
 
+      def has_one(relation, options = {})
+        raise ArgumentError.new("arguments to has_one must be a symbol or string.") unless [Symbol, String].include? relation.class
+        add_field relation, :has_one, options        # Relation must be plural
+      end
+
       def generate_belongs_to_id(relation)
         (relation.to_s.singularize.underscore + '_id').to_sym
       end
@@ -156,6 +161,10 @@ module MotionModel
 
       def has_many_columns
         _column_hashes.select { |name, col| col.type == :has_many}
+      end
+
+      def has_one_columns
+        _column_hashes.select { |name, col| col.type == :has_one}
       end
 
       def belongs_to_columns
@@ -321,6 +330,26 @@ module MotionModel
         define_method(name) {
           relation_for(name)
         }
+
+        col = column_named(name)
+        if col.options[:polymorphic]
+          define_method("#{name}=") do |collection|
+            relation_for(name).collection = collection
+          end
+        end
+      end
+
+      def define_has_one_methods(name) #nodoc
+        define_method(name) {
+          relation_for(name)
+        }
+
+        col = column_named(name)
+        if col.options[:polymorphic]
+          define_method("#{name}=") do |instance|
+            relation_for(name).instance = instance
+          end
+        end
       end
 
       def add_field(name, type, options = {:default => nil}) #nodoc
@@ -329,8 +358,9 @@ module MotionModel
         _column_hashes[col.name.to_sym] = col
 
         case type
-          when :has_many then define_has_many_methods(name)
-          when :belongs_to then define_belongs_to_methods(name)
+          when :has_many    then define_has_many_methods(name)
+          when :has_one     then define_has_one_methods(name)
+          when :belongs_to  then define_belongs_to_methods(name)
           else
             define_accessor_methods(name, options)
           end
@@ -342,11 +372,11 @@ module MotionModel
       end
 
       def relation_column?(column) #nodoc
-        [:belongs_to, :belongs_to_id, :has_many].include? column_named(column).type
+        [:belongs_to, :belongs_to_id, :has_many, :has_one].include? column_named(column).type
       end
 
       def virtual_relation_column?(column) #nodoc
-        [:belongs_to, :has_many].include? column_named(column).type
+        [:belongs_to, :has_many, :has_one].include? column_named(column).type
       end
 
       def has_relation?(col) #nodoc
@@ -358,7 +388,7 @@ module MotionModel
         else
           column_named(col)
         end
-        col.type == :has_many || col.type == :belongs_to
+        [:has_many, :has_one, :belongs_to].include?(col.type)
       end
 
     end
@@ -422,23 +452,23 @@ module MotionModel
     # Save current object. Speaking from the context of relational
     # databases, this inserts a row if it's a new one, or updates
     # in place if not.
-    def save(*)
+    def save(options = {})
       call_hooks 'save' do
         # Existing object implies update in place
         action = 'add'
         set_auto_date_field 'updated_at'
         if new_record?
           set_auto_date_field 'created_at'
-          do_insert
+          result = do_insert(options)
         else
-          do_update
+          result = do_update(options)
           action = 'update'
         end
         @new_record = false
         @dirty = false
         issue_notification(:action => action)
+        result
       end
-      true
     end
 
     # Set created_at and updated_at fields
@@ -469,12 +499,13 @@ module MotionModel
     # and <tt>after_delete</tt> hooks. As well, it will cascade
     # into related objects, deleting them if they are related
     # using <tt>:delete => :destroy</tt> in the <tt>has_many</tt>
-    # declaration
+    # and <tt>has_one></tt> declarations
     #
     # Note: lifecycle hooks are only called when individual objects
     # are deleted.
     def destroy
-      self.class.has_many_columns.each do |col|
+      cols = self.class.has_many_columns + self.class.has_one_columns
+      cols.each do |col|
         delete_candidates = self.send(col.name)
 
         delete_candidates.each do |candidate|

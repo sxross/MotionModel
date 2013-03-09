@@ -1,11 +1,12 @@
 module MotionModel
   class Relation
 
-    def initialize(instance, column_name, associated_class, scope)
-      @instance = instance
-      @column_name = column_name
+    def initialize(owner, type, associated_class, scope, options = {})
+      @owner = owner
+      @type = type
       @associated_class = associated_class
       @scope = scope
+      @options = options
     end
 
     def scoped
@@ -30,12 +31,49 @@ module MotionModel
       @collection ||= []
     end
 
+    def collection=(collection)
+      if @options[:polymorphic]
+        @collection = collection.map do |instance|
+          init_instance(instance)
+        end
+      else
+        raise 'Unsupported'
+      end
+    end
+
+    def instance
+      @instance
+    end
+
+    def instance=(instance)
+      @instance = init_instance(instance)
+    end
+
+    def init_instance(instance)
+      if @options[:polymorphic]
+        instance = instance.class == @associated_class ? instance : build_from_instance(instance)
+        instance.send("#{@options[:as]}_type=", @owner.class.name)
+        instance.send("#{@options[:as]}_id=", @owner.id)
+        instance
+      else
+        raise 'Unsupported'
+      end
+    end
+
     def build(attrs = {})
-      inst = @associated_class.new(attrs)
-      #foreign_key = instance.class.foreign_key(@associated_class)
-      #inst.send("#{foreign_key.to_s}=",
-      collection << inst
-      inst
+      build_from_instance(@associated_class.new(attrs))
+    end
+
+    def build_from_instance(associated_instance)
+      raise 'Unsupported' unless @type == :has_many
+      if @options[:polymorphic]
+        associated_instance.send("#{@options[:as]}_type=", @owner.class.name)
+        associated_instance.send("#{@options[:as]}_id=", @owner.id)
+      else
+        associated_instance.send("#{@owner.class.name.underscore}=", @owner)
+      end
+      collection << associated_instance
+      associated_instance
     end
 
     def <<(instance)
