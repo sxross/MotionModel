@@ -67,8 +67,15 @@ module MotionModel
     def order(options)
       dup.instance_eval do
         @orders ||= []
-        options.each do |column, direction|
-          @orders << %Q["#{table_name}"."#{column.to_s}" #{direction == :desc ? 'DESC' : 'ASC'}]
+        unless options.is_a?(Hash)
+          options = Hash[Array(options).map { |c| [c, :asc] }]
+        end
+        options.each do |spec, direction|
+          if spec.is_a?(String)
+            @orders << spec
+          else
+            @orders << %Q["#{table_name}"."#{spec.to_s}" #{direction == :desc ? 'DESC' : 'ASC'}]
+          end
         end
         self
       end
