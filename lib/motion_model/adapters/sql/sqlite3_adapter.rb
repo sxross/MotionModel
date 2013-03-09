@@ -9,7 +9,7 @@ module MotionModel
     def to_db_type(column_type, value)
       case column_type
       when :datetime
-        value.nil? ? nil : value.timeIntervalSince1970
+        value.nil? ? nil : value.to_i
       else
         value
       end
@@ -18,7 +18,7 @@ module MotionModel
     def from_db_type(column_type, db_value)
       case column_type
       when :datetime
-        db_value.nil? ? nil : NSDate.dateWithTimeIntervalSince1970(db_value)
+        db_value.nil? ? nil : Time.at(db_value)
       else
         db_value
       end
