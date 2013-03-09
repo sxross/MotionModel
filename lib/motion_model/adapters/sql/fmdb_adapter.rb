@@ -101,22 +101,15 @@ module MotionModel
         self.class._execute(db, sql)
       end
 
-      result = nil
       begin
-        @result = nil
         if Transaction.pending?
           result = Transaction.execute(&block)
         else
-          result_semaphore.wait
-          begin
-            queue.sync { @result = block.call }
-            result = @result
-            @result = nil
-          end
-          result_semaphore.signal
+          result_tag = "result-#{__FILE__}:#{__LINE__}"
+          queue.sync { NSThread.currentThread.threadDictionary[result_tag] = block.call }
+          result = NSThread.currentThread.threadDictionary.delete(result_tag)
         end
       end
-
       result
     end
 
@@ -139,15 +132,16 @@ module MotionModel
 
     # TODO IMPORTANT need to test transactions and rollbacks
     def transaction(&block)
-      begin
-        if Transaction.pending?
-          Transaction.execute(&block)
-        else
-          queue.sync do
-            Transaction.new(db).execute(&block)
-          end
+      if Transaction.pending?
+        result = Transaction.execute(&block)
+      else
+        result_tag = "result-#{__FILE__}:#{__LINE__}"
+        queue.sync do
+          NSThread.currentThread.threadDictionary[result_tag] = Transaction.new(db).execute(&block)
         end
+        result = NSThread.currentThread.threadDictionary.delete(result_tag)
       end
+      result
     end
 
     def queue
@@ -156,10 +150,6 @@ module MotionModel
         @queue = ::Dispatch::Queue.new(queue_name)
       end
       @queue
-    end
-
-    def result_semaphore
-      @result_semaphore ||= Dispatch::Semaphore.new(1)
     end
 
   end
