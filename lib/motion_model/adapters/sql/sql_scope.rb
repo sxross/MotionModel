@@ -127,6 +127,11 @@ module MotionModel
       @db_adapter.send("to_#{type.to_s}_sql", self)
     end
 
+    # For debug and copy/paste, use single quotes
+    def to_sql_sq
+      to_sql.gsub(/"/, "'")
+    end
+
     def each(*args, &block)
       to_a.each(*args, &block)
     end
