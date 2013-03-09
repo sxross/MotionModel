@@ -135,7 +135,7 @@ module MotionModel
           case value
           when nil;       'NULL'
           when Numeric;   value.to_s
-          else;           %Q["#{value}"]
+          else;           %Q["#{value.gsub(/"/, '""')}"]
           end
         end
       end
