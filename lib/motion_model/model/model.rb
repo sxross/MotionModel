@@ -455,6 +455,13 @@ module MotionModel
 
     private
 
+    # Complete restoring entity from persistent store
+    def restore #nodoc
+      do_insert
+      @new_record = false
+      @dirty = false
+    end
+
     def initialize_data_columns(column, options) #nodoc
        self.send("#{column}=".to_sym, options[column] || self.class.default(column))
     end
