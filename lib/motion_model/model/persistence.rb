@@ -79,7 +79,7 @@ module MotionModel
         @tag = new_tag_id
         new_tag_id += 1
       end
-      save
+      restore
 
       self
     end
