@@ -358,10 +358,10 @@ module MotionModel
     def save(*)
       call_hooks 'save' do
         # Existing object implies update in place
-        action = 'add'
-        set_auto_date_field 'created_at'
         if @new_record
+          set_auto_date_field 'created_at'
           do_insert
+          action = 'add'
         else
           do_update
           set_auto_date_field 'updated_at'
