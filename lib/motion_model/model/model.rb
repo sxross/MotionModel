@@ -42,7 +42,7 @@ module MotionModel
   class RelationIsNilError < Exception; end
   class AdapterNotFoundError < Exception; end
 
-  module Model    
+  module Model
     def self.included(base)
       base.extend(PrivateClassMethods)
       base.extend(PublicClassMethods)
@@ -378,9 +378,15 @@ module MotionModel
       self.send("#{field_name}=", Time.now) if self.respond_to? field_name
     end
 
+    # Stub methods for hook protocols
+    def before_save(*); end
+    def after_save(*);  end
+    def before_delete(*); end
+    def after_delete(*); end
+
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}"
-      self.send(hook, self) if respond_to? hook.to_sym
+      self.send(hook, self)
     end
 
     def call_hooks(hook_name, &block)
@@ -440,13 +446,6 @@ module MotionModel
     #    columns :date => {:type => :date, :formotion => {:picker_type => :date_time}}
     def options(column_name)
       column_named(column_name).options
-    end
-
-    # True if this object responds to the method or
-    # property, otherwise false.
-    alias_method :old_respond_to?, :respond_to?
-    def respond_to?(method)
-      column_named(method) || old_respond_to?(method)
     end
 
     def dirty?

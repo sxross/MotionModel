@@ -107,6 +107,15 @@ module MotionModel
       self.class.issue_notification(self, :action => 'add')
     end
 
+    # This adds to the ArrayStore without the magic date
+    # and id manipulation stuff
+    def add_to_store(*)
+      do_insert
+      @dirty = @new_record = false
+    end
+
+
+
     # Count of objects in the current collection
     def length
       collection.length
