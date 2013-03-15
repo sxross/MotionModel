@@ -1,4 +1,8 @@
+2102-03-15: Fixed bug where created_at and updated_at were being incorrectly
+            when restored from persistence (thanks Justin McPherson for finding
+            that).
 
+            Moved all NSCoder stuff out of Model to ArrayModelAdapter.
 
 2012-02-19: Included Doug Puchalski's great refactoring of Model that provides an
             adapter for ArrayModelAdapter. WARNING!!! This is a breaking change
