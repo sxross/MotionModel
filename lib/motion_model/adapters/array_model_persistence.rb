@@ -19,7 +19,7 @@ module MotionModel
 
           if data.nil?
             error = error_ptr[0]
-            raise MotionModel::PersistFileFailureError.new "Error when reading the data: #{error}"
+            raise MotionModel::PersistFileError.new "Error when reading the data: #{error}"
           else
             bulk_update do
               collection = NSKeyedUnarchiver.unarchiveObjectWithData(data)
