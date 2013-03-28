@@ -335,6 +335,11 @@ module MotionModel
       @new_record = true
     end
 
+    # provides read access to all data
+    def data
+      @data
+    end
+
     def new_record?
       @new_record
     end
