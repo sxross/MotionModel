@@ -3,10 +3,8 @@ module MotionModel
     class ValidationSpecificationError < RuntimeError;  end
     class RecordInvalid < RuntimeError; end
 
-
     def self.included(base)
       base.extend(ClassMethods)
-      base.instance_variable_set('@validations', [])
     end
 
     module ClassMethods
@@ -16,25 +14,39 @@ module MotionModel
           raise ex
         end
 
-
-    
         if validation_type == {}
           ex = ValidationSpecificationError.new('validation type not present or not a hash')
           raise ex
         end
     
-        @validations << {field => validation_type}
+        validations << {field => validation_type}
       end
       alias_method :validates, :validate
 
       def validations
-        @validations
+        @validations ||= []
       end
     end
-  
-     # It doesn't save when validations fails
-    def save(options={ :validate => true})
-      (valid? || !options[:validate]) ? super : false
+
+    def do_save?(options = {})
+      _valid = true
+      if options[:validate] != false
+        call_hooks 'validation' do
+          _valid = valid?
+        end
+      end
+      _valid
+    end
+    private :do_save?
+
+    def do_insert(options = {})
+      return false unless do_save?(options)
+      super
+    end
+
+    def do_update(options = {})
+      return false unless do_save?(options)
+      super
     end
 
     # it fails loudly
@@ -49,10 +61,12 @@ module MotionModel
     #
     # * Second, it returns the result of performing the validations.
     def valid?
-      @messages = []
-      @valid = true
-      self.class.validations.each do |validations|
-        validate_each(validations)
+      call_hooks 'validation' do
+        @messages = []
+        @valid = true
+        self.class.validations.each do |validations|
+          validate_each(validations)
+        end
       end
       @valid
     end
@@ -129,7 +143,7 @@ module MotionModel
       elsif value.is_a?(String) || value.nil?
         result = value.nil? || ((value.length == 0) == setting)
         additional_message = setting ? "non-empty" : "non-empty"
-        add_message(field, "incorrect value supplied for #{field.to_s.humanize} -- should be #{additional_message}.") if result
+        add_message(field, "incorrect value supplied for #{field.to_s} -- should be #{additional_message}.") if result
         return !result
       end
       return false

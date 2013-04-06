@@ -5,7 +5,8 @@ require 'motion/project'
 
 Motion::Project::App.setup do |app|
   # Use `rake config' to see complete project settings.
+  app.name = 'MotionModel'
   app.delegate_class = 'FakeDelegate'
-  app.files = Dir.glob('./lib/motion_model/**/*.rb')
+  app.files += Dir.glob('./lib/motion_model/**/*.rb')
   app.files = (app.files + Dir.glob('./app/**/*.rb')).uniq
 end

@@ -351,3 +351,20 @@ def UIInterfaceOrientationIsPortrait(orientation)
   orientation == UIInterfaceOrientationPortrait ||
      orientation == UIInterfaceOrientationPortraitUpsideDown
 end
+
+class Module
+  # Retrieve a constant within its scope
+  def deep_const_get(const)
+    if Symbol === const
+      const = const.to_s
+    else
+      const = const.to_str.dup
+    end
+    if const.sub!(/^::/, '')
+      base = Object
+    else
+      base = self
+    end
+    const.split(/::/).inject(base) { |mod, name| mod.const_get(name) }
+  end
+end
