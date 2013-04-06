@@ -77,6 +77,7 @@ describe 'finders' do
     end
     
     it 'all returns all members of the collection as an array' do
+      Task.all.each { |t| puts t }
       Task.all.length.should.equal(10)
     end
     

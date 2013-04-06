@@ -16,7 +16,7 @@ module MotionModel
     def should_return(column) #nodoc
       skippable = [:id]
       skippable += [:created_at, :updated_at] unless @expose_auto_date_fields
-      !skippable.include?(column) && !self.class.relation_column?(column)
+      !skippable.include?(column) && !relation_column?(column)
     end
 
     def returnable_columns #nodoc
@@ -26,14 +26,14 @@ module MotionModel
     def default_hash_for(column, value)
       {:key         => column.to_sym,
        :title       => column.to_s.humanize,
-       :type        => FORMOTION_MAP[type(column)],
+       :type        => FORMOTION_MAP[column_type(column)],
        :placeholder => column.to_s.humanize,
        :value       => value
        }
     end
 
     def is_date_time?(column)
-      column_type = type(column)
+      column_type = column_type(column)
       [:date, :time].include?(column_type)
      end
 
@@ -78,7 +78,7 @@ module MotionModel
     # you say so, offering you the opportunity to validate your form data.
     def from_formotion!(data)
       self.returnable_columns.each{|column|
-        if data[column] && type(column) == :date || type(column) == :time
+        if data[column] && column_type(column) == :date || column_type(column) == :time
           data[column] = Time.at(data[column]) unless data[column].nil?
         end
         value = self.send("#{column}=", data[column])
