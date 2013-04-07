@@ -45,12 +45,6 @@ describe "Creating a model" do
       atask.should.respond_to(:details)
     end
 
-    it 'simply bypasses spurious attributes erroneously set' do
-      a_task = Task.new(:name => 'details', :zoo => 'very bad')
-      a_task.should.not.respond_to(:zoo)
-      a_task.name.should.equal('details')
-    end
-    
     it "adds a default value if none supplied" do
       a_type_test = TypeCast.new
       a_type_test.an_int.should.equal(3)
@@ -89,7 +83,7 @@ describe "Creating a model" do
     end
 
     it "the type of a column can be retrieved" do
-      Task.new.type(:some_day).should.equal(:date)
+      Task.new.column_type(:some_day).should.equal(:date)
     end
 
   end

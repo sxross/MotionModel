@@ -11,7 +11,8 @@ describe "time conversions" do
       should == "03-18-2012 | 07:00 PM"
   end
 
-  it "Sets created_at when an item is created" do
+  describe "auto_date_fields" do
+
     class Creatable
       include MotionModel::Model
       include MotionModel::ArrayModelAdapter
@@ -19,25 +20,37 @@ describe "time conversions" do
               :created_at => :date
     end
 
-    c = Creatable.new(:name => 'test')
-    lambda{c.save}.should.change{c.created_at}
-  end
-
-    it "Sets updated_at when an item is created" do
     class Updateable
       include MotionModel::Model
       include MotionModel::ArrayModelAdapter
       columns :name => :string,
-              :created_at => :date,
               :updated_at => :date
     end
 
-    c = Updateable.create(:name => 'test')
-    c.name = 'test 1'
-    lambda{c.save}.should.not.change{c.created_at}
-    d = Updateable.create(:name => 'test')
-    d.name = 'test 2'
-    lambda{d.save}.should.change{d.updated_at}
+    it "Sets created_at when an item is created" do
+      c = Creatable.new(:name => 'test')
+      lambda{c.save}.should.change{c.created_at}
+    end
+
+    it "Sets updated_at when an item is created" do
+      c = Updateable.new(:name => 'test')
+      lambda{c.save}.should.change{c.updated_at}
+    end
+
+    it "Doesn't update created_at when an item is updated" do
+      c = Creatable.create(:name => 'test')
+      c.name = 'test 1'
+      lambda{c.save}.should.not.change{c.created_at}
+    end
+
+    it "Updates updated_at when an item is updated" do
+      c = Updateable.create(:name => 'test')
+      sleep 1
+      c.name = 'test 1'
+      lambda{ c.save }.should.change{c.updated_at}
+    end
+
   end
+
 
 end

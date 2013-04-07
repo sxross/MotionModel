@@ -161,9 +161,14 @@ module MotionModel
     
     # returns all elements that match as an array.
     def all
-      @collection
+      to_a
     end
     
+    # returns all elements that match as an array.
+    def to_a
+      @collection
+    end
+
     # each is a shortcut method to turn a query into an iterator. It allows
     # you to write code like:
     #
