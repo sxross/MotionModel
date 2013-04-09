@@ -46,6 +46,7 @@ describe 'persistence' do
 
   describe 'model change resiliency' do
     it 'column addition' do
+      Object.send(:remove_const, :Foo) if defined?(Foo)
       class Foo
         include MotionModel::Model
         include MotionModel::ArrayModelAdapter
@@ -56,11 +57,9 @@ describe 'persistence' do
 
       @foo.should.not.respond_to :address
 
+      Foo.delete_all
       class Foo
-        include MotionModel::Model
-        include MotionModel::ArrayModelAdapter
-        columns       :name => :string,
-                      :address => :string
+        columns         :address => :string
       end
       Foo.deserialize_from_file('test.dat')
 
@@ -73,6 +72,7 @@ describe 'persistence' do
     end
 
     it "column removal" do
+      Object.send(:remove_const, :Foo) if defined?(Foo)
       class Foo
         include MotionModel::Model
         include MotionModel::ArrayModelAdapter
@@ -84,7 +84,7 @@ describe 'persistence' do
 
       @foo.should.respond_to :desc
 
-      Object.send(:remove_const, :Foo)
+      Object.send(:remove_const, :Foo) if defined?(Foo)
       class Foo
         include MotionModel::Model
         include MotionModel::ArrayModelAdapter
@@ -205,8 +205,8 @@ end
 describe "serialization of relations" do
   before do
     parent = Parent.create(:name => 'BoB')
-    parent.children.create :name => 'Fergie'
-    parent.children.create :name => 'Will I Am'
+    parent.children_relation.create :name => 'Fergie'
+    parent.children_relation.create :name => 'Will I Am'
   end
 
   it "is wired up right" do

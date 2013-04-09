@@ -1,3 +1,4 @@
+Object.send(:remove_const, :ModelWithOptions) if defined?(ModelWithOptions)
 class ModelWithOptions
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter

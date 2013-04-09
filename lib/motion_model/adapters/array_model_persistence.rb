@@ -58,10 +58,10 @@ module MotionModel
 
           if data.nil?
             error = error_ptr[0]
-            raise MotionModel::PersistFileFailureError.new "Error when reading the data: #{error}"
+            raise MotionModel::PersistFileError.new "Error when reading the data: #{error}"
           else
             bulk_update do
-              collection = NSKeyedUnarchiver.unarchiveObjectWithData(data)
+              NSKeyedUnarchiver.unarchiveObjectWithData(data)
             end
             return self
           end
@@ -82,7 +82,7 @@ module MotionModel
         @file_name = file_name if file_name
         error_ptr = Pointer.new(:object)
 
-        data = NSKeyedArchiver.archivedDataWithRootObject @collection
+        data = NSKeyedArchiver.archivedDataWithRootObject collection
         unless data.writeToFile(documents_file(@file_name), options: NSDataWritingAtomic, error: error_ptr)
           # De-reference the pointer.
           error = error_ptr[0]
@@ -104,7 +104,7 @@ module MotionModel
 
       new_tag_id = 1
       columns.each do |attr|
-        next if self.class.has_relation?(attr)
+        next if has_relation?(attr)
         # If a model revision has taken place, don't try to decode
         # something that's not there.
         if coder.containsValueForKey(attr.to_s)
