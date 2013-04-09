@@ -1,8 +1,43 @@
 module MotionModel
   module ArrayModelAdapter
     class PersistFileError < Exception; end
+    class VersionNumberError < ArgumentError; end
 
     module PublicClassMethods
+
+      def validate_schema_version(version_number)
+        raise MotionModel::ArrayModelAdapter::VersionNumberError.new('version number must be a string') unless version_number.is_a?(String)
+        if version_number !~ /^[\d.]+$/
+          raise MotionModel::ArrayModelAdapter::VersionNumberError.new('version number string must contain only numbers and periods')
+        end
+      end
+
+      # Declare a version number for this schema. For example:
+      #
+      # class Task
+      #   include MotionModel::Model
+      #   include MotionModel::ArrayModelAdapter
+      #
+      #   version_number 1.0.1
+      # end
+      #
+      # When a version number mismatch occurs as an individual row is loaded
+      # from persistent storage, the migrate method is invoked, allowing
+      # you to programmatically migrate on a per-row basis.
+
+      def schema_version(*version_number)
+        if version_number.empty?
+          return @schema_version
+        else
+          validate_schema_version(version_number[0])
+          @schema_version = version_number[0]
+        end
+      end
+
+      def migrate
+      end
+
+
       # Returns the unarchived object if successful, otherwise false
       #
       # Note that subsequent calls to serialize/deserialize methods
@@ -10,6 +45,10 @@ module MotionModel
       #
       # Raises a +MotionModel::PersistFileFailureError+ on failure.
       def deserialize_from_file(file_name = nil)
+        if schema_version != '1.0.0'
+          migrate
+        end
+
         @file_name = file_name if file_name
 
         if File.exist? documents_file(@file_name)

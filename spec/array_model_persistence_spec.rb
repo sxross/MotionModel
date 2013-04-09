@@ -92,13 +92,41 @@ describe 'persistence' do
                       :address => :string
       end
       Foo.deserialize_from_file('test.dat')
+    end
+  end
 
-      # @foo = Foo.first
-      # @foo.name.should == 'Bob'
-      # @foo.address.should == nil
-      # @foo.should.not.respond_to :desc
-      # @foo.should.respond_to :address
-      # Foo.length.should == 1
+  describe "array model migrations" do
+    class TestForColumnAddition
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns       :name => :string, :desc => :string
+    end
+
+    it "column addition should call migrate first as a test" do
+      TestForColumnAddition.mock!(:migrate)
+      TestForColumnAddition.deserialize_from_file('dfca.dat')
+      1.should == 1
+    end
+
+    it "this example should pass" do
+      1.should == 1
+    end
+
+    it "accepts properly formatted version strings" do
+      lambda{TestForColumnAddition.schema_version("3.1")}.should.not.raise
+    end
+
+    it "rejects non-string versions" do
+      lambda{TestForColumnAddition.schema_version(3)}.should.raise(MotionModel::ArrayModelAdapter::VersionNumberError)
+    end
+
+    it "rejects improperly formated version strings" do
+      lambda{TestForColumnAddition.schema_version("3/1/1")}.should.raise(MotionModel::ArrayModelAdapter::VersionNumberError)
+    end
+
+    it "returns the version number if no arguments supplied" do
+      TestForColumnAddition.schema_version("3.1")
+      TestForColumnAddition.schema_version.should == "3.1"
     end
   end
 

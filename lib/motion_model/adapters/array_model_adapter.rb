@@ -11,8 +11,7 @@ module MotionModel
     end
 
     module PublicClassMethods
-
-      def collection
+       def collection
         @collection ||= []
       end
 
