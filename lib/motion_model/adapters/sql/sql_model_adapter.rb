@@ -77,7 +77,14 @@ module MotionModel
       def where(*args)
         default_scope.where(*args)
       end
-      alias_method :find, :where
+
+      def find(*args)
+        if args.count == 1 && args.first.is_a?(Numeric)
+          find_by_id(args.first)
+        else
+          where(*args)
+        end
+      end
 
       def find_by_id(id)
         where(id: id).first
