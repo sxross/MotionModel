@@ -60,6 +60,7 @@ module MotionModel
       private
 
       def begin_transaction
+        @pending = true
         @any_writes = false
         @db.beginTransaction
       end
@@ -78,7 +79,8 @@ module MotionModel
       end
 
       def rollback
-        @db.rollback
+        return unless @pending
+        @db.rollback unless @rolling_back
         @rolling_back = true
       end
 
