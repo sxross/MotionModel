@@ -91,7 +91,9 @@ module MotionModel
       end
 
       def do_select(scope)
-        rows_attrs = scope.execute.map do |row|
+        result = scope.execute
+        return nil unless result
+        rows_attrs = result.map do |row|
           Hash[row.map { |k, v|
             col = _column_hashes[k.to_sym]
             val = col ? _db_adapter.from_db_type(col.type, v) : v
