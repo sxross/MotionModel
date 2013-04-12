@@ -1,6 +1,6 @@
 module MotionModel
   class Join
-    def initialize(column, joining_class, sym, options = nil)
+    def initialize(column, joining_class, options = nil)
       @column = column
       @joining_class = joining_class
       @options = options || {}
@@ -23,7 +23,7 @@ module MotionModel
     end
 
     def joining_table_key
-      @column.type == :has_many ? 'id' : "#{joined_class.name.underscore}_id"
+      [:has_many, :has_one].include?(@column.type) ? 'id' : "#{joined_class.name.underscore}_id"
     end
 
     def joined_class
