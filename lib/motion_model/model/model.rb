@@ -604,6 +604,8 @@ module MotionModel
     def after_save(sender);  end
     def before_delete(sender); end
     def after_delete(sender); end
+    def before_destroy(sender); end
+    def after_destroy(sender); end
 
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}"
