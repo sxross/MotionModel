@@ -1,11 +1,44 @@
 module MotionModel
   class SQLScope
 
+    # For debug
+    attr_reader :conditions
+
     def initialize(model_class, db_adapter)
       @model_class = model_class
       @db_adapter = db_adapter
-      @conditions = []
+      @type = nil
       @loaded = false
+      @conditions = []
+      @selects = []
+      @joins = nil
+      @orders = nil
+      @group = nil
+      @limit = nil
+    end
+
+    def deep_clone
+      _default_selects = @default_selects
+      _selects = @selects
+      _joins = @joins.try(:dup)
+      _orders = @orders.try(:dup)
+      _group = @group.try(:dup)
+      _limit = @limit
+      _conditions = @conditions.try(:dup)
+      _loaded = @loaded
+      _type = @type
+      self.class.new(@model_class, @db_adapter).instance_eval do
+        @default_selects = _default_selects
+        @selects = _selects
+        @joins = _joins
+        @orders = _orders
+        @group = _group
+        @limit = _limit
+        @conditions = _conditions
+        @loaded = _loaded
+        @type = _type
+        self
+      end
     end
 
     def loaded?
@@ -17,28 +50,31 @@ module MotionModel
     end
 
     def select(*args)
-      dup.instance_eval do
+      deep_clone.instance_eval do
         options = args.last.is_a?(Hash) ? args.pop : {}
         table_name = options[:table_name] || self.table_name
         if options[:add]
           select = options[:add]
         else
           select = args.first
-          @_selects = []
+          @default_selects = []
         end
-        dup.instance_eval do
-          if select.is_a?(String)
-            _selects.push(select)
-          else
-            foreign_table = table_name != self.table_name
-            _selects.push(select.map { |c|
-              str = %Q["#{table_name}".#{c.to_s}]
-              str << %Q[ AS "#{table_name}.#{c.to_s}"] if foreign_table
-              str
-            })
-          end
-          self
+
+        if select.is_a?(Symbol)
+          str = %Q["#{table_name}"."#{select.to_s}"]
+          @selects.push(str)
+        elsif select.is_a?(String)
+          # Strings won't be quoted, so use symbol to refer to columns
+          @selects.push(select)
+        else
+          foreign_table = table_name != self.table_name
+          @selects.push(select.map { |c|
+            str = %Q["#{table_name}"."#{c.to_s}"]
+            str << %Q[ AS "#{table_name}"."#{c.to_s}"] if foreign_table
+            str
+          })
         end
+        self
       end
     end
 
@@ -46,7 +82,7 @@ module MotionModel
     #end
 
     def where(*args)
-      dup.instance_eval do
+      deep_clone.instance_eval do
         args.each do |clause|
           if clause.is_a?(String)
             @conditions << clause
@@ -106,7 +142,7 @@ module MotionModel
     end
 
     def joins(*args)
-      dup.instance_eval do
+      deep_clone.instance_eval do
         args.each do |join_data|
           if join_data.is_a?(String)
             _joins << join_data
@@ -121,7 +157,7 @@ module MotionModel
               joining_class = @model_class
             end
             join_column = joining_class.send(:column_named, join_name)
-            _joins << Join.new(join_column, joining_class, join_name, join_options)
+            _joins << Join.new(join_column, joining_class, join_options)
 
             joins(nested_join_args) if nested_join_args
           end
@@ -131,7 +167,7 @@ module MotionModel
     end
 
     def order(options)
-      dup.instance_eval do
+      deep_clone.instance_eval do
         @orders ||= []
         unless options.is_a?(Hash)
           options = Hash[Array(options).map { |c| [c, :asc] }]
@@ -148,21 +184,21 @@ module MotionModel
     end
 
     def group(column)
-      dup.instance_eval do
+      deep_clone.instance_eval do
         @group = %Q["#{table_name}"."#{column.to_s}"]
         self
       end
     end
 
     def limit(limit)
-      dup.instance_eval do
+      deep_clone.instance_eval do
         @limit = limit
         self
       end
     end
 
     def all
-      dup
+      deep_clone
     end
 
     def to_a
@@ -250,12 +286,16 @@ module MotionModel
 
     private
 
+    def _default_selects
+      @default_selects ||= [%Q["#{table_name}".*]]
+    end
+
     def _selects
-      @_selects ||= [%Q["#{table_name}".*]]
+      (_default_selects + @selects).compact
     end
 
     def _joins
-      @_joins ||= []
+      @joins ||= []
     end
 
     def type
