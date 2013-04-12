@@ -17,6 +17,14 @@ module MotionModel
       @limit = nil
     end
 
+    def method_missing(id, *args)
+      if args.count == 0 && @model_class.respond_to?(id)
+        # Handle Model-class-define scopes
+        return @model_class.send(id, self.deep_clone)
+      end
+      super
+    end
+
     def deep_clone
       _default_selects = @default_selects
       _selects = @selects
