@@ -9,19 +9,19 @@ class Task
                 :details => :string,
                 :some_day => :date
 
-  def before_delete
+  def before_delete(sender)
     @before_delete_called = true
   end
 
-  def after_delete
+  def after_delete(sender)
     @after_delete_called = true
   end
 
-  def before_save
+  def before_save(sender)
     @before_save_called = true
   end
 
-  def after_save
+  def after_save(sender)
     @after_save_called = true
   end
 
