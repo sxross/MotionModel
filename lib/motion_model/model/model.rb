@@ -600,14 +600,14 @@ module MotionModel
     end
 
     # Stub methods for hook protocols
-    def before_save(*); end
-    def after_save(*);  end
-    def before_delete(*); end
-    def after_delete(*); end
+    def before_save(sender); end
+    def after_save(sender);  end
+    def before_delete(sender); end
+    def after_delete(sender); end
 
     def call_hook(hook_name, postfix)
       hook = "#{hook_name}_#{postfix}"
-      self.send(hook)
+      self.send(hook, self)
     end
 
     def call_hooks(hook_name, &block)
