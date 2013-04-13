@@ -388,6 +388,43 @@ related to the assignees remains intact.
 
 Note: This syntax is modeled on the Rails `:dependent => :destroy` options in `ActiveRecord`.
 
+## Hook Methods
+
+During a save or delete operation, hook methods are called to allow you a chance to modify the
+object at that point. These hook methods are:
+
+```ruby
+before_save(sender)
+after_save(sender)
+before_delete(sender)
+after_delete(sender)
+```
+
+MotionModel makes no distinction between destroy and delete when calling hook methods, as it only
+calls them when the actual object is deleted. In a destroy operation, during the cascading delete,
+the delete hooks are called (again) at the point of object deletion.
+
+Note that the method signatures may be different from previous implementations. No longer can you
+declare a hook method without the `sender` argument.
+
+Finally, contrasting hook methods with notifications, the hook methods `before_save` and `after_save`
+are called before the save operation begins and after it completes. However, the notification (covered
+below) is only issued after the save operation. However... the notification understands whether the
+operation was a save or update. Rule of thumb: If you want to catch an operation before it begins,
+use the hook. If you just want to know about it when it happens, use the notification.
+
+The delete hooks happen around the delete operation and, again, allow you the option to mess with the
+object before you allow the process to go forward (pretty much, the `before_delete` hook does this).
+
+*IMPORTANT*: Returning false in a before hook stops the rest of the operation. So, for example, you
+could prevent the deletion of the last admin by writing something like this:
+
+```ruby
+def before_delete(sender)
+  return false if sender.find(:privilege_level).eq('admin').count < 2
+end
+```
+
 ## Transactions and Undo/Cancel
 
 MotionModel is not ActiveRecord. MotionModel is not a database-backed mapper. The bottom line is that when you change a field in a model, even if you don't save it, you are partying on the central object store. In part, this is because Ruby copies objects by reference, so when you do a find, you get a reference to the object *in the central object store*.

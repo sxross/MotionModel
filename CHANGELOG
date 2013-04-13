@@ -1,10 +1,21 @@
-2102-03-15: Fixed bug where created_at and updated_at were being incorrectly
+2013-04-13: WARNING: Possible breaking change. Hook methods changed to send
+            affected object. So, if you have:
+
+            def after_create
+
+            You will get an error about expecting 1 argument, got 0
+
+            The correct signature is:
+
+            def after_create(sender)
+
+2013-03-15: Fixed bug where created_at and updated_at were being incorrectly
             when restored from persistence (thanks Justin McPherson for finding
             that).
 
             Moved all NSCoder stuff out of Model to ArrayModelAdapter.
 
-2012-02-19: Included Doug Puchalski's great refactoring of Model that provides an
+2013-02-19: Included Doug Puchalski's great refactoring of Model that provides an
             adapter for ArrayModelAdapter. WARNING!!! This is a breaking change
             since version 0.3.8. You will have to include:
 
@@ -14,9 +25,9 @@
             Failure to include an adapter (note: spelling counts :) will result
             in an exception so this will not quietly fail.
 
-2012-01-24: Added block-structured transactions.
+2013-01-24: Added block-structured transactions.
 
-2012-01-14: Fixed problem where data returned from forms was of type NSString, which
+2013-01-14: Fixed problem where data returned from forms was of type NSString, which
             confused some monkey-patching code.
             Changed before_ hooks such that handlers returning false would terminate
             the process. So, if before_save returns anything other than false, the
@@ -24,7 +35,7 @@
             interrupted.
             Fixed immutable string issue in validations.
 
-2012-01-09: Added automatic date/timestamp support for created_at and updated_at columns
+2013-01-09: Added automatic date/timestamp support for created_at and updated_at columns
             Added Hash extension except, Array introspection methods has_hash_key? and
             has_hash_value?
             Commit of Formotion module including optional inclusion/suppression of the
