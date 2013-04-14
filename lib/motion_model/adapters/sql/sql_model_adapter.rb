@@ -34,7 +34,7 @@ module MotionModel
       end
 
       def create_table
-        _db_adapter.create_table(table_name, _db_column_config)
+        _db_adapter.create_table(table_name, _column_hashes)
       end
 
       def unscoped

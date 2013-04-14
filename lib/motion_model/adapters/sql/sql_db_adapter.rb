@@ -26,6 +26,8 @@ module MotionModel
 
   class SQLDBAdapter < BaseDBAdapter
 
+    EXISTENCE = "IF NOT EXISTS"
+
     def to_db_type(column_type, value)
       value
     end
@@ -46,45 +48,77 @@ module MotionModel
     end
 
     def create_table(name, columns, options = {})
-      create_table_sql(name, columns, options).execute
+      sqls = create_table_sql(name, columns, options)
+      sqls[:create_table].execute
+      sqls[:create_indexes].each { |s| s.execute } if sqls[:create_indexes]
     end
 
     def create_table_sql(table_name, column_config, options = {})
       column_sql = []
+      create_index_sqls = []
 
+      column_config = column_config.dup
       if column_config[:id]
-        _column_config = column_config.dup
-        column_config = {
-            id: _column_config.delete(:id).merge({not_null: true, primary_key: true, auto_increment: true})
-        }.merge(_column_config)
+        column_config[:id].options.merge!({not_null: true, primary_key: true, auto_increment: true})
+        create_index_sqls << create_index_sql(table_name, :id, unique: true)
       end
 
       # Map MotionModel column types to SQLite3
-      column_config.each do |col_name, option_specs|
-        type_str = _db_column_type(option_specs[:type])
-
-        # Default options
-        option_specs[:not_null] ||= false
-
-        options = []
-        option_specs.each do |key, value|
-          str = begin
-            case(key)
-            when :not_null;       value ? 'NOT NULL' : nil
-            when :primary_key;    value ? 'PRIMARY KEY' : nil
-            when :auto_increment; value ? 'AUTOINCREMENT' : nil
+      column_config.each do |col_name, column|
+        if [:belongs_to, :has_many, :has_one].include?(column.type)
+          if column.type == :belongs_to
+            if column.options[:polymorphic]
+              _options = {index_name: "#{table_name}_#{col_name}_idx"}
+              col_names = %W[#{col_name}_type #{col_name}_id]
+              create_index_sqls << create_index_sql(table_name, col_names, _options)
+            else
+              create_index_sqls << create_index_sql(table_name, "#{col_name}_id")
             end
           end
-          options << str if str
-        end
+        else
+          type_str = _db_column_type(column.type)
 
-        column_sql << %Q["#{col_name}" #{type_str} #{options.compact.join(' ')}]
+          # Default options
+          column.options[:not_null] ||= false
+
+          options = []
+          column.options.each do |key, value|
+            str = begin
+              case(key)
+              when :not_null;       value ? 'NOT NULL' : nil
+              when :primary_key;    value ? 'PRIMARY KEY' : nil
+              when :auto_increment; value ? 'AUTOINCREMENT' : nil
+              end
+            end
+            options << str if str
+          end
+
+          column_sql << %Q["#{col_name}" #{type_str} #{options.compact.join(' ')}]
+
+          if column.options[:index]
+            create_index_sqls << create_index_sql(table_name, col_name, column.options[:index])
+          end
+        end
       end
 
-      existence = "IF NOT EXISTS"
+      create_table_sql =
+          %Q[CREATE TABLE #{EXISTENCE} "main"."#{table_name}" ( #{column_sql.join(', ')} );]
 
-      build_sql_context(:create_table,
-          %Q[CREATE TABLE #{existence} "main"."#{table_name}" ( #{column_sql.join(', ')} );])
+      {
+          create_table: build_sql_context(:create_table, create_table_sql),
+          create_indexes: create_index_sqls.map{ |s| build_sql_context(:create_indexes, s) }
+      }
+    end
+
+    def create_index_sql(table_name, col_names, options = {})
+      options = {} unless options.is_a?(Hash)
+      col_names = Array(col_names)
+      idx_name = options[:index_name] || "#{table_name}_#{col_names.first}_idx"
+      unique = options[:unique] ? "UNIQUE" : ''
+      _col_names = col_names.map { |s| %Q["#{s}"] }.join(', ')
+      <<-SQL.strip << ';'
+        CREATE #{unique} INDEX #{EXISTENCE} "#{idx_name}" ON "#{table_name}" (#{_col_names})
+      SQL
     end
 
     def to_select_sql(scope)
