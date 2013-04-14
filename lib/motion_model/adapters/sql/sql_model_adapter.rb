@@ -279,6 +279,9 @@ module MotionModel
 
       private
 
+      def before_initialize(options)
+      end
+
       # Attributes converted to a hash of db-compatible types
       def _db_typed_attributes
         attrs = {}
