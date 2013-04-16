@@ -90,17 +90,20 @@ module MotionModel
         where(id: id).first
       end
 
-      def do_select(scope)
+      def do_select_attrs(scope)
         result = scope.execute
         return nil unless result
-        rows_attrs = result.map do |row|
+        result.map do |row|
           Hash[row.map { |k, v|
-            col = _column_hashes[k.to_sym]
+            col = column_named(k.to_sym)
             val = col ? _db_adapter.from_db_type(col.type, v) : v
             [k.to_sym, val]
           }]
         end
-        rows_attrs.map { |attrs| read(attrs) }
+      end
+
+      def do_select(scope)
+        do_select_attrs(scope).map { |attrs| read(attrs) }
       end
 
       def delete_all_sql

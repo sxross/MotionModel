@@ -199,6 +199,11 @@ module MotionModel
       @collection
     end
 
+    # Fetch the row attributes
+    def fetch_row_attrs
+      do_select_attrs
+    end
+
     def do_select
       @model_class.nil? ? [] : @model_class.do_select(self)
     end
