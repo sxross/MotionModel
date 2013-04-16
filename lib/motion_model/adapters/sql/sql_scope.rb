@@ -18,9 +18,9 @@ module MotionModel
     end
 
     def method_missing(id, *args)
-      if args.count == 0 && @model_class.respond_to?(id)
+      if @model_class.respond_to?(id)
         # Handle Model-class-define scopes
-        return @model_class.send(id, self.deep_clone)
+        return @model_class.send(id, self.deep_clone, *args)
       end
       super
     end
