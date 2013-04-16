@@ -95,28 +95,7 @@ module MotionModel
           if clause.is_a?(String)
             @conditions << clause
           else
-            clause.each do |key, value|
-              # where(column => value)
-              # where(column => {between: (0..1)})
-              # where(associated_table => {associated_table_column = value}) (*** not yet supported)
-              # where({associated_table => associated_table_column} => value})
-              if key.is_a?(Hash)
-                table_name, key = key.to_a.first
-              else
-                table_name = self.table_name
-              end
-
-              if value.is_a?(Hash)
-                # where.(column => {not_eq: 'value'})
-                operator, value = value.to_a.first
-                @conditions << SQLCondition.new(table_name, key.to_s, value, operator)
-                #options = value
-                #@conditions << SQLCondition.new(table_name, key.to_s, nil, options)
-              else
-                value = value
-                @conditions << SQLCondition.new(table_name, key.to_s, value)
-              end
-            end
+            @conditions += SQLCondition.build_from_clause(table_name, clause)
           end
         end
         self

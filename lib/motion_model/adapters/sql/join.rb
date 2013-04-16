@@ -39,15 +39,19 @@ module MotionModel
     end
 
     def build_on_str
-      str = %Q["#{joined_table_name}"."#{joined_table_key}" = "#{joining_table_name}"."#{joining_table_key}"]
+      conditions = []
+      conditions << %Q["#{joined_table_name}"."#{joined_table_key}" = "#{joining_table_name}"."#{joining_table_key}"]
       if @column.options[:polymorphic]
-        str << %Q[ AND "#{joined_table_name}"."#{@column.options[:as]}_type" = "#{@joining_class.name}"]
+        conditions << %Q["#{joined_table_name}"."#{@column.options[:as]}_type" = "#{@joining_class.name}"]
       end
-      str
+      if @options[:conditions]
+        conditions += SQLCondition.build_from_clause(joined_table_name, @options[:conditions]).map(&:to_sql_str)
+      end
+      conditions.join(' AND ')
     end
 
     def to_sql_str
-      %Q[#{type} "#{joined_table_name}" ON #{on_str}]
+      %Q[#{type} "#{joined_table_name}" ON (#{on_str})]
     end
 
     def select(scope)

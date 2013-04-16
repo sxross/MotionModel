@@ -8,6 +8,31 @@ module MotionModel
       @operator = operator || :'='
     end
 
+    def self.build_from_clause(table_name, clause)
+      conditions = []
+      clause.each do |key, value|
+        # where(column => value)
+        # where(column => {between: (0..1)})
+        # where(associated_table => {associated_table_column = value}) (*** not yet supported)
+        # where({associated_table => associated_table_column} => value})
+        if key.is_a?(Hash)
+          _table_name, key = key.to_a.first
+        else
+          _table_name = table_name
+        end
+
+        if value.is_a?(Hash)
+          # where.(column => {not_eq: 'value'})
+          operator, value = value.to_a.first
+          conditions << SQLCondition.new(_table_name, key.to_s, value, operator)
+        else
+          value = value
+          conditions << SQLCondition.new(_table_name, key.to_s, value)
+        end
+      end
+      conditions
+    end
+
     def self.to_sql_str(conditions)
       return nil if conditions.empty?
       str = conditions.map { |condition|

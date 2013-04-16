@@ -323,16 +323,18 @@ module MotionModel
           when :has_many, :has_one
             associated_class = col.classify
             #relation_columns[col.name] = col
+            _scope = associated_class
+            _scope = _scope.where(col.options[:conditions]) if col.options[:conditions]
             if col.options[:polymorphic]
-              scope = -> { id.nil? ? associated_class.limit(0) : associated_class.
+              scope = -> { id.nil? ? _scope.limit(0) : _scope.
                   where("#{col.options[:as]}_type" => self.class.name, "#{col.options[:as]}_id" => id) }
             elsif col.options[:through]
-              scope = -> { id.nil? ? associated_class.limit(0) : associated_class.scoped.
+              scope = -> { id.nil? ? _scope.limit(0) : _scope.scoped.
                   joins(col.options[:through] => self.class.name.underscore.to_sym).
                   where({col.options[:through] => col.through_class.foreign_key(self.class)} => id)}
             else
-              scope = -> { id.nil? ? associated_class.limit(0) : associated_class.
-                  where(associated_class.foreign_key(self.class) => id) }
+              foreign_key = associated_class.foreign_key(self.class)
+              scope = -> { id.nil? ? _scope.limit(0) : _scope.where(foreign_key => id) }
             end
             if col.type == :has_one
               InstanceRelation.new(self, col, associated_class, scope, instance_or_collection)
