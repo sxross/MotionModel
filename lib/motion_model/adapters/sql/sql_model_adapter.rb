@@ -233,8 +233,10 @@ module MotionModel
               foreign_key = "#{col.options[:as]}_id"
               foreign_type = "#{col.options[:as]}_type"
               associate.attributes = {foreign_type => self.class.name} unless associate.send(foreign_type)
+            elsif col.options[:foreign_key]
+              foreign_key = col.options[:foreign_key]
             else
-              foreign_key = associate.class.foreign_key(self.class)
+              foreign_key = "#{col.name}_id"
             end
             associate.attributes = {foreign_key => id} unless associate.send(foreign_key)
             next unless associate.dirty?
