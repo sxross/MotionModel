@@ -140,8 +140,12 @@ module MotionModel
       @loaded ? @collection : []
     end
 
-    def push(instance)
-      collection.send(:push, init_associate(instance))
+    def push(*instances)
+      instances.each do |instance|
+        associate = init_associate(instance)
+        collection.send(:push, associate) unless collection.include?(associate)
+      end
+      self
     end
 
     def reject!(&block)

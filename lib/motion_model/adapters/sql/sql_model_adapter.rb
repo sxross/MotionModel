@@ -267,7 +267,12 @@ module MotionModel
       # TODO check other relations that are :through this one, and rebuild them as well
       def rebuild_relation_for(col, instance_or_collection) # nodoc
         # Called from :belongs_to side, which won't know if this is :has_one or :has_many
-        instance_or_collection = Array(instance_or_collection) if col.type == :has_many && !instance_or_collection.nil?
+        if col.type == :has_many && !instance_or_collection.nil?
+          # Called via a :belongs_to relationship.
+          # Preserve any items already in the collection
+          instance_or_collection = relation_for(col).push(*Array(instance_or_collection)).loaded
+        end
+
         relation_for(col, instance_or_collection, reset: true)
 
         # Rebuild any relations that are :through this one
