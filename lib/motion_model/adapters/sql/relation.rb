@@ -73,7 +73,8 @@ module MotionModel
 
     def init_associate(instance, &after_init)
       if @column.options[:polymorphic]
-        raise 'Polymorphic associate must be of associated class' unless instance.class == @associated_class
+        raise "Polymorphic associate class #{instance.class} must be associated class #{@associated_class}" unless
+            instance.class == @associated_class
         instance.send("#{@column.options[:as]}_type=", @owner.class.name)
         instance.send("#{@column.options[:as]}_id=", @owner.id)
       elsif @column.options[:through]
