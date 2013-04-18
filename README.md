@@ -97,6 +97,7 @@ You can define your models and their schemas in Ruby. For example:
 ```ruby
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
 
   columns :name        => :string,
           :description => :string,
@@ -117,6 +118,7 @@ Models support default values, so if you specify your model like this, you get d
 ```ruby
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
 
   columns :name     => :string,
           :due_date => {:type => :date, :default => '2012-09-15'}
@@ -128,6 +130,7 @@ You can also include the `Validatable` module to get field validation. For examp
 ```ruby
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Validatable
 
   columns :name        => :string,
@@ -188,6 +191,7 @@ To use validations in your model, declare your model as follows:
 ```ruby
 class MyValidatableModel
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   include MotionModel::Validatable
 
   # All other model-y stuff here
@@ -317,12 +321,14 @@ Using MotionModel
   ```ruby
   class Task
     include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
     columns     :name => :string
     has_many    :assignees
   end
 
   class Assignee
     include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
     columns     :assignee_name => :string
     belongs_to  :task
   end
@@ -361,6 +367,7 @@ The key to how the `destroy` variants work in how the relation is declared. You 
 ```ruby
   class Task
     include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
     columns     :name => :string
     has_many    :assignees
   end
@@ -497,12 +504,14 @@ end
 ```ruby
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   has_many :assignees
   # etc
 end
 
 class Assignee
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
   belongs_to :task
   # etc
 end
