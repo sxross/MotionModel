@@ -638,8 +638,12 @@ module MotionModel
 
     def get_belongs_to_attr(col)
       return @data[col.name] if @data[col.name]
+      owner_id = nil
+      owner_class = nil
       if col.polymorphic
-        if (owner_class_name = send("#{name}_type"))
+        owner_class_name, owner_id = get_polymorphic_attr(col.name)
+        owner_class_name = String(owner_class_name) # RubyMotion issue, String#classify might fail otherwise
+        if owner_class_name
           owner_class = Kernel::deep_const_get(owner_class_name.classify)
           owner_id = _get_attr(col.foreign_key)
         end
@@ -652,22 +656,30 @@ module MotionModel
 
     # Associate the owner and rebuild the inverse assignment
     def set_belongs_to_attr_and_rebuild_inverse(col, owner)
+      set_belongs_to_attr(col, owner)
       rebuild_relation_for(col, owner)
-      send("set_#{col.name}", owner)
-      if col.polymorphic
-        foreign_column_name = owner.column_as_name(col.as || col.name)
-      else
-        foreign_column_name = self.class.name.underscore.to_sym
+      if owner
+        # Note: the following differs from #foreign_column_name
+        if col.polymorphic
+          column_name = owner.column_as_name(col.as || col.name)
+        elsif col.inverse_of
+          column_name = col.inverse_of
+        else
+          column_name = self.class.name.underscore.to_sym
+        end
+        owner.rebuild_relation_for_name(column_name, self, true)
       end
-      owner.rebuild_relation_for(foreign_column_name, self) if owner
+    end
+
+    def set_belongs_to_attr_name(name, owner)
+      set_belongs_to_attr(column_named(name), owner)
     end
 
     # Associate the owner but without rebuilding the inverse assignment
     def set_belongs_to_attr(col, owner)
       _set_attr(col.name, owner)
       if col.polymorphic
-        send("#{name}_type=", owner.class.name)
-        send("#{name}_id=", owner.id)
+        set_polymorphic_attr(col.name, owner)
       else
         owner_id_name = col.foreign_key
         _set_attr(owner_id_name, owner ? owner.id : nil)
@@ -676,6 +688,7 @@ module MotionModel
 
     def set_has_many_attr(col, collection)
       rebuild_relation_for(col, collection)
+      _foreign_column_name = foreign_column_name(col)
       collection.each do |instance|
         if col.polymorphic
           foreign_column_name = col.as || col.name
@@ -683,20 +696,35 @@ module MotionModel
           foreign_column_name = self.class.name.underscore.to_sym
         end
         instance.send("set_#{foreign_column_name}", self)
-        instance.rebuild_relation_for(foreign_column_name, self)
+        instance.set_belongs_to_attr_name(_foreign_column_name, self)
+        instance.rebuild_relation_for_name(_foreign_column_name, self)
       end
     end
 
     def set_has_one_attr(col, instance)
       rebuild_relation_for(col, instance)
       if instance
-        if col.polymorphic
-          foreign_column_name = col.as || col.name
-        else
-          foreign_column_name = self.class.name.underscore.to_sym
-        end
-        instance.rebuild_relation_for(foreign_column_name, self)
+        instance.rebuild_relation_for_name(foreign_column_name(col), self)
       end
+    end
+
+    def get_polymorphic_attr(column_name)
+      col = column_named(column_name)
+      owner_class_name = nil
+      id                  = _get_attr(col.foreign_key)
+      unless id.nil?
+        owner_class_name  = _get_attr(col.foreign_type)
+        owner_class_name  = String(owner_class_name) # RubyMotion issue, String#classify might fail otherwise
+        owner_class       = Kernel::deep_const_get(owner_class_name.classify)
+      end
+      [owner_class, id]
+    end
+
+    def set_polymorphic_attr(column_name, instance)
+      col = column_named(column_name)
+      _set_attr(col.foreign_type,  instance.class.name)
+      _set_attr(col.foreign_key,   instance.id)
+      instance
     end
 
     def foreign_column_name(col)

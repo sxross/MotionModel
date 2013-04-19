@@ -133,6 +133,9 @@ module MotionModel
     end
     alias_method :count, :length
 
+    def rebuild_relation_for_name(column_name, instance_or_collection, try_plural = false) # nodoc
+    end
+
     def rebuild_relation_for(col, instance_or_collection) # nodoc
     end
 
