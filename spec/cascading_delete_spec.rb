@@ -35,7 +35,7 @@ class Employee
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
   columns       :name
-  belongs_to    :CascadedAssignee
+  belongs_to    :cascaded_assignee
 end
 
 describe "cascading deletes" do

@@ -1,31 +1,51 @@
 module MotionModel
   module Model
     class Column
-      attr_accessor :name
-      attr_accessor :type
-      attr_accessor :default
-      attr_accessor :dependent
+      attr_reader :name
+      attr_reader :owner
+      attr_reader :type
+      attr_reader :options
 
-      def initialize(name = nil, type = nil, options = {})
+      OPTION_ATTRS = [:as, :conditions, :default, :dependent, :foreign_key, :inverse_of, :joined_class_name,
+          :polymorphic, :symbolize, :through]
+
+      OPTION_ATTRS.each do |key|
+        define_method(key) { @options[key] }
+      end
+
+      def initialize(owner, name = nil, type = nil, options = {})
+        raise RuntimeError.new "columns need a type declared." if type.nil?
+        @owner = owner
         @name = name
         @type = type
-        raise RuntimeError.new "columns need a type declared." if type.nil?
-        @default = options.delete :default
-        @dependent = options.delete :dependent
+        @klass = options.delete(:class)
         @options = options
       end
 
-      def options
-        @options
+      def class_name
+        joined_class_name || name
       end
 
-      def class_name
-        @options[:joined_class_name] || @name
+      def primary_key
+        :id
+      end
+
+      def foreign_name
+        as || name
+      end
+
+      # Polymorphism
+      def foreign_type
+        "#{foreign_name}_type".to_sym
+      end
+
+      def foreign_key
+        @options[:foreign_key] || "#{foreign_name.to_s.singularize}_id".to_sym
       end
 
       def classify
-        if @options[:class]
-          @options[:class]
+        if @klass
+          @klass
         else
           case @type
           when :belongs_to
@@ -43,8 +63,33 @@ module MotionModel
       end
 
       def through_class
-        Kernel::const_get(@options[:through].to_s.classify)
+        Kernel::const_get(through.to_s.classify)
       end
+
+      def inverse_foreign_key
+        inverse_column.foreign_key
+      end
+
+      def inverse_name
+        if inverse_of
+          inverse_of
+        elsif polymorphic && as
+          as
+        elsif type == :belongs_to
+          # Check for a singular and a plural relationship
+          name = owner.name.singularize.underscore
+          col = classify.column_named(name.to_sym)
+          col ||= classify.column_named(name.pluralize.to_sym)
+          col
+        else
+          owner.name.singularize.underscore.to_sym
+        end
+      end
+
+      def inverse_column
+        classify.column_named(inverse_name)
+      end
+
     end
   end
 end
