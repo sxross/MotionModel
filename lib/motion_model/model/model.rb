@@ -150,13 +150,13 @@ module MotionModel
       end
 
       # Returns true if a column exists on this model, otherwise false.
-      def column?(column)
-        !column_named(column).nil?
+      def column?(column_name)
+        !column_named(column_name).nil?
       end
 
       # Returns type of this column.
-      def column_type(column)
-        column_named(column).type || nil
+      def column_type(column_name)
+        column_named(column_name).type || nil
       end
 
       def has_many_columns
@@ -176,8 +176,8 @@ module MotionModel
       end
 
       # returns default value for this column or nil.
-      def default(column)
-        col = column_named(column)
+      def default(column_name)
+        col = column_named(column_name)
         col.nil? ? nil : col.default
       end
 
@@ -451,13 +451,13 @@ module MotionModel
       end
 
       # All relation columns, including type and id columns for polymorphic associations
-      def relation_column?(column) #nodoc
-        [:belongs_to, :belongs_to_id, :belongs_to_type, :has_many, :has_one].include? column_named(column).type
+      def relation_column?(column_name) #nodoc
+        [:belongs_to, :belongs_to_id, :belongs_to_type, :has_many, :has_one].include? column_named(column_name).type
       end
 
       # Polymorphic association columns that are not stored in DB
-      def virtual_polymorphic_relation_column?(column) #nodoc
-        [:belongs_to, :has_many, :has_one].include? column_named(column).type
+      def virtual_polymorphic_relation_column?(column_name) #nodoc
+        [:belongs_to, :has_many, :has_one].include? column_named(column_name).type
       end
 
       def has_relation?(col) #nodoc
@@ -694,8 +694,8 @@ module MotionModel
       @dirty = true
     end
 
-    def column_as_name(name) #nodoc
-      self.class.send(:column_as, name.to_sym).try(:name)
+    def column_as_name(column_name) #nodoc
+      self.class.send(:column_as, column_name.to_sym).try(:name)
     end
 
     private

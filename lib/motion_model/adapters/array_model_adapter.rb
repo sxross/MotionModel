@@ -133,7 +133,7 @@ module MotionModel
     end
     alias_method :count, :length
 
-    def rebuild_relation_for(name, instance_or_collection) # nodoc
+    def rebuild_relation_for(col, instance_or_collection) # nodoc
     end
 
     private
@@ -148,7 +148,6 @@ module MotionModel
     end
 
     def relation_for(col) # nodoc
-      col = column_named(col)
       related_klass = col.classify
 
       case col.type
