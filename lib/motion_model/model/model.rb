@@ -159,6 +159,11 @@ module MotionModel
         column_named(column_name).type || nil
       end
 
+      # Returns a column denoted by +name+
+      def column_named(name) #nodoc
+        _column_hashes[name.to_sym]
+      end
+
       def has_many_columns
         _column_hashes.select { |name, col| col.type == :has_many}
       end
@@ -440,11 +445,6 @@ module MotionModel
           end
       end
 
-      # Returns a column denoted by +name+
-      def column_named(name) #nodoc
-        _column_hashes[name.to_sym]
-      end
-
       # Returns the column that has the name as its :as option
       def column_as(name) #nodoc
         _column_hashes.values.find{ |c| c.options[:as] == name }
@@ -698,6 +698,10 @@ module MotionModel
       self.class.send(:column_as, column_name.to_sym).try(:name)
     end
 
+    def column_named(name) #nodoc
+      self.class.send(:column_named, name)
+    end
+
     private
 
     def _column_hashes
@@ -718,10 +722,6 @@ module MotionModel
 
     def initialize_data_columns(column, value) #nodoc
       self.attributes = {column => value || self.class.default(column)}
-    end
-
-    def column_named(name) #nodoc
-      self.class.send(:column_named, name.to_sym)
     end
 
     def column_as(name) #nodoc
