@@ -184,6 +184,11 @@ module MotionModel
       @loaded = true if instance
     end
 
+    # TODO dynamically define i.e. rails: comment.build_post(attrs)
+    def build(attrs = {})
+      @instance = build_from_instance(@associated_class.new(attrs))
+    end
+
     def instance
       maybe_reload
       @instance

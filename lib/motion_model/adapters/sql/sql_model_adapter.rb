@@ -222,7 +222,7 @@ module MotionModel
       def save_loaded_has_many_has_one_relations(options)
         cols = self.class.has_many_columns.merge(self.class.has_one_columns)
         cols.each do |name, col|
-          associates = self.send("loaded_#{name}")
+          associates = Array(self.send("loaded_#{name}"))
           associates.each do |associate|
             next if col.options[:through]
 
@@ -331,7 +331,11 @@ module MotionModel
               scope = -> { id.nil? ? associated_class.limit(0) : associated_class.
                   where(associated_class.foreign_key(self.class) => id) }
             end
-            CollectionRelation.new(self, col, associated_class, scope, instance_or_collection)
+            if col.type == :has_one
+              InstanceRelation.new(self, col, associated_class, scope, instance_or_collection)
+            else
+              CollectionRelation.new(self, col, associated_class, scope, instance_or_collection)
+            end
           else
             nil
           end
