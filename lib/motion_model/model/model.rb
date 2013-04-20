@@ -310,7 +310,6 @@ module MotionModel
       def define_belongs_to_methods(name) #nodoc
         col = column_named(name)
         define_method(name)               { get_belongs_to_attr(col) }
-        define_method("#{name}_relation") { relation_for(col) }
         define_method("#{name}=")         { |owner| set_belongs_to_attr_and_rebuild_inverse(col, owner) }
         define_method("set_#{name}")      { |owner| set_belongs_to_attr(col, owner) }
 
@@ -326,15 +325,13 @@ module MotionModel
 
       def define_has_many_methods(name) #nodoc
         col = column_named(name)
-        define_method("#{name}_relation") { relation_for(col) }
-        define_method(name)               { relation_for(col).to_a }
+        define_method(name)               { get_has_many_attr(col) }
         define_method("#{name}=")         { |collection| set_has_many_attr(col, collection) }
       end
 
       def define_has_one_methods(name) #nodoc
         col = column_named(name)
-        define_method("#{name}_relation") { relation_for(col) }
-        define_method(name)               { relation_for(col).instance }
+        define_method(name)               { get_has_one_attr(col) }
         define_method("#{name}=")         { |instance| set_has_one_attr(col, instance) }
       end
 
@@ -638,21 +635,15 @@ module MotionModel
     end
 
     def get_belongs_to_attr(col)
-      return @data[col.name] if @data[col.name]
-      owner_id = nil
-      owner_class = nil
-      if col.polymorphic
-        owner_class_name, owner_id = get_polymorphic_attr(col.name)
-        owner_class_name = String(owner_class_name) # RubyMotion issue, String#classify might fail otherwise
-        if owner_class_name
-          owner_class = Kernel::deep_const_get(owner_class_name.classify)
-          owner_id = _get_attr(col.foreign_key)
-        end
-      else
-        owner_class = col.classify
-        owner_id = _get_attr(col.foreign_key)
-      end
-      owner_id.nil? ? nil : owner_class.find_by_id(owner_id)
+      belongs_to_relation_for(col)
+    end
+
+    def get_has_many_attr(col)
+      has_many_has_one_relation_for(col)
+    end
+
+    def get_has_one_attr(col)
+      has_many_has_one_relation_for(col)
     end
 
     # Associate the owner and rebuild the inverse assignment
