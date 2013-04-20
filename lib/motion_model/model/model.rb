@@ -130,10 +130,6 @@ module MotionModel
         add_field relation, :has_one, options        # Relation must be plural
       end
 
-      def generate_belongs_to_id(relation)
-        (relation.to_s.singularize.underscore + '_id').to_sym
-      end
-
       # Use at class level, as follows
       #
       #   class Assignee
@@ -307,133 +303,43 @@ module MotionModel
       end
 
       def define_accessor_methods(name, type, options = {}) #nodoc
-        unless alloc.respond_to?(name.to_sym)
-          define_method(name.to_sym) {
-            return nil if @data[name].nil?
-            if options[:symbolize]
-              @data[name].to_sym
-            else
-              @data[name]
-            end
-          }
-        end
-        define_method("#{name}=".to_sym) { |value|
-          old_value = @data[name]
-          new_value = cast_to_type(name, value)
-          if new_value != old_value
-            @data[name] = new_value
-            @dirty = true
-          end
-        }
+        define_method(name.to_sym)        { _get_attr(name) } unless alloc.respond_to?(name)
+        define_method("#{name}=".to_sym)  { |v| _set_attr(name, v) }
       end
 
       def define_belongs_to_methods(name) #nodoc
         col = column_named(name)
-
-        define_method(name) {
-          return @data[name] if @data[name]
-          if col.options[:polymorphic]
-            if (owner_class_name = send("#{name}_type"))
-              owner_class = Kernel::deep_const_get(owner_class_name.classify)
-              parent_id = send("#{name}_id")
-            end
-          else
-            owner_class = col.classify
-            parent_id = send(self.class.generate_belongs_to_id(col.name))
-          end
-          parent_id.nil? ? nil : owner_class.find_by_id(parent_id)
-        }
-
-        define_method("#{name}_relation") {
-          relation_for(name)
-        }
-
-        # Associate the parent and delegate the inverse assignment
-        define_method("#{name}=") { |parent|
-          rebuild_relation_for(name, parent)
-          send("set_#{name}", parent)
-          if col.options[:polymorphic]
-            foreign_column_name = parent.column_as_name(col.options[:as] || col.name)
-          else
-            foreign_column_name = self.class.name.underscore.to_sym
-          end
-          parent.rebuild_relation_for(foreign_column_name, self) if parent
-        }
-
-        # Associate the parent but without delegating the inverse assignment
-        define_method("set_#{name}") { |parent|
-          @data[name] = parent
-          if col.options[:polymorphic]
-            send("#{name}_type=", parent.class.name)
-            send("#{name}_id=", parent.id)
-          else
-            parent_id_name = self.class.generate_belongs_to_id(col.name)
-            send("#{parent_id_name}=", parent ? parent.id : nil)
-          end
-        }
+        define_method(name)               { get_belongs_to_attr(col) }
+        define_method("#{name}_relation") { relation_for(col) }
+        define_method("#{name}=")         { |owner| set_belongs_to_attr_and_rebuild_inverse(col, owner) }
+        define_method("set_#{name}")      { |owner| set_belongs_to_attr(col, owner) }
 
         # TODO also define #{name}+id= methods....
 
-        if col.options[:polymorphic]
-          add_field "#{name}_type", :belongs_to_type
-          add_field "#{name}_id", :belongs_to_id
+        if col.polymorphic
+          add_field col.foreign_type,     :belongs_to_type
+          add_field col.foreign_key,      :belongs_to_id
         else
-          add_field generate_belongs_to_id(name), :belongs_to_id    # a relation is singular.
+          add_field col.foreign_key,      :belongs_to_id    # a relation is singular.
         end
       end
 
       def define_has_many_methods(name) #nodoc
         col = column_named(name)
-
-        define_method("#{name}_relation") {
-          relation_for(name)
-        }
-
-        define_method(name) {
-          send("#{name}_relation").to_a
-        }
-
-        define_method("#{name}=") do |collection|
-          rebuild_relation_for(name, collection)
-          collection.each do |instance|
-            if col.options[:polymorphic]
-              foreign_column_name = col.options[:as] || col.name
-            else
-              foreign_column_name = self.class.name.underscore.to_sym
-            end
-            instance.send("set_#{foreign_column_name}", self)
-            instance.rebuild_relation_for(foreign_column_name, self)
-          end
-        end
-
+        define_method("#{name}_relation") { relation_for(col) }
+        define_method(name)               { relation_for(col).to_a }
+        define_method("#{name}=")         { |collection| set_has_many_attr(col, collection) }
       end
 
       def define_has_one_methods(name) #nodoc
         col = column_named(name)
-
-        define_method("#{name}_relation") {
-          relation_for(name)
-        }
-
-        define_method(name) {
-          send("#{name}_relation").instance
-        }
-
-        define_method("#{name}=") do |instance|
-          relation_for(name).instance = instance
-          if instance
-            if col.options[:polymorphic]
-              foreign_column_name = col.options[:as] || col.name
-            else
-              foreign_column_name = self.class.name.underscore.to_sym
-            end
-            instance.rebuild_relation_for(foreign_column_name, self)
-          end
-        end
+        define_method("#{name}_relation") { relation_for(col) }
+        define_method(name)               { relation_for(col).instance }
+        define_method("#{name}=")         { |instance| set_has_one_attr(col, instance) }
       end
 
       def add_field(name, type, options = {:default => nil}) #nodoc
-        col = Column.new(name, type, options)
+        col = Column.new(self, name, type, options)
 
         _column_hashes[col.name.to_sym] = col
 
@@ -447,7 +353,8 @@ module MotionModel
 
       # Returns the column that has the name as its :as option
       def column_as(name) #nodoc
-        _column_hashes.values.find{ |c| c.options[:as] == name }
+        name = name.to_sym
+        _column_hashes.values.find{ |c| c.as == name }
       end
 
       # All relation columns, including type and id columns for polymorphic associations
@@ -533,6 +440,7 @@ module MotionModel
     end
 
     def attributes=(attrs)
+      # Use set_attr to handle both attrs and virtual ones (via method_missing)
       attrs.each { |k, v| send("#{k}=", v) }
     end
 
@@ -555,7 +463,7 @@ module MotionModel
     # Default to_s implementation returns a list of columns and values
     # separated by newlines.
     def to_s
-      columns.each{|c| "#{c}: #{self.send(c)}\n"}
+      columns.each{|c| "#{c}: #{get_attr(c)}\n"}
     end
 
     def save!(options = {})
@@ -646,7 +554,7 @@ module MotionModel
         options[:omit_model_identifiers] ||= {}
         options[:omit_model_identifiers][model_identifier] = self
         self.class.association_columns.each do |name, col|
-          delete_candidates = self.send(name)
+          delete_candidates = get_attr(name)
           delete_candidates = delete_candidates.to_a if delete_candidates.is_a?(AbstractRelation)
           Array(delete_candidates).each do |candidate|
             next if options[:omit_model_identifiers][candidate.model_identifier]
@@ -701,6 +609,135 @@ module MotionModel
       self.class.send(:column_as, column_name.to_sym).try(:name)
     end
 
+    def get_attr(name)
+      send(name)
+    end
+
+    def _get_attr(name)
+      name = name.to_sym
+      return nil if @data[name].nil?
+      if column_named(name).symbolize
+        @data[name].to_sym
+      else
+        @data[name]
+      end
+    end
+
+    def set_attr(name, value)
+      send("#{name}=", value)
+    end
+
+    def _set_attr(name, value)
+      name = name.to_sym
+      old_value = @data[name]
+      new_value = relation_column?(name) ? value : cast_to_type(name, value)
+      if new_value != old_value
+        @data[name] = new_value
+        @dirty = true
+      end
+    end
+
+    def get_belongs_to_attr(col)
+      return @data[col.name] if @data[col.name]
+      owner_id = nil
+      owner_class = nil
+      if col.polymorphic
+        owner_class_name, owner_id = get_polymorphic_attr(col.name)
+        owner_class_name = String(owner_class_name) # RubyMotion issue, String#classify might fail otherwise
+        if owner_class_name
+          owner_class = Kernel::deep_const_get(owner_class_name.classify)
+          owner_id = _get_attr(col.foreign_key)
+        end
+      else
+        owner_class = col.classify
+        owner_id = _get_attr(col.foreign_key)
+      end
+      owner_id.nil? ? nil : owner_class.find_by_id(owner_id)
+    end
+
+    # Associate the owner and rebuild the inverse assignment
+    def set_belongs_to_attr_and_rebuild_inverse(col, owner)
+      set_belongs_to_attr(col, owner)
+      rebuild_relation_for(col, owner)
+      if owner
+        # Note: the following differs from #foreign_column_name
+        if col.polymorphic
+          column_name = owner.column_as_name(col.as || col.name)
+        elsif col.inverse_of
+          column_name = col.inverse_of
+        else
+          column_name = self.class.name.underscore.to_sym
+        end
+        owner.rebuild_relation_for_name(column_name, self, true)
+      end
+    end
+
+    def set_belongs_to_attr_name(name, owner)
+      set_belongs_to_attr(column_named(name), owner)
+    end
+
+    # Associate the owner but without rebuilding the inverse assignment
+    def set_belongs_to_attr(col, owner)
+      _set_attr(col.name, owner)
+      if col.polymorphic
+        set_polymorphic_attr(col.name, owner)
+      else
+        owner_id_name = col.foreign_key
+        _set_attr(owner_id_name, owner ? owner.id : nil)
+      end
+    end
+
+    def set_has_many_attr(col, collection)
+      rebuild_relation_for(col, collection)
+      _foreign_column_name = foreign_column_name(col)
+      collection.each do |instance|
+        if col.polymorphic
+          foreign_column_name = col.as || col.name
+        else
+          foreign_column_name = self.class.name.underscore.to_sym
+        end
+        instance.send("set_#{foreign_column_name}", self)
+        instance.set_belongs_to_attr_name(_foreign_column_name, self)
+        instance.rebuild_relation_for_name(_foreign_column_name, self)
+      end
+    end
+
+    def set_has_one_attr(col, instance)
+      rebuild_relation_for(col, instance)
+      if instance
+        instance.rebuild_relation_for_name(foreign_column_name(col), self)
+      end
+    end
+
+    def get_polymorphic_attr(column_name)
+      col = column_named(column_name)
+      owner_class_name = nil
+      id                  = _get_attr(col.foreign_key)
+      unless id.nil?
+        owner_class_name  = _get_attr(col.foreign_type)
+        owner_class_name  = String(owner_class_name) # RubyMotion issue, String#classify might fail otherwise
+        owner_class       = Kernel::deep_const_get(owner_class_name.classify)
+      end
+      [owner_class, id]
+    end
+
+    def set_polymorphic_attr(column_name, instance)
+      col = column_named(column_name)
+      _set_attr(col.foreign_type,  instance.class.name)
+      _set_attr(col.foreign_key,   instance.id)
+      instance
+    end
+
+    def foreign_column_name(col)
+      if col.polymorphic
+        col.as || col.name
+      elsif col.foreign_key
+        col.foreign_key
+      else
+        self.class.name.underscore.to_sym
+      end
+    end
+
     def column_named(name) #nodoc
       self.class.send(:column_named, name)
     end
@@ -731,10 +768,6 @@ module MotionModel
       self.class.send(:column_as, name.to_sym)
     end
 
-    def generate_belongs_to_id(class_or_column) # nodoc
-      self.class.generate_belongs_to_id(self.class)
-    end
-
     def issue_notification(info) #nodoc
       self.class.send(:issue_notification, self, info)
     end
@@ -746,6 +779,7 @@ module MotionModel
       else
         return @data[sym] if @data && @data.has_key?(sym)
       end
+      super
       begin
         r = super
       rescue NoMethodError => exc

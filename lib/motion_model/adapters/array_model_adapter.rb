@@ -133,6 +133,9 @@ module MotionModel
     end
     alias_method :count, :length
 
+    def rebuild_relation_for_name(column_name, instance_or_collection, try_plural = false) # nodoc
+    end
+
     def rebuild_relation_for(col, instance_or_collection) # nodoc
     end
 
@@ -154,7 +157,7 @@ module MotionModel
         when :belongs_to
           related_klass.find(@data[:id])
         when :has_many
-          related_klass.find(generate_belongs_to_id(self.class)).belongs_to(self, related_klass).eq(@data[:id])
+          related_klass.find(col.inverse_column.foreign_key).belongs_to(self, related_klass).eq(@data[:id])
         else
           nil
       end
