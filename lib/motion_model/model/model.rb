@@ -647,6 +647,7 @@ module MotionModel
         options[:omit_model_identifiers][model_identifier] = self
         self.class.association_columns.each do |name, col|
           delete_candidates = self.send(name)
+          delete_candidates = delete_candidates.to_a if delete_candidates.is_a?(AbstractRelation)
           Array(delete_candidates).each do |candidate|
             next if options[:omit_model_identifiers][candidate.model_identifier]
             if col.dependent == :destroy

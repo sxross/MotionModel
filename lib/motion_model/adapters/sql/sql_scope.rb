@@ -1,0 +1,267 @@
+module MotionModel
+  class SQLScope
+
+    def initialize(model_class, db_adapter)
+      @model_class = model_class
+      @db_adapter = db_adapter
+      @conditions = []
+      @loaded = false
+    end
+
+    def loaded?
+      !!@loaded
+    end
+
+    def table_name
+      @model_class.table_name
+    end
+
+    def select(*args)
+      dup.instance_eval do
+        options = args.last.is_a?(Hash) ? args.pop : {}
+        table_name = options[:table_name] || self.table_name
+        if options[:add]
+          select = options[:add]
+        else
+          select = args.first
+          @_selects = []
+        end
+        dup.instance_eval do
+          if select.is_a?(String)
+            _selects.push(select)
+          else
+            foreign_table = table_name != self.table_name
+            _selects.push(select.map { |c|
+              str = %Q["#{table_name}".#{c.to_s}]
+              str << %Q[ AS "#{table_name}.#{c.to_s}"] if foreign_table
+              str
+            })
+          end
+          self
+        end
+      end
+    end
+
+    #def self.normalize_where_args(args)
+    #end
+
+    def where(*args)
+      dup.instance_eval do
+        args.each do |clause|
+          if clause.is_a?(String)
+            @conditions << clause
+          else
+            clause.each do |key, value|
+              # where(column => value)
+              # where(column => {between: (0..1)})
+              # where(associated_table => {associated_table_column = value}) (*** not yet supported)
+              # where({associated_table => associated_table_column} => value})
+              if key.is_a?(Hash)
+                table_name, key = key.to_a.first
+              else
+                table_name = self.table_name
+              end
+
+              if value.is_a?(Hash)
+                # where.(column => {not_eq: 'value'})
+                operator, value = value.to_a.first
+                @conditions << SQLCondition.new(table_name, key.to_s, value, operator)
+                #options = value
+                #@conditions << SQLCondition.new(table_name, key.to_s, nil, options)
+              else
+                value = value
+                @conditions << SQLCondition.new(table_name, key.to_s, value)
+              end
+            end
+          end
+        end
+        self
+      end
+    end
+
+    def self.normalize_join_args(args)
+      if args.is_a?(Symbol)
+        join_data = [args, {}, nil]
+      elsif args.is_a?(Hash)
+        data = args.to_a.first
+        if data.first.is_a?(Array)
+          join_name = data.first.first
+          join_options = data.first.last
+          nested_join_args = normalize_join_args(data.last)
+          nested_join_args[1][:joining_class] = join_name
+          join_data = [join_name, join_options, nested_join_args]
+        elsif data.last.is_a?(Symbol)
+          join_name = data.first
+          join_options = {}
+          nested_join_args = normalize_join_args(data.last)
+          nested_join_args[1][:joining_class] = data.first
+          join_data = [join_name, join_options, nested_join_args]
+        else
+          join_data = [data.first, data.last, nil]
+        end
+      else
+        join_data = [args[0], args[1], args[2]]
+      end
+      join_data
+    end
+
+    def joins(*args)
+      dup.instance_eval do
+        args.each do |join_data|
+          if join_data.is_a?(String)
+            _joins << join_data
+          else
+            join_name, join_options, nested_join_args = self.class.normalize_join_args(join_data)
+            if nested_join_args
+              nested_join_args
+            end
+            if join_options[:joining_class]
+              joining_class = Kernel::const_get(join_options[:joining_class].to_s.classify)
+            else
+              joining_class = @model_class
+            end
+            join_column = joining_class.send(:column_named, join_name)
+            _joins << Join.new(join_column, joining_class, join_name, join_options)
+
+            joins(nested_join_args) if nested_join_args
+          end
+        end
+        self
+      end
+    end
+
+    def order(options)
+      dup.instance_eval do
+        @orders ||= []
+        unless options.is_a?(Hash)
+          options = Hash[Array(options).map { |c| [c, :asc] }]
+        end
+        options.each do |spec, direction|
+          if spec.is_a?(String)
+            @orders << spec
+          else
+            @orders << %Q["#{table_name}"."#{spec.to_s}" #{direction == :desc ? 'DESC' : 'ASC'}]
+          end
+        end
+        self
+      end
+    end
+
+    def group(column)
+      dup.instance_eval do
+        @group = %Q["#{table_name}"."#{column.to_s}"]
+        self
+      end
+    end
+
+    def limit(limit)
+      dup.instance_eval do
+        @limit = limit
+        self
+      end
+    end
+
+    def all
+      dup
+    end
+
+    def to_a
+      reload unless loaded?
+      @collection
+    end
+
+    def reload
+      @collection = do_select
+      @loaded = true
+      @collection
+    end
+
+    def do_select
+      @model_class.nil? ? [] : @model_class.do_select(self)
+    end
+
+    def first
+      limit(1).all.to_a.first
+    end
+
+    def last
+      id = select(%Q[MAX("#{table_name}"."id") AS id]).to_a.first.id
+      where(id: id).to_a.first
+    end
+
+    def count
+      select('COUNT(*) AS _sql_count').do_select.first.attributes[:_sql_count]
+    end
+
+    def empty?
+      count == 0
+    end
+
+    def delete
+      @model_class.do_delete(self)
+    end
+
+    def to_sql
+      @db_adapter.send("to_#{type.to_s}_sql", self)
+    end
+
+    # For debug and copy/paste, use single quotes
+    def to_sql_sq
+      to_sql.gsub(/"/, "'")
+    end
+
+    def each(*args, &block)
+      to_a.each(*args, &block)
+    end
+
+    def map(*args, &block)
+      to_a.map(*args, &block)
+    end
+
+    def execute
+      @db_adapter.build_sql_context(type, to_sql).execute
+    end
+
+    def select_str
+      _selects.join(', ')
+    end
+
+    def joins_str
+      return nil if _joins.empty?
+      _joins.map{ |j| j.is_a?(String) ? j : j.to_sql_str }.join(' ')
+    end
+
+    def order_str
+      @orders ? "ORDER BY #{@orders.join(', ')}" : nil
+    end
+
+    def group_str
+      @group ? "GROUP BY #{@group}" : nil
+    end
+
+    def limit_str
+      @limit ? %Q[LIMIT #{@limit}] : nil
+    end
+
+    def options_str
+      arr = [SQLCondition.to_sql_str(@conditions), group_str, order_str, limit_str].compact
+      arr.empty? ? nil : arr.join(' ')
+    end
+
+    private
+
+    def _selects
+      @_selects ||= [%Q["#{table_name}".*]]
+    end
+
+    def _joins
+      @_joins ||= []
+    end
+
+    def type
+      @type || :select
+    end
+
+  end
+
+end
