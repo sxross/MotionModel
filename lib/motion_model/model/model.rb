@@ -691,12 +691,6 @@ module MotionModel
       rebuild_relation_for(col, collection)
       _foreign_column_name = foreign_column_name(col)
       collection.each do |instance|
-        if col.polymorphic
-          foreign_column_name = col.as || col.name
-        else
-          foreign_column_name = self.class.name.underscore.to_sym
-        end
-        instance.send("set_#{foreign_column_name}", self)
         instance.set_belongs_to_attr_name(_foreign_column_name, self)
         instance.rebuild_relation_for_name(_foreign_column_name, self)
       end

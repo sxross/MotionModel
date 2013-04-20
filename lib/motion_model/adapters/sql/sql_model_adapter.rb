@@ -118,10 +118,6 @@ module MotionModel
         "#{associated_class.name.to_s.underscore}".to_sym
       end
 
-      def foreign_key(associated_class)
-        "#{associated_class.name.to_s.underscore}_id".to_sym
-      end
-
       def transaction(&block)
         _db_adapter.transaction(&block)
       end
@@ -142,23 +138,17 @@ module MotionModel
 
       def define_belongs_to_methods(name) #nodoc
         super
-        define_method("loaded_#{name}") {
-          @data[name]
-        }
+        define_method("loaded_#{name}")   { get_loaded_attr(name) }
       end
 
       def define_has_many_methods(name) #nodoc
         super
-        define_method("loaded_#{name}") {
-          send("#{name}_relation").loaded
-        }
+        define_method("loaded_#{name}")   { get_loaded_attr(name) }
       end
 
       def define_has_one_methods(name) #nodoc
         super
-        define_method("loaded_#{name}") {
-          send("#{name}_relation").loaded
-        }
+        define_method("loaded_#{name}")   { get_loaded_attr(name) }
       end
 
     end
@@ -208,14 +198,13 @@ module MotionModel
       # No need to load since they then would not be dirty.
       def save_loaded_belongs_to_relations(options)
         self.class.belongs_to_columns.each do |name, col|
-          associate = send("loaded_#{name}")
+          associate = get_loaded_attr(name)
           next if associate.nil? || !associate.dirty?
           associate.save_without_transaction(options) unless options[:omit_object_ids][associate.object_id]
-          if col.options[:polymorphic]
-            self.attributes = {"#{name}_type" => associate.class.name, "#{name}_id" => associate.id}
+          if col.polymorphic
+            set_polymorphic_attr(name, associate)
           else
-            foreign_key = self.class.foreign_key(associate.class)
-            self.attributes = {foreign_key => associate.id} unless self.send(foreign_key)
+            _set_attr(col.foreign_key, associate.id) unless _get_attr(col.foreign_key)
           end
         end
       end
@@ -225,20 +214,16 @@ module MotionModel
       def save_loaded_has_many_has_one_relations(options)
         cols = self.class.has_many_columns.merge(self.class.has_one_columns)
         cols.each do |name, col|
-          associates = Array(self.send("loaded_#{name}"))
+          associates = Array(get_loaded_attr(name))
           associates.each do |associate|
-            next if col.options[:through]
+            next if col.through
 
-            if col.options[:polymorphic]
-              foreign_key = "#{col.options[:as]}_id"
-              foreign_type = "#{col.options[:as]}_type"
-              associate.attributes = {foreign_type => self.class.name} unless associate.send(foreign_type)
-            elsif col.options[:foreign_key]
-              foreign_key = col.options[:foreign_key]
+            if col.polymorphic
+              associate.set_polymorphic_attr(col.as, self) unless
+                  associate.get_polymorphic_attr(col.as)
             else
-              foreign_key = "#{col.name}_id"
+              associate._set_attr(col.foreign_key, id) unless associate._get_attr(col.foreign_key)
             end
-            associate.attributes = {foreign_key => id} unless associate.send(foreign_key)
             next unless associate.dirty?
             associate.save_without_transaction(options) unless options[:omit_object_ids][associate.object_id]
           end unless associates.nil?
@@ -265,6 +250,13 @@ module MotionModel
         end
       end
 
+      # try_plural true when called from the belongs_to side, which won't know if relation is singular or plural
+      def rebuild_relation_for_name(name, instance_or_collection, try_plural = false) # nodoc
+        col = column_named(name)
+        col ||= column_named(name.to_s.pluralize.to_sym) if try_plural
+        rebuild_relation_for(col, instance_or_collection)
+      end
+
       # Rebuild relation, in the event it's cached.
       # TODO check other relations that are :through this one, and rebuild them as well
       def rebuild_relation_for(col, instance_or_collection) # nodoc
@@ -279,12 +271,17 @@ module MotionModel
 
         # Rebuild any relations that are :through this one
         _column_hashes.each do |_name, _column|
-          if _column.options[:through] == col.name
-            rebuild_relation_for(_name, instance_or_collection.map { |i| i.send(_name) })
-          elsif _column.options[:through] == col.name.to_s.pluralize.to_sym
-            rebuild_relation_for(_name, instance_or_collection.map { |i| i.send(_name.to_s.singularize.to_sym) })
+          if _column.through == col.name
+            rebuild_relation_for(_name, instance_or_collection.map { |i| i.get_attr(_name) })
+          elsif _column.through == col.name.to_s.pluralize.to_sym
+            rebuild_relation_for(_name, instance_or_collection.map { |i| i.get_attr(_name.to_s.singularize.to_sym) })
           end
         end
+      end
+
+      def get_loaded_attr(name)
+        col = column_named(name)
+        col.type == :belongs_to? ? get_attr(name) : relation_for(col).loaded
       end
 
       private
@@ -295,7 +292,7 @@ module MotionModel
       # Attributes converted to a hash of db-compatible types
       def _db_typed_attributes
         attrs = {}
-        _db_column_config.each { |k, v| attrs[k] = _db_adapter.to_db_type(_column_hashes[k].type, send(k)) }
+        _db_column_config.each { |k, v| attrs[k] = _db_adapter.to_db_type(column_named(k).type, get_attr(k)) }
         attrs
       end
 
@@ -317,34 +314,38 @@ module MotionModel
         relations[col.name] = nil if options[:reset]
         relations[col.name] ||= begin
           case col.type
+
           when :belongs_to
             instance = instance_or_collection
-            if col.options[:polymorphic]
-              associated_class = instance.class
-              foreign_id = instance.id
+            if col.polymorphic
+              if instance.nil?
+                associated_class = nil
+                foreign_id = nil
+              else
+                associated_class = instance.class
+                foreign_id = instance.id
+              end
             else
               associated_class = col.classify
-              #foreign_id = send(self.class.foreign_key(associated_class))
-              foreign_id = "#{col.name}_id"
-              #relation_columns[col.name] = col
+              foreign_id = _get_attr(col.foreign_key)
             end
             scope = -> { foreign_id.nil? ? associated_class.limit(0) : associated_class.where(id: foreign_id) }
             InstanceRelation.new(self, col, associated_class, scope, instance)
+
           when :has_many, :has_one
             associated_class = col.classify
-            #relation_columns[col.name] = col
             _scope = associated_class
-            _scope = _scope.where(col.options[:conditions]) if col.options[:conditions]
-            if col.options[:polymorphic]
+            _scope = _scope.where(col.conditions) if col.conditions
+            if col.polymorphic
               scope = -> { id.nil? ? _scope.limit(0) : _scope.
-                  where("#{col.options[:as]}_type" => self.class.name, "#{col.options[:as]}_id" => id) }
-            elsif col.options[:through]
+                  where(col.foreign_type => self.class.name, col.foreign_key => id) }
+            elsif col.through
+              through_col = column_named(col.through)
               scope = -> { id.nil? ? _scope.limit(0) : _scope.scoped.
-                  joins(col.options[:through] => self.class.name.underscore.to_sym).
-                  where({col.options[:through] => col.through_class.foreign_key(self.class)} => id)}
+                  joins(col.through).
+                  where({col.through => through_col.inverse_column.foreign_key} => id)}
             else
-              foreign_key = associated_class.foreign_key(self.class)
-              scope = -> { id.nil? ? _scope.limit(0) : _scope.where(foreign_key => id) }
+              scope = -> { id.nil? ? _scope.limit(0) : _scope.where(col.inverse_column.foreign_key => id) }
             end
             if col.type == :has_one
               InstanceRelation.new(self, col, associated_class, scope, instance_or_collection)

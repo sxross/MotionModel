@@ -61,29 +61,26 @@ module MotionModel
     # Build an instance of a :has_many association, the other side of which is a :belongs_to,
     # and add it to the collection
     def build_from_instance(associated_instance)
-      if @column.options[:polymorphic]
-        associated_instance.send("#{@column.options[:as]}_type=", @owner.class.name)
-        associated_instance.send("#{@column.options[:as]}_id=", @owner.id)
+      if @column.polymorphic
+        associated_instance.set_polymorphic_attr(@column.as, @owner)
       else
         # Note: Don't trigger reverse association assignment
-        associated_instance.send("set_#{@owner.class.name.underscore}", @owner)
+        associated_instance.set_belongs_to_attr_name(@owner.class.name.underscore, @owner)
       end
       associated_instance
     end
 
     def init_associate(instance, &after_init)
-      if @column.options[:polymorphic]
+      if @column.polymorphic
         raise "Polymorphic associate class #{instance.class} must be associated class #{@associated_class}" unless
             instance.class == @associated_class
-        instance.send("#{@column.options[:as]}_type=", @owner.class.name)
-        instance.send("#{@column.options[:as]}_id=", @owner.id)
-      elsif @column.options[:through]
+        instance.set_polymorphic_attr(@column.as, @owner)
+      elsif @column.through
         fail 'Unsupported'
         # Not sure this ever needs to be supported... should maybe not initialize associates
         #  via a 'through' association
       else
-        foreign_key = instance.class.foreign_key(@owner.class)
-        instance.send("#{foreign_key}=", @owner.id)
+        instance.set_attr(@column.inverse_foreign_key, @owner.id)
       end
       instance.instance_eval(&after_init) if block_given?
       instance
@@ -217,8 +214,8 @@ module MotionModel
     end
 
     def reload
-      if @column.options[:through]
-        association = @owner.send(@column.options[:through])
+      if @column.through
+        association = @owner.send(@column.through)
         if association.loaded?
           column_name = association.associated_class.foreign_association(associated_class)
           @instance = association.send(column_name)

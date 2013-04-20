@@ -15,15 +15,15 @@ module MotionModel
     end
 
     def joined_table_key
-      if @column.options[:polymorphic]
-        "#{@column.options[:as]}_id"
-      else
-        @column.type == :belongs_to ? 'id' : "#{@joining_class.name.underscore}_id"
-      end
+      @column.type == :belongs_to ? @column.primary_key : @column.inverse_column.foreign_key
+    end
+
+    def joined_table_type
+      @column.foreign_type
     end
 
     def joining_table_key
-      [:has_many, :has_one].include?(@column.type) ? 'id' : "#{joined_class.name.underscore}_id"
+      @column.type == :belongs_to ? @column.inverse_column.foreign_key : @column.inverse_column.primary_key
     end
 
     def joined_class
@@ -41,8 +41,8 @@ module MotionModel
     def build_on_str
       conditions = []
       conditions << %Q["#{joined_table_name}"."#{joined_table_key}" = "#{joining_table_name}"."#{joining_table_key}"]
-      if @column.options[:polymorphic]
-        conditions << %Q["#{joined_table_name}"."#{@column.options[:as]}_type" = "#{@joining_class.name}"]
+      if @column.polymorphic
+        conditions << %Q["#{joined_table_name}"."#{joined_table_type}" = "#{@joining_class.name}"]
       end
       if @options[:conditions]
         conditions += SQLCondition.build_from_clause(joined_table_name, @options[:conditions]).map(&:to_sql_str)
