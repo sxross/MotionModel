@@ -150,17 +150,13 @@ module MotionModel
       increment_next_id(options[:id])
     end
 
-    def relation_for(col) # nodoc
-      related_klass = col.classify
+    def belongs_to_relation_for(col) # nodoc
+      col.classify.find(_get_attr(col.foreign_key))
+    end
 
-      case col.type
-        when :belongs_to
-          related_klass.find(@data[:id])
-        when :has_many
-          related_klass.find(col.inverse_column.foreign_key).belongs_to(self, related_klass).eq(@data[:id])
-        else
-          nil
-      end
+    def has_many_has_one_relation_for(col) # nodoc
+      related_klass = col.classify
+      related_klass.find(col.inverse_column.foreign_key).belongs_to(self, related_klass).eq(_get_attr(:id))
     end
 
     def do_insert(options = {})
