@@ -47,6 +47,12 @@ module MotionModel
     def self.included(base)
       base.extend(PrivateClassMethods)
       base.extend(PublicClassMethods)
+
+      base.instance_eval do
+        unless self.respond_to?(:id)
+          add_field(:id, :integer)
+        end
+      end
     end
 
     module PublicClassMethods
@@ -93,10 +99,6 @@ module MotionModel
           column_from_string_or_sym fields
         else
           raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes -- was #{fields.first}.")
-        end
-
-        unless self.respond_to?(:id)
-          add_field(:id, :integer)
         end
       end
 
