@@ -125,19 +125,11 @@ module MotionModel
       @dirty = @new_record = false
     end
 
-
-
     # Count of objects in the current collection
     def length
       collection.length
     end
     alias_method :count, :length
-
-    def rebuild_relation_for_name(column_name, instance_or_collection, try_plural = false) # nodoc
-    end
-
-    def rebuild_relation_for(col, instance_or_collection) # nodoc
-    end
 
     private
 
@@ -150,11 +142,19 @@ module MotionModel
       increment_next_id(options[:id])
     end
 
-    def belongs_to_relation_for(col) # nodoc
+    def belongs_to_relation(col) # nodoc
       col.classify.find(_get_attr(col.foreign_key))
     end
 
-    def has_many_has_one_relation_for(col) # nodoc
+    def has_many_relation(col) # nodoc
+      _has_many_has_one_relation(col)
+    end
+
+    def has_one_relation(col) # nodoc
+      _has_many_has_one_relation(col)
+    end
+
+    def _has_many_has_one_relation(col) # nodoc
       related_klass = col.classify
       related_klass.find(col.inverse_column.foreign_key).belongs_to(self, related_klass).eq(_get_attr(:id))
     end

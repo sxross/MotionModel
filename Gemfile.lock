@@ -27,6 +27,7 @@ GEM
     json (1.7.7)
     motion-cocoapods (1.2.1)
       cocoapods (>= 0.14.0)
+    motion-stump (0.2.1)
     motion_support (0.0.6)
       bubble-wrap
     multi_json (1.7.1)
@@ -50,4 +51,6 @@ PLATFORMS
 
 DEPENDENCIES
   motion-cocoapods
+  motion-stump (~> 0.2)
   motion_support
+  rake

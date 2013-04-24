@@ -34,8 +34,7 @@ module MotionModel
         as || name
       end
 
-      # Polymorphism
-      def foreign_type
+      def foreign_polymorphic_type
         "#{foreign_name}_type".to_sym
       end
 
@@ -44,6 +43,7 @@ module MotionModel
       end
 
       def classify
+        fail "Column#classify indeterminate for polymorphic associations" if type == :belongs_to && polymorphic
         if @klass
           @klass
         else
@@ -71,23 +71,23 @@ module MotionModel
       end
 
       def inverse_name
-        if inverse_of
-          inverse_of
-        elsif polymorphic && as
+        if as
           as
+        elsif inverse_of
+          inverse_of
         elsif type == :belongs_to
           # Check for a singular and a plural relationship
           name = owner.name.singularize.underscore
-          col = classify.column_named(name.to_sym)
-          col ||= classify.column_named(name.pluralize.to_sym)
-          col
+          col = classify.column(name)
+          col ||= classify.column(name.pluralize)
+          col.name
         else
           owner.name.singularize.underscore.to_sym
         end
       end
 
       def inverse_column
-        classify.column_named(inverse_name)
+        classify.column(inverse_name)
       end
 
     end
