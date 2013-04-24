@@ -128,7 +128,7 @@ module MotionModel
     def encodeWithCoder(coder)
       columns.each do |attr|
         # Serialize attributes except the proxy has_many and belongs_to ones.
-        unless [:belongs_to, :has_many].include? column_named(attr).type
+        unless [:belongs_to, :has_many].include? column(attr).type
           value = self.send(attr)
           unless value.nil?
             coder.encodeObject(value, forKey: attr.to_s)

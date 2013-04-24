@@ -78,16 +78,16 @@ module MotionModel
         elsif type == :belongs_to
           # Check for a singular and a plural relationship
           name = owner.name.singularize.underscore
-          col = classify.column_named(name.to_sym)
-          col ||= classify.column_named(name.pluralize.to_sym)
-          col
+          col = classify.column(name)
+          col ||= classify.column(name.pluralize)
+          col.name
         else
           owner.name.singularize.underscore.to_sym
         end
       end
 
       def inverse_column
-        classify.column_named(inverse_name)
+        classify.column(inverse_name)
       end
 
     end
