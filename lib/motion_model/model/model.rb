@@ -453,8 +453,12 @@ module MotionModel
       @data[:id].to_i
     end
 
-    # Default to_s implementation returns a list of columns and values
-    # separated by newlines.
+    # Default inspect implementation returns identifier and ID
+    # Need to keep this short, i.e. for running specs as the output could be very large
+    def inspect
+      object_identifier
+    end
+
     def to_s
       columns.each{|c| "#{c}: #{get_attr(c)}\n"}
     end
