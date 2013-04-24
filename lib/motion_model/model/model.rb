@@ -338,7 +338,6 @@ module MotionModel
       def add_field(name, type, options = {:default => nil}) #nodoc
         name = name.to_sym
         col = Column.new(self, name, type, options)
-
         _column_hashes[col.name] = col
 
         case type

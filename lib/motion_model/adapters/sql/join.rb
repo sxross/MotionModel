@@ -19,7 +19,7 @@ module MotionModel
     end
 
     def joined_table_type
-      @column.foreign_type
+      @column.foreign_polymorphic_type
     end
 
     def joining_table_key

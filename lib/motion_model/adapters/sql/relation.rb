@@ -31,22 +31,6 @@ module MotionModel
       keys
     end
 
-    def to_a
-      collection
-    end
-
-    def count
-      collection.count
-    end
-
-    def first
-      to_a.first
-    end
-
-    def each(*args, &block)
-      collection.each(*args, &block)
-    end
-
     def unload
       @_scope = nil
       @loaded = false
@@ -70,20 +54,22 @@ module MotionModel
       associated_instance
     end
 
-    def init_associate(instance, &after_init)
-      if @column.polymorphic
-        raise "Polymorphic associate class #{instance.class} must be associated class #{@associated_class}" unless
-            instance.class == @associated_class
-        instance.set_polymorphic_attr(@column.as, @owner)
-      elsif @column.through
-        fail 'Unsupported'
-        # Not sure this ever needs to be supported... should maybe not initialize associates
-        #  via a 'through' association
-      else
-        instance.set_attr(@column.inverse_foreign_key, @owner.id)
+    def set_inverse_association(instance)
+      inverse_column = instance.column(@column.inverse_name)
+      inverse_column ||= instance.column(@column.inverse_name.to_s.pluralize.to_sym)
+
+      case inverse_column.type
+      when :belongs_to
+        if inverse_column.polymorphic
+          instance.set_polymorphic_attr(inverse_column, @owner)
+        else
+          instance.set_belongs_to_attr(inverse_column, @owner, set_inverse: false)
+        end
+      when :has_one
+        instance.set_has_one_attr(inverse_column, @owner)
+      when :has_many
+        instance.push_has_many_attr(inverse_column, @owner)
       end
-      instance.instance_eval(&after_init) if block_given?
-      instance
     end
 
   end
@@ -127,10 +113,25 @@ module MotionModel
 
     def build(attrs = {})
       _c = collection
-      #collection.send(:push, build_from_instance(@associated_class.new(attrs)))
       instance = build_from_instance(@associated_class.new(attrs))
       _c.send(:push, instance)
       instance
+    end
+
+    def to_a
+      collection
+    end
+
+    def count
+      collection.count
+    end
+
+    def first
+      to_a.first
+    end
+
+    def each(*args, &block)
+      collection.each(*args, &block)
     end
 
     # Return only the loaded associates, if any
@@ -138,10 +139,11 @@ module MotionModel
       @loaded ? @collection : []
     end
 
-    def push(*instances)
-      instances.each do |instance|
-        associate = init_associate(instance)
-        collection.send(:push, associate) unless collection.include?(associate)
+    def push(*args)
+      options = args.last.is_a?(Hash) ? args.pop : {}
+      args.each do |instance|
+        set_inverse_association(instance) unless options[:set_inverse] == false
+        collection.send(:push, instance) unless collection.include?(instance)
       end
       self
     end
@@ -151,8 +153,10 @@ module MotionModel
     end
 
     def unload
+      current = to_a
       super
       @collection = RelationArray.build(self)
+      current
     end
 
     private
@@ -162,13 +166,14 @@ module MotionModel
       @collection
     end
 
-    def collection=(collection)
-      _collection = collection.map do |instance|
-        init_associate(instance)
-      end
+    def set_collection(collection, options = {})
+      collection.map do |instance|
+        set_inverse_association(instance)
+      end unless options[:set_inverse] == false
       @loaded = true
-      @collection = RelationArray.build(self, _collection)
+      @collection = RelationArray.build(self, collection)
     end
+    alias_method :'collection=', :set_collection
 
     def reload
       @collection = RelationArray.build(self, scoped.to_a)
@@ -196,6 +201,13 @@ module MotionModel
       @instance
     end
 
+    def set_instance(instance, options = {})
+      @instance = instance
+      set_inverse_association(instance) unless options[:set_inverse] == false
+      @loaded = true
+    end
+    alias_method :'instance=', :set_instance
+
     # Return only the loaded associate, if present
     def loaded
       @loaded ? @instance : nil
@@ -207,11 +219,6 @@ module MotionModel
     end
 
     private
-
-    def instance=(instance)
-      @loaded = true
-      @instance = init_associate(instance)
-    end
 
     def reload
       if @column.through

@@ -92,10 +92,12 @@ module MotionModel
 
       def do_select_attrs(scope)
         result = scope.execute
-        return nil unless result
+        if result.nil?
+          fail "Empty response from DB"
+        end
         result.map do |row|
           Hash[row.map { |k, v|
-            col = column_named(k.to_sym)
+            col = column(k.to_sym)
             val = col ? _db_adapter.from_db_type(col.type, v) : v
             [k.to_sym, val]
           }]
@@ -138,16 +140,19 @@ module MotionModel
 
       def define_belongs_to_methods(name) #nodoc
         super
+        define_method("#{name}_relation") { relation(column(name)) }
         define_method("loaded_#{name}")   { get_loaded_attr(name) }
       end
 
       def define_has_many_methods(name) #nodoc
         super
+        define_method("#{name}_relation") { relation(column(name)) }
         define_method("loaded_#{name}")   { get_loaded_attr(name) }
       end
 
       def define_has_one_methods(name) #nodoc
         super
+        define_method("#{name}_relation") { relation(column(name)) }
         define_method("loaded_#{name}")   { get_loaded_attr(name) }
       end
 
@@ -195,17 +200,13 @@ module MotionModel
       end
 
       # Save any dirty already-loaded :belongs_to associates.
-      # No need to load since they then would not be dirty.
+      # No need to load since as they would not be dirty.
       def save_loaded_belongs_to_relations(options)
         self.class.belongs_to_columns.each do |name, col|
           associate = get_loaded_attr(name)
           next if associate.nil? || !associate.dirty?
           associate.save_without_transaction(options) unless options[:omit_object_ids][associate.object_id]
-          if col.polymorphic
-            set_polymorphic_attr(name, associate)
-          else
-            _set_attr(col.foreign_key, associate.id) unless _get_attr(col.foreign_key)
-          end
+          set_belongs_to_attr(col, associate)
         end
       end
 
@@ -217,13 +218,7 @@ module MotionModel
           associates = Array(get_loaded_attr(name))
           associates.each do |associate|
             next if col.through
-
-            if col.polymorphic
-              associate.set_polymorphic_attr(col.as, self) unless
-                  associate.get_polymorphic_attr(col.as)
-            else
-              associate._set_attr(col.foreign_key, id) unless associate._get_attr(col.foreign_key)
-            end
+            associate.set_belongs_to_attr(col.inverse_name, self)
             next unless associate.dirty?
             associate.save_without_transaction(options) unless options[:omit_object_ids][associate.object_id]
           end unless associates.nil?
@@ -250,38 +245,40 @@ module MotionModel
         end
       end
 
-      # try_plural true when called from the belongs_to side, which won't know if relation is singular or plural
-      def rebuild_relation_for_name(name, instance_or_collection, try_plural = false) # nodoc
-        col = column_named(name)
-        col ||= column_named(name.to_s.pluralize.to_sym) if try_plural
-        rebuild_relation_for(col, instance_or_collection)
-      end
+      def rebuild_relation(col, instance_or_collection, options = {}) # nodoc
+        _col = column(col)
 
-      # Rebuild relation, in the event it's cached.
-      # TODO check other relations that are :through this one, and rebuild them as well
-      def rebuild_relation_for(col, instance_or_collection) # nodoc
+        # TODO is this necessary any longer?
+        # try_plural true when called from the belongs_to side, which won't know if relation is singular or plural
+        #_col ||= column(col.to_s.pluralize.to_sym) if col.is_a?(Symbol) && try_plural
+
         # Called from :belongs_to side, which won't know if this is :has_one or :has_many
-        if col.type == :has_many && !instance_or_collection.nil?
-          # Called via a :belongs_to relationship.
-          # Preserve any items already in the collection
-          instance_or_collection = relation_for(col).push(*Array(instance_or_collection)).loaded
-        end
-
-        relation_for(col, instance_or_collection, reset: true)
-
-        # Rebuild any relations that are :through this one
-        _column_hashes.each do |_name, _column|
-          if _column.through == col.name
-            rebuild_relation_for(_name, instance_or_collection.map { |i| i.get_attr(_name) })
-          elsif _column.through == col.name.to_s.pluralize.to_sym
-            rebuild_relation_for(_name, instance_or_collection.map { |i| i.get_attr(_name.to_s.singularize.to_sym) })
-          end
-        end
+        rel = relation(_col)
+        case _col.type
+        when :belongs_to
+          rel.set_instance(instance_or_collection, options.slice(:set_inverse))
+        when :has_one
+          rel.set_instance(instance_or_collection, options.slice(:set_inverse))
+        when :has_many
+          rel.push(instance_or_collection, options.slice(:set_inverse))  #.loaded
+        end unless instance_or_collection.nil?
       end
 
-      def get_loaded_attr(name)
-        col = column_named(name)
-        col.type == :belongs_to? ? get_attr(name) : relation_for(col).loaded
+      def unload_relation(col)
+        _col = column(col)
+        rel = relation(_col)
+        rel.unload
+      end
+
+      def push_relation(col, *instances) # nodoc
+        _col = column(col)
+        rel = relation(_col)
+        rel.push(*instances)
+      end
+
+      def get_loaded_attr(col)
+        _col = column(col)
+        _col.type == :belongs_to? ? get_attr(name) : relation(_col).loaded
       end
 
       private
@@ -292,7 +289,7 @@ module MotionModel
       # Attributes converted to a hash of db-compatible types
       def _db_typed_attributes
         attrs = {}
-        _db_column_config.each { |k, v| attrs[k] = _db_adapter.to_db_type(column_named(k).type, get_attr(k)) }
+        _db_column_config.each { |k, v| attrs[k] = _db_adapter.to_db_type(column(k).type, get_attr(k)) }
         attrs
       end
 
@@ -300,62 +297,102 @@ module MotionModel
         self.class.send(:_db_column_config)
       end
 
-      #def relation_columns
-      #  @relation_columns ||= {}
-      #end
-
-      def relations
-        @relations ||= {}
+      def _relations
+        @_relations ||= {}
       end
 
-      # Return the relation, which may be cached.
-      # Call rebuild_relation_for if the association is being assigned
-      def relation_for(col, instance_or_collection = nil, options = {}) # nodoc
-        relations[col.name] = nil if options[:reset]
-        relations[col.name] ||= begin
-          case col.type
+      def get_belongs_to_attr(col)
+        rel = relation(col)
+        rel.instance
+      end
 
-          when :belongs_to
-            instance = instance_or_collection
-            if col.polymorphic
-              if instance.nil?
-                associated_class = nil
-                foreign_id = nil
-              else
-                associated_class = instance.class
-                foreign_id = instance.id
-              end
-            else
-              associated_class = col.classify
-              foreign_id = _get_attr(col.foreign_key)
-            end
-            scope = -> { foreign_id.nil? ? associated_class.limit(0) : associated_class.where(id: foreign_id) }
-            InstanceRelation.new(self, col, associated_class, scope, instance)
+      def get_has_many_attr(col)
+        relation(col).to_a
+      end
 
-          when :has_many, :has_one
-            associated_class = col.classify
-            _scope = associated_class
-            _scope = _scope.where(col.conditions) if col.conditions
-            if col.polymorphic
-              scope = -> { id.nil? ? _scope.limit(0) : _scope.
-                  where(col.foreign_type => self.class.name, col.foreign_key => id) }
-            elsif col.through
-              through_col = column_named(col.through)
-              scope = -> { id.nil? ? _scope.limit(0) : _scope.scoped.
-                  joins(col.through).
-                  where({col.through => through_col.inverse_column.foreign_key} => id)}
-            else
-              scope = -> { id.nil? ? _scope.limit(0) : _scope.where(col.inverse_column.foreign_key => id) }
+      def get_has_one_attr(col)
+        relation(col).instance
+      end
+
+      def relation(col) # nodoc
+        _col = column(col)
+
+        unless _relations[_col.name]
+          _relations[_col.name] = begin
+            case _col.type
+            when :belongs_to; build_belongs_to_relation(_col)
+            when :has_one;    build_has_one_relation(_col)
+            when :has_many;   build_has_many_relation(_col)
             end
-            if col.type == :has_one
-              InstanceRelation.new(self, col, associated_class, scope, instance_or_collection)
-            else
-              CollectionRelation.new(self, col, associated_class, scope, instance_or_collection)
-            end
-          else
-            nil
           end
         end
+        _relations[_col.name]
+      end
+
+      def build_belongs_to_relation(col)
+        if col.polymorphic
+          associate_class, associate_id = get_polymorphic_attr(col.name)
+        else
+          associate_class = col.classify
+          associate_id = _get_attr(col.foreign_key)
+        end
+        if associate_id.nil?
+          # A null scope. If polymorphic, the class is arbitrary
+          scope = SQLScope.new(nil, nil, nil)
+        else
+          scope = associate_class.where(id: associate_id)
+        end
+        InstanceRelation.new(self, col, associate_class, scope)
+      end
+
+      def build_has_one_relation(col)
+        associate_class, scope = _has_many_has_one_relation_scope(col)
+        InstanceRelation.new(self, col, associate_class, scope)
+      end
+
+      def build_has_many_relation(col)
+        associate_class, scope = _has_many_has_one_relation_scope(col)
+        CollectionRelation.new(self, col, associate_class, scope)
+      end
+
+      def _has_many_has_one_relation_scope(col)
+        associate_class = col.classify
+        _scope = associate_class
+        _scope = _scope.where(col.conditions) if col.conditions
+
+        if col.through
+          through_col = column(col.through)
+          _scope = _scope.scoped.joins(col.through)
+          inverse_column = through_col.inverse_column
+          table_name = through_col.classify.table_name
+        else
+          inverse_column = col.inverse_column
+          table_name = col.classify.table_name
+        end
+
+        if inverse_column.nil?
+          fail "inverse_column not found for #{self} column #{col.name}"
+        end
+
+        if inverse_column.polymorphic
+          scope = -> do
+            if id.nil?
+              _scope.limit(0)
+            else
+              _scope.where(col.foreign_polymorphic_type => self.class.name, col.foreign_key => id)
+            end
+          end
+        else
+          scope = -> do
+            if id.nil?
+              _scope.limit(0)
+            else
+              _scope.where({table_name => inverse_column.foreign_key} => id)
+            end
+          end
+        end
+
+        [associate_class, scope]
       end
 
       def _db_transaction(&block)

@@ -4,10 +4,10 @@ module MotionModel
     # For debug
     attr_reader :conditions
 
-    def initialize(model_class, db_adapter)
+    def initialize(model_class, db_adapter, type = :select)
       @model_class = model_class
       @db_adapter = db_adapter
-      @type = nil
+      @type = type
       @loaded = false
       @conditions = []
       @selects = []
@@ -58,6 +58,7 @@ module MotionModel
     end
 
     def select(*args)
+      return self if null_scope?
       deep_clone.instance_eval do
         options = args.last.is_a?(Hash) ? args.pop : {}
         table_name = options[:table_name] || self.table_name
@@ -90,6 +91,7 @@ module MotionModel
     #end
 
     def where(*args)
+      return self if null_scope?
       deep_clone.instance_eval do
         args.each do |clause|
           if clause.is_a?(String)
@@ -129,6 +131,7 @@ module MotionModel
     end
 
     def joins(*args)
+      return self if null_scope?
       deep_clone.instance_eval do
         args.each do |join_data|
           if join_data.is_a?(String)
@@ -143,7 +146,7 @@ module MotionModel
             else
               joining_class = @model_class
             end
-            join_column = joining_class.send(:column_named, join_name)
+            join_column = joining_class.column(join_name)
             _joins << Join.new(join_column, joining_class, join_options)
 
             joins(nested_join_args) if nested_join_args
@@ -154,6 +157,7 @@ module MotionModel
     end
 
     def order(options)
+      return self if null_scope?
       deep_clone.instance_eval do
         @orders ||= []
         unless options.is_a?(Hash)
@@ -171,6 +175,7 @@ module MotionModel
     end
 
     def group(column)
+      return self if null_scope?
       deep_clone.instance_eval do
         @group = %Q["#{table_name}"."#{column.to_s}"]
         self
@@ -178,6 +183,7 @@ module MotionModel
     end
 
     def limit(limit)
+      return self if null_scope?
       deep_clone.instance_eval do
         @limit = limit
         self
@@ -246,8 +252,17 @@ module MotionModel
       to_a.map(*args, &block)
     end
 
+    # Scope that will never return anything
+    def null_scope?
+      type.nil?
+    end
+
     def execute
-      @db_adapter.build_sql_context(type, to_sql).execute
+      if null_scope?
+        []
+      else
+        @db_adapter.build_sql_context(type, to_sql).execute
+      end
     end
 
     def select_str
@@ -291,7 +306,7 @@ module MotionModel
     end
 
     def type
-      @type || :select
+      @type
     end
 
   end
