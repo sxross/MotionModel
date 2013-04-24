@@ -6,7 +6,8 @@ module MotionModel
       MotionModel::Store.config(self)
     end
 
-    def log(sql, result)
+    def log(sql, type, result)
+      return if @options["log_#{type}".to_sym] == false
       if @logger
         @logger.call(sql, result.to_s)
       elsif @options[:ns_log] != false

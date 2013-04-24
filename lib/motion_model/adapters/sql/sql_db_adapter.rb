@@ -14,7 +14,7 @@ module MotionModel
     end
 
     def log(sql, result)
-      @db_adapter.log(sql, result)
+      @db_adapter.log(sql, type, result)
     end
 
     def execute
