@@ -30,13 +30,15 @@ module MotionModel
 
     def _db_column_type(column_type)
       case column_type
-      when :integer;  'integer'
-      when :boolean;  'integer'
-      when :float;    'real'
-      when :string;   'text collate nocase'
-      when :date;     'integer'
-      when :datetime; 'integer'
-      else;           'text collate nocase'
+      when :integer;          'integer'
+      when :belongs_to_id;    'integer'
+      when :belongs_to_type;  'text collate nocase'
+      when :boolean;          'integer'
+      when :float;            'real'
+      when :string;           'text collate nocase'
+      when :date;             'integer'
+      when :datetime;         'integer'
+      else;                   'text collate nocase'
       end
     end
 

@@ -49,8 +49,7 @@ module MotionModel
 
     def create_table(name, columns, options = {})
       sqls = create_table_sql(name, columns, options)
-      sqls[:create_table].execute
-      sqls[:create_indexes].each { |s| s.execute } if sqls[:create_indexes]
+      sqls.each { |s| s.execute }
     end
 
     def create_table_sql(table_name, column_config, options = {})
@@ -81,7 +80,7 @@ module MotionModel
           # Default options
           column.options[:not_null] ||= false
 
-          options = []
+          col_options = []
           column.options.each do |key, value|
             str = begin
               case(key)
@@ -90,10 +89,10 @@ module MotionModel
               when :auto_increment; value ? 'AUTOINCREMENT' : nil
               end
             end
-            options << str if str
+            col_options << str if str
           end
 
-          column_sql << %Q["#{col_name}" #{type_str} #{options.compact.join(' ')}]
+          column_sql << %Q["#{col_name}" #{type_str} #{col_options.compact.join(' ')}]
 
           if column.options[:index]
             create_index_sqls << create_index_sql(table_name, col_name, column.options[:index])
@@ -101,13 +100,13 @@ module MotionModel
         end
       end
 
-      create_table_sql =
-          %Q[CREATE TABLE #{EXISTENCE} "main"."#{table_name}" ( #{column_sql.join(', ')} );]
-
-      {
-          create_table: build_sql_context(:create_table, create_table_sql),
-          create_indexes: create_index_sqls.map{ |s| build_sql_context(:create_indexes, s) }
-      }
+      sql = []
+      sql << build_sql_context(:drop_table,
+          %Q[DROP TABLE IF EXISTS "main"."#{table_name}";]) if options[:drop]
+      sql << build_sql_context(:create_table,
+          %Q[CREATE TABLE #{EXISTENCE} "main"."#{table_name}" ( #{column_sql.join(', ')} );])
+      sql += create_index_sqls.map{ |s| build_sql_context(:create_indexes, s) }
+      sql
     end
 
     def create_index_sql(table_name, col_names, options = {})

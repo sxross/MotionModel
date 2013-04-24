@@ -33,8 +33,8 @@ module MotionModel
         _db_adapter.table_exists?(table_name)
       end
 
-      def create_table
-        _db_adapter.create_table(table_name, _column_hashes)
+      def create_table(options = {})
+        _db_adapter.create_table(table_name, _column_hashes, options)
       end
 
       def unscoped
