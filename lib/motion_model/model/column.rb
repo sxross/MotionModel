@@ -75,7 +75,7 @@ module MotionModel
           as
         elsif inverse_of
           inverse_of
-        elsif type == :belongs_to
+        elsif type == :belongs_to && !polymorphic
           # Check for a singular and a plural relationship
           name = owner.name.singularize.underscore
           col = classify.column(name)
