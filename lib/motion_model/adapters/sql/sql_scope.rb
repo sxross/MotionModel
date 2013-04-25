@@ -27,7 +27,7 @@ module MotionModel
 
     def deep_clone
       _default_selects = @default_selects
-      _selects = @selects
+      _selects = @selects.try(:dup)
       _joins = @joins.try(:dup)
       _orders = @orders.try(:dup)
       _group = @group.try(:dup)
