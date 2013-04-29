@@ -52,6 +52,8 @@ module MotionModel
         unless self.respond_to?(:id)
           add_field(:id, :integer)
 
+          attr_accessor :_destroy
+
           [:save, :delete, :destroy].each do |name|
             define_hook_methods(name)
           end
@@ -764,6 +766,10 @@ module MotionModel
       else
         self.class.name.underscore.to_sym
       end
+    end
+
+    def destroy?
+      !!@_destroy
     end
 
     private
