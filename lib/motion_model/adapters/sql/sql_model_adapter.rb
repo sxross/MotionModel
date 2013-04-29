@@ -204,7 +204,15 @@ module MotionModel
       def save_loaded_belongs_to_relations(options)
         self.class.belongs_to_columns.each do |name, col|
           associate = get_loaded_attr(name)
-          next if associate.nil? || !associate.dirty?
+          next if associate.nil?
+          if !associate.new_record? && associate.destroy?
+            after_save do
+              associate.destroy
+              set_belongs_to_attr(name, nil)
+            end
+            next
+          end
+          next unless associate.dirty?
           associate.save_without_transaction(options) unless options[:omit_object_ids][associate.object_id]
           set_belongs_to_attr(col, associate)
         end
@@ -215,11 +223,23 @@ module MotionModel
       def save_loaded_has_many_has_one_relations(options)
         cols = self.class.has_many_columns.merge(self.class.has_one_columns)
         cols.each do |name, col|
-          associates = Array(get_loaded_attr(name))
+          value = get_loaded_attr(name)
+          associates = Array(value)
           associates.each do |associate|
             next if col.through
-            associate.set_belongs_to_attr(col.inverse_name, self)
+            if !associate.new_record? && associate.destroy?
+              add_hook(:after_save) do
+                associate.destroy
+                if value.is_a?(CollectionRelation::RelationArray)
+                  value.delete(associate)
+                else
+                  _set_attr(name, nil)
+                end
+              end
+              next
+            end
             next unless associate.dirty?
+            associate.set_belongs_to_attr(col.inverse_name, self)
             associate.save_without_transaction(options) unless options[:omit_object_ids][associate.object_id]
           end unless associates.nil?
         end
@@ -274,6 +294,12 @@ module MotionModel
         _col = column(col)
         rel = relation(_col)
         rel.push(*instances)
+      end
+
+      def pop_relation(col, instance)
+        _col = column(col)
+        rel = relation(_col)
+        rel.pop(instance)
       end
 
       def get_loaded_attr(col)

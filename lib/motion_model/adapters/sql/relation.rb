@@ -94,6 +94,11 @@ module MotionModel
       end
       alias :<< :push_instance
 
+      # Push the instance to the collection directly, not via the relation
+      def collection_push(instance)
+        send(:push, instance)
+      end
+
       def build(attrs = {})
         @relation.build(attrs)
       end
@@ -112,9 +117,8 @@ module MotionModel
     end
 
     def build(attrs = {})
-      _c = collection
       instance = build_from_instance(@associated_class.new(attrs))
-      _c.send(:push, instance)
+      push(instance)
       instance
     end
 
@@ -143,9 +147,13 @@ module MotionModel
       options = args.last.is_a?(Hash) ? args.pop : {}
       args.each do |instance|
         set_inverse_association(instance) unless options[:set_inverse] == false
-        collection.send(:push, instance) unless collection.include?(instance)
+        collection.collection_push(instance) unless collection.include?(instance)
       end
       self
+    end
+
+    def delete(instance)
+      collection.delete(instance)
     end
 
     def reject!(&block)
