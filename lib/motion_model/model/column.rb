@@ -50,7 +50,9 @@ module MotionModel
           case @type
           when :belongs_to
             @klass ||= Object.const_get(class_name.to_s.camelize)
-          when :has_many, :has_one
+          when :has_one
+            @klass ||= Object.const_get(class_name.to_s.camelize)
+          when :has_many
             @klass ||= Object.const_get(class_name.to_s.singularize.camelize)
           else
             raise "#{@name} is not a relation. This isn't supposed to happen."
