@@ -95,7 +95,7 @@ module MotionModel
           raise ArgumentError.new("arguments to `columns' must be a symbol, a hash, or a hash of hashes -- was #{fields.first}.")
         end
 
-        unless column_named(:id)
+        unless column?(:id)
           add_field(:id, :integer)
         end
       end
