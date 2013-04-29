@@ -49,7 +49,7 @@ module MotionModel
         associated_instance.set_polymorphic_attr(@column.as, @owner)
       else
         # Note: Don't trigger reverse association assignment
-        associated_instance.set_belongs_to_attr_name(@owner.class.name.underscore, @owner)
+        associated_instance.set_belongs_to_attr(@column.inverse_column, @owner)
       end
       associated_instance
     end
