@@ -33,7 +33,6 @@ module MotionModel
       _group = @group.try(:dup)
       _limit = @limit
       _conditions = @conditions.try(:dup)
-      _loaded = @loaded
       _type = @type
       self.class.new(@model_class, @db_adapter).instance_eval do
         @default_selects = _default_selects
@@ -43,7 +42,6 @@ module MotionModel
         @group = _group
         @limit = _limit
         @conditions = _conditions
-        @loaded = _loaded
         @type = _type
         self
       end
