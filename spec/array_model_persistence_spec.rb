@@ -205,8 +205,8 @@ end
 describe "serialization of relations" do
   before do
     parent = Parent.create(:name => 'BoB')
-    parent.children_relation.create :name => 'Fergie'
-    parent.children_relation.create :name => 'Will I Am'
+    parent.children.create :name => 'Fergie'
+    parent.children.create :name => 'Will I Am'
   end
 
   it "is wired up right" do
