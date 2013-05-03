@@ -362,13 +362,13 @@ module MotionModel
       # All relation columns, including type and id columns for polymorphic associations
       def relation_column?(col) #nodoc
         _col = column(col)
-        [:belongs_to, :belongs_to_id, :belongs_to_type, :has_many, :has_one].include? column(_col).type
+        [:belongs_to, :belongs_to_id, :belongs_to_type, :has_many, :has_one].include?(_col.type)
       end
 
       # Polymorphic association columns that are not stored in DB
       def virtual_polymorphic_relation_column?(col) #nodoc
         _col = column(col)
-        [:belongs_to, :has_many, :has_one].include? column(_col).type
+        [:belongs_to, :has_many, :has_one].include?(_col.type)
       end
 
       def has_relation?(col) #nodoc
