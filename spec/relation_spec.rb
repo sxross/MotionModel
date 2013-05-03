@@ -39,7 +39,7 @@ describe 'related objects' do
 
     it "camelcased style" do
       t = User.create(:name => "Arkan")
-      t.email_accounts_relation.create(:name => "Gmail")
+      t.email_accounts.create(:name => "Gmail")
       EmailAccount.first.user.name.should == "Arkan"
       User.last.email_accounts.last.name.should == "Gmail"
     end
@@ -58,12 +58,12 @@ describe 'related objects' do
 
     it 'relation objects are empty on initialization' do
       a_task = Task.create
-      a_task.assignees_relation.all.should.be.empty
+      a_task.assignees.all.should.be.empty
     end
 
     it "supports creating related objects directly on parents" do
       a_task = Task.create(:name => 'Walk the Dog')
-      a_task.assignees_relation.create(:assignee_name => 'bob')
+      a_task.assignees.create(:assignee_name => 'bob')
       a_task.assignees.count.should == 1
       a_task.assignees.first.assignee_name.should == 'bob'
       Assignee.count.should == 1
@@ -81,7 +81,7 @@ describe 'related objects' do
           assignee_index = 1
           @tasks << t
           1.upto(task * 2) do |assignee|
-            @assignees << t.assignees_relation.create(:assignee_name => "employee #{assignee_index}_assignee_for_task_#{t.id}")
+            @assignees << t.assignees.create(:assignee_name => "employee #{assignee_index}_assignee_for_task_#{t.id}")
             assignee_index += 1
           end
         end
@@ -105,7 +105,7 @@ describe 'related objects' do
         assignee = Assignee.new(:assignee_name => 'Zoe')
         Task.count.should == 3
         assignee_count = Task.find(3).assignees.count
-        Task.find(3).assignees_relation.push(assignee)
+        Task.find(3).assignees.push(assignee)
         Task.find(3).assignees.count.should == assignee_count + 1
       end
 
@@ -113,7 +113,7 @@ describe 'related objects' do
 
     it "supports creating blank (empty) scratchpad associated objects" do
       task = Task.create :name => 'watch a movie'
-      assignee = task.assignees_relation.new # TODO per Rails convention, this should really be #build, not #new
+      assignee = task.assignees.new # TODO per Rails convention, this should really be #build, not #new
       assignee.assignee_name = 'Chloe'
       assignee.save
       task.assignees.count.should == 1
@@ -129,7 +129,7 @@ describe 'related objects' do
 
     it "allows a child to back-reference its parent" do
       t = Task.create(:name => "Walk the Dog")
-      t.assignees_relation.create(:assignee_name => "Rihanna")
+      t.assignees.create(:assignee_name => "Rihanna")
       Assignee.first.task.name.should == "Walk the Dog"
     end
 
@@ -143,7 +143,7 @@ describe 'related objects' do
 
       describe "basic wiring" do
         before do
-          @t1.assignees_relation << @a1
+          @t1.assignees << @a1
         end
 
         it "pushing a created assignee gives a task count of 1" do
@@ -161,7 +161,7 @@ describe 'related objects' do
 
       describe "when pushing assignees onto two different tasks" do
         before do
-          @t2.assignees_relation << @a1
+          @t2.assignees << @a1
         end
 
         it "pushing assignees to two different tasks lets the last task have the assignee (count)" do

@@ -35,7 +35,7 @@ class Employee
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
   columns       :name
-  belongs_to    :CascadedAssignee
+  belongs_to    :cascaded_assignee
 end
 
 describe "cascading deletes" do
@@ -58,8 +58,8 @@ describe "cascading deletes" do
 
     it "deletes assignees that belong to a destroyed task" do
       task = CascadingTask.create(:name => 'cascading')
-      task.cascaded_assignees_relation.create(:assignee_name => 'joe')
-      task.cascaded_assignees_relation.create(:assignee_name => 'bill')
+      task.cascaded_assignees.create(:assignee_name => 'joe')
+      task.cascaded_assignees.create(:assignee_name => 'bill')
 
       CascadingTask.count.should == 1
       CascadedAssignee.count.should == 2
@@ -74,7 +74,7 @@ describe "cascading deletes" do
       1.upto(3) do |item|
         task = CascadingTask.create :name => "Task #{item}"
         1.upto(3) do |assignee|
-          task.cascaded_assignees_relation.create :assignee_name => "assignee #{assignee} for task #{task}"
+          task.cascaded_assignees.create :assignee_name => "assignee #{assignee} for task #{task}"
         end
       end
       CascadingTask.count.should == 3
@@ -88,8 +88,8 @@ describe "cascading deletes" do
 
     it "deletes only one level when a task is destroyed but dependent is delete" do
       task = CascadingTask.create :name => 'dependent => :delete'
-      assignee = task.cascaded_assignees_relation.create :assignee_name => 'deletable assignee'
-      assignee.employees_relation.create :name => 'person who sticks around'
+      assignee = task.cascaded_assignees.create :assignee_name => 'deletable assignee'
+      assignee.employees.create :name => 'person who sticks around'
 
       CascadingTask.count.should == 1
       CascadedAssignee.count.should == 1
