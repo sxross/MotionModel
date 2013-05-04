@@ -2,7 +2,7 @@
 # http://api.rubyonrails.org/classes/ActiveRecord/Associations/ClassMethods.html "Cardinality and associations"
 
 begin
-  class Employee
+  class Worker
     include MotionModel::Model
     include MotionModel::FMDBModelAdapter
     columns :name
@@ -14,14 +14,14 @@ begin
     include MotionModel::Model
     include MotionModel::FMDBModelAdapter
     columns :name
-    belongs_to :employee
+    belongs_to :worker
   end
 
   class Manager
     include MotionModel::Model
     include MotionModel::FMDBModelAdapter
     columns :name
-    has_many :employees
+    has_many :workers
   end
 
   class Assignment
@@ -50,7 +50,7 @@ begin
 end
 
 MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: false))
-MODELS = [Employee, Office, Manager, Assignment, Programmer, Project]
+MODELS = [Worker, Office, Manager, Assignment, Programmer, Project]
 id = 0
 MODELS.each do |model|
   model.create_table(drop: true)
@@ -73,21 +73,21 @@ describe "Cardinality" do
 
     shared "association" do
       it "should have belongs_to association" do
-        @_office.employee.should == @employee
+        @_office.worker.should == @worker
       end
 
       it "should have belongs_to association id" do
-        @_office.employee_id.should == @employee.id
+        @_office.worker_id.should == @worker.id
       end
 
       it "should have has_one association" do
-        @_employee.office.should == @office
+        @_worker.office.should == @office
       end
     end
 
     shared "before save" do
       before do
-        @_employee = @employee
+        @_worker = @worker
         @_office = @office
       end
 
@@ -97,8 +97,8 @@ describe "Cardinality" do
     shared "after save" do
       describe "after saving has_one" do
         before do
-          @employee.save
-          @_employee = Employee.find(@employee.id)
+          @worker.save
+          @_worker = Worker.find(@worker.id)
           @_office = Office.find(@office.id)
         end
 
@@ -108,7 +108,7 @@ describe "Cardinality" do
       describe "after saving belongs_to" do
         before do
           @office.save
-          @_employee = Employee.find(@employee.id)
+          @_worker = Worker.find(@worker.id)
           @_office = Office.find(@office.id)
         end
 
@@ -118,13 +118,13 @@ describe "Cardinality" do
 
     describe "set belongs_to" do
       before do
-        @employee = Employee.new
+        @worker = Worker.new
         @office = Office.new
-        @employee.office = @office
+        @worker.office = @office
       end
 
       it "should assign inverse" do
-        @office.employee.should == @employee
+        @office.worker.should == @worker
       end
 
       behaves_like "before save"
@@ -133,13 +133,13 @@ describe "Cardinality" do
 
     describe "set has_one" do
       before do
-        @employee = Employee.new
+        @worker = Worker.new
         @office = Office.new
-        @office.employee = @employee
+        @office.worker = @worker
       end
 
       it "should assign inverse" do
-        @employee.office.should == @office
+        @worker.office.should == @office
       end
 
       behaves_like "before save"
@@ -151,23 +151,23 @@ describe "Cardinality" do
 
     shared "association" do
       it "should have belongs_to association" do
-        @_employee1.manager.should == @manager
+        @_worker1.manager.should == @manager
       end
 
       it "should have belongs_to association id" do
-        @_employee1.manager_id.should == @manager.id
+        @_worker1.manager_id.should == @manager.id
       end
 
       it "should have has_many association" do
-        @_manager.employees.should == [@employee1, @employee2]
+        @_manager.workers.should == [@worker1, @worker2]
       end
     end
 
     shared "before save" do
       before do
         # If we haven't saved yet
-        @_employee1 = @employee1
-        @_employee2 = @employee2
+        @_worker1 = @worker1
+        @_worker2 = @worker2
         @_manager = @manager
       end
 
@@ -178,8 +178,8 @@ describe "Cardinality" do
       describe "after saving has_many" do
         before do
           @manager.save
-          @_employee1 = Employee.find(@employee1.id)
-          @_employee2 = Employee.find(@employee2.id)
+          @_worker1 = Worker.find(@worker1.id)
+          @_worker2 = Worker.find(@worker2.id)
           @_manager = Manager.find(@manager.id)
         end
 
@@ -188,11 +188,11 @@ describe "Cardinality" do
 
       describe "after saving belongs_to" do
         before do
-          @employee2.save # Results in employee1.id = 1001 and employee2.id = 1002 as expected
-          @_employee1 = Employee.find(@employee1.id)
-          @_employee2 = Employee.find(@employee2.id)
+          @worker2.save # Results in worker1.id = 1001 and worker2.id = 1002 as expected
+          @_worker1 = Worker.find(@worker1.id)
+          @_worker2 = Worker.find(@worker2.id)
           @_manager = Manager.find(@manager.id)
-          @_manager.employees.should == [@employee1, @employee2]
+          @_manager.workers.should == [@worker1, @worker2]
         end
 
         behaves_like "before save"
@@ -202,14 +202,14 @@ describe "Cardinality" do
     describe "set belongs_to" do
       before do
         @manager = Manager.new
-        @employee1 = Employee.new
-        @employee2 = Employee.new
-        @employee1.manager = @manager
-        @employee2.manager = @manager
+        @worker1 = Worker.new
+        @worker2 = Worker.new
+        @worker1.manager = @manager
+        @worker2.manager = @manager
       end
 
       it "should assign inverse" do
-        @manager.employees.should == [@employee1, @employee2]
+        @manager.workers.should == [@worker1, @worker2]
       end
 
       behaves_like "before save"
@@ -218,8 +218,8 @@ describe "Cardinality" do
 
     shared "saved has_many" do
       it "should assign inverse" do
-        @employee1.manager.should == @manager
-        @employee2.manager.should == @manager
+        @worker1.manager.should == @manager
+        @worker2.manager.should == @manager
       end
 
       behaves_like "before save"
@@ -229,9 +229,9 @@ describe "Cardinality" do
     describe "set has_many" do
       before do
         @manager = Manager.new
-        @employee1 = Employee.new
-        @employee2 = Employee.new
-        @manager.employees = [@employee1, @employee2]
+        @worker1 = Worker.new
+        @worker2 = Worker.new
+        @manager.workers = [@worker1, @worker2]
       end
 
       behaves_like "saved has_many"
@@ -240,9 +240,9 @@ describe "Cardinality" do
     describe "push has_many" do
       before do
         @manager = Manager.new
-        @employee1 = Employee.new
-        @employee2 = Employee.new
-        @manager.employees_relation.push(@employee1, @employee2)
+        @worker1 = Worker.new
+        @worker2 = Worker.new
+        @manager.workers_relation.push(@worker1, @worker2)
       end
 
       behaves_like "saved has_many"
