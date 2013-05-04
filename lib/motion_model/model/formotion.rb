@@ -44,7 +44,7 @@ module MotionModel
     end
 
     def combine_options(column, hash) #nodoc
-      options = column_named(column).options[:formotion]
+      options = column(column).options[:formotion]
       options ? hash.merge(options) : hash
     end
 

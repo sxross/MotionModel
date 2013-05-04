@@ -184,5 +184,10 @@ module MotionModel
     def add_message(field, message)
       @messages.push({field.to_sym => message})
     end
+
+    # Stub methods for hook protocols
+    def before_validation(sender); end
+    def after_validation(sender);  end
+
   end
 end
