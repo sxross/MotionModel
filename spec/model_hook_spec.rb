@@ -1,5 +1,5 @@
-Object.send(:remove_const, :Task) if defined?(Task)
-class Task
+Object.send(:remove_const, :TaskModelHook) if defined?(TaskModelHook)
+class TaskModelHook
   attr_reader :before_delete_called, :after_delete_called
   attr_reader :before_save_called, :after_save_called
 
@@ -29,7 +29,7 @@ end
 
 describe "lifecycle hooks" do
   describe "delete and destroy" do
-    before{@task = Task.create(:name => 'joe')}
+    before{@task = TaskModelHook.create(:name => 'joe')}
 
     it "calls the before delete hook when delete is called" do
       lambda{@task.delete}.should.change{@task.before_delete_called}
@@ -49,7 +49,7 @@ describe "lifecycle hooks" do
   end
 
   describe "create and save" do
-    before{@task = Task.new(:name => 'joe')}
+    before{@task = TaskModelHook.new(:name => 'joe')}
 
     it "calls before_save hook on save" do
       lambda{@task.save}.should.change{@task.before_save_called}

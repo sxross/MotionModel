@@ -1,5 +1,7 @@
 Motion::Project::App.setup do |app|
-  Dir.glob(File.join(File.dirname(__FILE__), "motion_model/**/*.rb")).each do |file|
-    app.files.unshift(file)
+  %w(*.rb model/*.rb adapters/*.rb).each do |path|
+    Dir.glob(File.expand_path("../../motion/#{path}", __FILE__)).each do |file|
+      app.files.unshift(file)
+    end
   end
 end

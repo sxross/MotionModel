@@ -51,6 +51,12 @@ module MotionModel
       base.instance_eval do
         unless self.respond_to?(:id)
           add_field(:id, :integer)
+
+          attr_accessor :_destroy
+
+          [:save, :delete, :destroy].each do |name|
+            define_hook_methods(name)
+          end
         end
       end
     end
@@ -342,7 +348,6 @@ module MotionModel
       def add_field(name, type, options = {:default => nil}) #nodoc
         name = name.to_sym
         col = Column.new(self, name, type, options)
-
         _column_hashes[col.name] = col
 
         case type
@@ -375,6 +380,17 @@ module MotionModel
         return false if col.nil?
         _col = column(col)
         [:has_many, :has_one, :belongs_to].include?(_col.type)
+      end
+
+      # Stub methods for hook protocols
+      # Default is just to call any defined hooks
+      def define_hook_methods(name)
+        [:before, :after].each do |timing|
+          full_name = "#{timing}_#{name}".to_sym
+          define_method(full_name) do |sender|
+            process_hook(full_name)
+          end #unless respond_to?(full_name)
+        end
       end
 
     end
@@ -484,7 +500,7 @@ module MotionModel
     # This is separated to allow #save to do any transaction handling that might be necessary.
     def save_without_transaction(options = {})
       return false if @deleted
-      call_hooks 'save' do
+      call_hooks :save do
         # Existing object implies update in place
         action = 'add'
         set_auto_date_field 'updated_at'
@@ -508,30 +524,39 @@ module MotionModel
       self.send(method, Time.now) if self.respond_to?(method)
     end
 
-    # Stub methods for hook protocols
-    def before_save(sender); end
-    def after_save(sender);  end
-    def before_delete(sender); end
-    def after_delete(sender); end
-    def before_destroy(sender); end
-    def after_destroy(sender); end
+    def hooks(name)
+      @hooks ||= {}
+      @hooks[name] ||= []
+    end
+
+    def add_hook(name, &block)
+      hooks(name) << block
+    end
+
+    def process_hook(name)
+      continue = true
+      hooks(name).each do |hook|
+        return false if continue == false
+        continue = false if hook.call(self) == false
+      end
+      continue
+    end
 
     def call_hook(hook_name, postfix)
-      hook = "#{hook_name}_#{postfix}"
-      self.send(hook, self)
+      send("#{hook_name}_#{postfix}", self)
     end
 
     def call_hooks(hook_name, &block)
-      result = call_hook('before', hook_name)
+      result = call_hook(:before, hook_name)
       # returning false from a before_ hook stops the process
       result = block.call if result != false && block_given?
-      call_hook('after', hook_name) if result
+      call_hook(:after, hook_name) if result
       result
     end
 
     def delete(options = {})
       return if @deleted
-      call_hooks('delete') do
+      call_hooks(:delete) do
         options = options.dup
         options[:omit_model_identifiers] ||= {}
         options[:omit_model_identifiers][model_identifier] = self
@@ -550,12 +575,14 @@ module MotionModel
     # Note: lifecycle hooks are only called when individual objects
     # are deleted.
     def destroy(options = {})
-      call_hooks 'destroy' do
+      call_hooks :destroy do
         options = options.dup
         options[:omit_model_identifiers] ||= {}
         options[:omit_model_identifiers][model_identifier] = self
         self.class.association_columns.each do |name, col|
           delete_candidates = get_attr(name)
+          delete_candidates = delete_candidates.to_a if
+              defined?(AbstractRelation) && delete_candidates.is_a?(AbstractRelation)
           Array(delete_candidates).each do |candidate|
             next if options[:omit_model_identifiers][candidate.model_identifier]
             if col.dependent == :destroy
@@ -744,6 +771,10 @@ module MotionModel
       else
         self.class.name.underscore.to_sym
       end
+    end
+
+    def destroy?
+      !!@_destroy
     end
 
     private
