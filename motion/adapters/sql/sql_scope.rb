@@ -1,6 +1,8 @@
 module MotionModel
   class SQLScope
 
+    attr_reader :model_class
+
     # For debug
     attr_reader :conditions
 

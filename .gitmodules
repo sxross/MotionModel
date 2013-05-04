@@ -1,3 +1,0 @@
-[submodule "vendor/fmdb"]
-	path = vendor/fmdb
-	url = https://github.com/aceofspades/fmdb

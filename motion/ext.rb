@@ -1,13 +1,3 @@
-MotionSupport::Inflector.inflections do |inflect|
-  inflect.plural    /^(\w+)us$/i, '\1i'
-  inflect.singular  /^(\w+)i$/i, '\1us'
-
-  inflect.singular  /^(\w+)ees$/i, '\1ee'
-  inflect.singular  /^(\w+)es$/i, '\1e'
-  inflect.singular  /^(\w+)sses$/i, '\1ss'
-  inflect.plural    /^(\w+)ss$/i, '\1sses'
-end
-
 class Array
   def empty?
     self.length < 1
