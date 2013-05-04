@@ -1,15 +1,16 @@
 [![Code Climate](https://codeclimate.com/github/sxross/MotionModel.png)](https://codeclimate.com/github/sxross/MotionModel)
 
-MotionModel -- Simple Model, Validation, and Input Mixins for RubyMotion
+MotionModel: Models, Relations, and Validation for RubyMotion
 ================
 
 MotionModel is a DSL for cases where Core Data is too heavy to lift but you are
-still intending to work with your data, its types, and its relations.
+still intending to work with your data, its types, and its relations. It also provides for
+data validation and actually quite a bit more.
 
 File                 | Module                    | Description
 ---------------------|---------------------------|------------------------------------
 **ext.rb**           | N/A                       | Core Extensions that provide a few Rails-like niceties. Nothing new here, moving on...
-**model.rb**         | MotionModel::Model        | You can read about it in "What Model Can Do" but it's a mixin that provides you accessible attributes, row indexing, serialization for persistence, and some other niceties like row counting.
+**model.rb**         | MotionModel::Model        | You should read about it in "[What Model Can Do](#what-model-can-do)". Model is the raison d'etre and the centerpiece of MotionModel.
 **validatable.rb**   | MotionModel::Validatable  | Provides a basic validation framework for any arbitrary class. You can also create custom validations to suit your app's unique needs.
 **input_helpers**    | MotionModel::InputHelpers | Helps hook a collection up to a data form, populate the form, and retrieve the data afterwards. Note: *MotionModel supports Formotion for input handling as well as these input helpers*.
 **formotion.rb**     | MotionModel::Formotion    | Provides an interface between MotionModel and Formotion
@@ -31,7 +32,7 @@ you like with it. See the LICENSE file in this project.
 * [Problems/Comments](#problemscomments)
 * [Submissions/Patches](#submissionspatches)
 
-Most Recent Important Change
+Changes for Existing Users to Be Aware Of
 =================
 
 Please see the CHANGELOG for update on changes.
@@ -61,6 +62,8 @@ or if you are using bundler:
 gem motion_model, "0.3.8"
 ```
 
+Version 0.3.8 was the last that did not separate the model and persistence concerns.
+
 Getting Going
 ================
 
@@ -88,8 +91,15 @@ then put this in your Rakefile after requiring `motion/project`:
 require 'motion_model'
 ```
 
+If you want to use Bundler from `master`, put this in your Gemfile:
 
-What Model Can Do
+```
+gem 'motion_model', :git => 'git@github.com:sxross/MotionModel.git'
+```
+
+Note that in the above construct, Ruby 1.8.x hash keys are used. That's because Apple's System Ruby is 1.8.7 and won't recognize keen new 1.9.x hash syntax.
+
+What MotionModel Can Do
 ================
 
 You can define your models and their schemas in Ruby. For example:
@@ -97,26 +107,30 @@ You can define your models and their schemas in Ruby. For example:
 ```ruby
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
 
   columns :name        => :string,
-          :description => :string,
+          :long_name   => :string,
           :due_date    => :date
 end
 
 class MyCoolController
   def some_method
     @task = Task.create :name => 'walk the dog',
-                :description => 'get plenty of exercise. pick up the poop',
-                :due_date => '2012-09-15'
+                :long_name    => 'get plenty of exercise. pick up the poop',
+                :due_date     => '2012-09-15'
    end
 end
 ```
+
+Side note: The original documentation on this used `description` for the column that is now `long_name`. It turns out Apple reserves `description` so MotionModel saves you the trouble of finding that particular bug by not allowing you to use it for a column name.
 
 Models support default values, so if you specify your model like this, you get defaults:
 
 ```ruby
 class Task
   include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
 
   columns :name     => :string,
           :due_date => {:type => :date, :default => '2012-09-15'}
@@ -131,16 +145,16 @@ class Task
   include MotionModel::Validatable
 
   columns :name        => :string,
-          :description => :string,
+          :long_name   => :string,
           :due_date    => :date
   validates :name => :presence => true
 end
 
 class MyCoolController
   def some_method
-    @task = Task.new :name => 'walk the dog',
-                 :description => 'get plenty of exercise. pick up the poop',
-                 :due_date => '2012-09-15'
+    @task = Task.new :name  => 'walk the dog',
+                 :long_name => 'get plenty of exercise. pick up the poop',
+                 :due_date  => '2012-09-15'
 
     show_scary_warning unless @task.valid?
   end
