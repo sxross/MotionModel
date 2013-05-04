@@ -249,8 +249,10 @@ module MotionModel
         @_column_hashes ||= {}
       end
 
+      # BUGBUG: This appears not to be executed, therefore @_issue_notifications is always nil to begin with.
       @_issue_notifications = true
       def _issue_notifications
+        @_issue_notifications = true if @_issue_notifications.nil?
         @_issue_notifications
       end
 
@@ -737,6 +739,8 @@ module MotionModel
     end
 
     def method_missing(sym, *args, &block)
+      raise NoMethodError.new("undefined method #{sym}") unless sym.to_s =~ /before|after/
+
       if sym.to_s[-1] == '='
         @data["#{sym.to_s.chop}".to_sym] = args.first
         return args.first

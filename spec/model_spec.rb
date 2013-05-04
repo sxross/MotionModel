@@ -205,6 +205,11 @@ describe "Creating a model" do
       lambda{task.bar}.should.raise(NoMethodError)
     end
 
+    it 'raises a NoMethodError exception when an unknown attribute receives an assignment' do
+      task = Task.new
+      lambda{task.bar = 'foo'}.should.raise(NoMethodError)
+    end
+
     it 'successfully retrieves by attribute' do
       task = Task.create(:name => 'my task')
       task.name.should == 'my task'

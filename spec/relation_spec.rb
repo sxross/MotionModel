@@ -69,6 +69,12 @@ describe 'related objects' do
       Assignee.count.should == 1
     end
 
+    it "means the same thing to use assignees or assignees_relation" do
+       a_task = Task.create(:name => 'Walk the Dog')
+       a_task.assignees.create(:assignee_name => 'bob')
+       a_task.assignees.first.assignee_name.should == a_task.assignees_relation.first.assignee_name.should
+    end
+
     describe "supporting has_many" do
       before do
         Task.delete_all

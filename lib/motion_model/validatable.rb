@@ -60,6 +60,9 @@ module MotionModel
     # * First, it triggers validations.
     #
     # * Second, it returns the result of performing the validations.
+    def before_validation(sender); end
+    def after_validation(sender); end
+
     def valid?
       call_hooks 'validation' do
         @messages = []
