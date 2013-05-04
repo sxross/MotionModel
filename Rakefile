@@ -16,6 +16,9 @@ if defined?(MOTION_MODEL_FMDB)
   require 'motion-cocoapods'
 end
 
+$:.unshift(File.expand_path('../lib', __FILE__))
+require 'motion_model'
+
 Motion::Project::App.setup do |app|
   # Use `rake config' to see complete project settings.
   app.name = 'MotionModel'
@@ -29,7 +32,5 @@ Motion::Project::App.setup do |app|
       pod 'FMDB', local: File.expand_path('../vendor/fmdb', __FILE__)
     end
   end
-  app.files += Dir.glob('./lib/motion_model/**/*.rb')
   app.files += Dir.glob('./app/**/*.rb').uniq
-  #app.files.each { |f| puts f }
 end
