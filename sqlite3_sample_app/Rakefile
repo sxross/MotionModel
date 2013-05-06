@@ -2,23 +2,17 @@
 $:.unshift("/Library/RubyMotion/lib")
 require 'motion/project'
 require 'rubygems'
-require 'motion-cocoapods'
+require 'bundler'
+Bundler.require(:default)
 
-# Note: BubbleWrap really shouldn't be a dependency.
-# However NSDate.dateWithNaturalLanguageString in model_casts.rb are apparently defined/included by it somewhere,
-#  and replacing them with NSDateFormatter seemed to break other specs. Leave it alone for now...
-require 'bubble-wrap'
+require 'motion-cocoapods'
 
 $: << File.expand_path('../../lib', __FILE__)
 require 'motion_model'
+require 'motion_model/sql'
+require 'motion_model/fmdb'
 
 Motion::Project::App.setup do |app|
   # Use `rake config' to see complete project settings.
   app.name = 'sqlite3_sample_app'
-  app.pods do
-    # Note: v2.0 podspec is not up to date with master branch at https://github.com/ccgus/fmdb
-    # For now, do "git submodule --update -init" to get a local install
-    #pod 'FMDB'
-    pod 'FMDB', local: File.expand_path('../../vendor/fmdb', __FILE__)
-  end
 end
