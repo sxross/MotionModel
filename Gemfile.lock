@@ -1,3 +1,9 @@
+PATH
+  remote: .
+  specs:
+    motion_model (0.4.3)
+      motion-support (>= 0.2.2)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -28,7 +34,7 @@ GEM
       cocoapods (>= 0.14.0)
     motion-require (0.0.6)
     motion-stump (0.2.1)
-    motion-support (0.2.0)
+    motion-support (0.2.2)
       motion-require (>= 0.0.6)
     multi_json (1.7.2)
     multipart-post (1.2.0)
@@ -53,5 +59,6 @@ DEPENDENCIES
   cocoapods (~> 0.16.4)
   motion-cocoapods (= 1.2.1)
   motion-stump (~> 0.2)
-  motion-support
+  motion-support (>= 0.2.2)
+  motion_model!
   rake
