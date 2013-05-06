@@ -26,6 +26,7 @@ module MotionModel
 
     describe "after inserting one record" do
       before do
+        Record.delete_all
         @alpha.save
       end
 
