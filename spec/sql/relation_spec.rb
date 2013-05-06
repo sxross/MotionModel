@@ -22,7 +22,7 @@
 #    columns side: {type: :boolean}
 #  end
 #
-#  MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: true))
+#  MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: false))
 #  Dog.create_table(drop: true)
 #  Tail.create_table(drop: true)
 #  Leg.create_table(drop: true)
