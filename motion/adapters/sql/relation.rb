@@ -148,6 +148,7 @@ module MotionModel
       args.each do |instance|
         set_inverse_association(instance) unless options[:set_inverse] == false
         collection.collection_push(instance) unless collection.include?(instance)
+        @owner.reload_through_relations(@column)
       end
       self
     end
@@ -167,6 +168,20 @@ module MotionModel
       current
     end
 
+    def reload
+      @collection = nil
+      if @column.through
+        relation = @owner.send(:relation, @column.through)
+        if relation.loaded?
+          column_name = relation.associated_class.foreign_association(associated_class)
+          @collection = relation.to_a.map { |o| o.send(column_name) }
+        end
+      end
+      @collection ||= RelationArray.build(self, scoped.to_a)
+      @loaded = true
+      @collection
+    end
+
     private
 
     def collection
@@ -182,12 +197,6 @@ module MotionModel
       @collection = RelationArray.build(self, collection)
     end
     alias_method :'collection=', :set_collection
-
-    def reload
-      @collection = RelationArray.build(self, scoped.to_a)
-      @loaded = true
-      @collection
-    end
 
   end
 
@@ -212,6 +221,7 @@ module MotionModel
     def set_instance(instance, options = {})
       @instance = instance
       set_inverse_association(instance) unless options[:set_inverse] == false
+      @owner.reload_through_relations(@column)
       @loaded = true
     end
     alias_method :'instance=', :set_instance
@@ -226,20 +236,16 @@ module MotionModel
       @instance = nil
     end
 
-    private
-
     def reload
+      @instance = nil
       if @column.through
-        association = @owner.send(@column.through)
-        if association.loaded?
-          column_name = association.associated_class.foreign_association(associated_class)
-          @instance = association.send(column_name)
-        else
-          @instance = scoped.first
+        relation = @owner.send(:relation, @column.through)
+        if relation.loaded?
+          column_name = relation.associated_class.foreign_association(associated_class)
+          @instance = relation.send(column_name)
         end
-      else
-        @instance= scoped.first
       end
+      @instance ||= scoped.first
       @loaded = true
       @instance
     end

@@ -268,10 +268,6 @@ module MotionModel
       def rebuild_relation(col, instance_or_collection, options = {}) # nodoc
         _col = column(col)
 
-        # TODO is this necessary any longer?
-        # try_plural true when called from the belongs_to side, which won't know if relation is singular or plural
-        #_col ||= column(col.to_s.pluralize.to_sym) if col.is_a?(Symbol) && try_plural
-
         # Called from :belongs_to side, which won't know if this is :has_one or :has_many
         rel = relation(_col)
         case _col.type
@@ -280,14 +276,28 @@ module MotionModel
         when :has_one
           rel.set_instance(instance_or_collection, options.slice(:set_inverse))
         when :has_many
-          rel.push(instance_or_collection, options.slice(:set_inverse))  #.loaded
+          rel.push(instance_or_collection, options.slice(:set_inverse))
         end unless instance_or_collection.nil?
+
+        reload_through_relations(_col)
+      end
+
+      # Reload any relations that are through this one
+      def reload_through_relations(col)
+        _col = column(col)
+        _column_hashes.each do |name, other_col|
+          reload_relation(other_col) if other_col.through == _col.name
+        end
       end
 
       def unload_relation(col)
         _col = column(col)
-        rel = relation(_col)
-        rel.unload
+        relation(_col).unload
+      end
+
+      def reload_relation(col)
+        _col = column(col)
+        relation(_col).reload
       end
 
       def push_relation(col, *instances) # nodoc
