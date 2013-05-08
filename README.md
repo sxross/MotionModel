@@ -1,4 +1,4 @@
-[![Code Climate](https://codeclimate.com/github/sxross/MotionModel.png)](https://codeclimate.com/github/sxross/MotionModel)
+[![Code Climate](https://codeclimate.com/github/sxross/MotionModel.png)](https://codeclimate.com/github/sxross/MotionModel)[![Build Status](https://travis-ci.org/sxross/MotionModel.png)](https://travis-ci.org/sxross]/MotionModel)
 
 MotionModel: Models, Relations, and Validation for RubyMotion
 ================
