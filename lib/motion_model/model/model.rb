@@ -782,22 +782,8 @@ module MotionModel
     end
 
     def method_missing(sym, *args, &block)
-      raise NoMethodError.new("undefined method #{sym}") unless sym.to_s =~ /before|after/
-
-      if sym.to_s[-1] == '='
-        @data["#{sym.to_s.chop}".to_sym] = args.first
-        return args.first
-      else
-        return @data[sym] if @data && @data.has_key?(sym)
-      end
+      return @data[sym] if sym.to_s[-1] != '=' && @data && @data.has_key?(sym)
       super
-      begin
-        r = super
-      rescue NoMethodError => exc
-        unless exc.to_s =~ /undefined method `(?:before|after)_/
-          raise
-        end
-      end
     end
 
   end
