@@ -59,7 +59,7 @@ module MotionModel
 
       def new(options = {})
         object_class = options[:inheritance_type] ? Kernel.const_get(options[:inheritance_type]) : self
-        object_class.alloc.instance_eval do
+        object_class.allocate.instance_eval do
           initialize(options)
           self
         end
@@ -310,7 +310,7 @@ module MotionModel
       end
 
       def define_accessor_methods(name, type, options = {}) #nodoc
-        define_method(name.to_sym)        { _get_attr(name) } unless alloc.respond_to?(name)
+        define_method(name.to_sym)        { _get_attr(name) } unless allocate.respond_to?(name)
         define_method("#{name}=".to_sym)  { |v| _set_attr(name, v) }
       end
 
