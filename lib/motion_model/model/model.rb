@@ -766,7 +766,10 @@ module MotionModel
       self.class.send(:has_relation?, col)
     end
 
-    def rebuild_relation(column_name, instance_or_collection, options = {}) # nodoc
+    def rebuild_relation(col, instance_or_collection, options = {}) # nodoc
+    end
+
+    def unload_relation(col)
     end
 
     def initialize_data_columns(column, value) #nodoc
