@@ -1,0 +1,5 @@
+language: objective-c
+before_install: ruby --version
+rvm:
+  - "1.9.3"
+script: bundle exec rake spec

@@ -65,7 +65,7 @@ module MotionModel
 
       def new(options = {})
         object_class = options[:inheritance_type] ? Kernel.const_get(options[:inheritance_type]) : self
-        object_class.alloc.instance_eval do
+        object_class.allocate.instance_eval do
           initialize(options)
           self
         end
@@ -261,8 +261,10 @@ module MotionModel
         @_column_hashes ||= {}
       end
 
+      # BUGBUG: This appears not to be executed, therefore @_issue_notifications is always nil to begin with.
       @_issue_notifications = true
       def _issue_notifications
+        @_issue_notifications = true if @_issue_notifications.nil?
         @_issue_notifications
       end
 
@@ -314,7 +316,7 @@ module MotionModel
       end
 
       def define_accessor_methods(name, type, options = {}) #nodoc
-        define_method(name.to_sym)        { _get_attr(name) } unless alloc.respond_to?(name)
+        define_method(name.to_sym)        { _get_attr(name) } unless allocate.respond_to?(name)
         define_method("#{name}=".to_sym)  { |v| _set_attr(name, v) }
       end
 
@@ -795,7 +797,10 @@ module MotionModel
       self.class.send(:has_relation?, col)
     end
 
-    def rebuild_relation(column_name, instance_or_collection, options = {}) # nodoc
+    def rebuild_relation(col, instance_or_collection, options = {}) # nodoc
+    end
+
+    def unload_relation(col)
     end
 
     def initialize_data_columns(column, value) #nodoc
@@ -811,20 +816,8 @@ module MotionModel
     end
 
     def method_missing(sym, *args, &block)
-      if sym.to_s[-1] == '='
-        @data["#{sym.to_s.chop}".to_sym] = args.first
-        return args.first
-      else
-        return @data[sym] if @data && @data.has_key?(sym)
-      end
+      return @data[sym] if sym.to_s[-1] != '=' && @data && @data.has_key?(sym)
       super
-      begin
-        r = super
-      rescue NoMethodError => exc
-        unless exc.to_s =~ /undefined method `(?:before|after)_/
-          raise
-        end
-      end
     end
 
   end
