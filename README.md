@@ -20,7 +20,7 @@ MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
 
 * [Getting Going](#getting-going)
-* [Bugs, Features, and Issues, Oh My!](bugs-features-and-issues-oh-my)
+* [Bugs, Features, and Issues, Oh My!](#bugs-features-and-issues-oh-my)
 * [What Model Can Do](#what-model-can-do)
 * [Model Data Types](#model-data-types)
 * [Validation Methods](#validation-methods)
