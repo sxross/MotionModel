@@ -21,9 +21,11 @@ module MotionModel
     def cast_to_date(arg)
       case arg
         when String
-          return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+          return arg.to_date
+          # return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
         when Time
-          return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+          return arg
+          # return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
         else
           return arg
       end
