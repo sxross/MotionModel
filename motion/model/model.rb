@@ -630,13 +630,14 @@ module MotionModel
     end
 
     def set_attr(name, value)
-      send("#{name}=", value)
+      method = "#{name}=".to_sym
+      respond_to?(method) ? send(method, value) : _set_attr(name, value)
     end
 
     def _set_attr(name, value)
       name = name.to_sym
       old_value = @data[name]
-      new_value = relation_column?(name) ? value : cast_to_type(name, value)
+      new_value = !column(name) || relation_column?(name) ? value : cast_to_type(name, value)
       if new_value != old_value
         @data[name] = new_value
         @dirty = true
