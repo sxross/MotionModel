@@ -148,15 +148,15 @@ module MotionModel
     alias_method :not_equal, :ne
     
     ########### accessor methods #########
-    
-    # returns first element that matches.
-    def first
-      @collection.first
+
+    # returns first element or count elements that matches.
+    def first(count = 1)
+      count > 1 ? @collection.first(count) : @collection.first
     end
-    
-    # returns last element that matches.
-    def last
-      @collection.last
+
+    # returns last element or count elements that matches.
+    def last(count = 1)
+      count > 1 ? @collection.last(count) : @collection.last
     end
     
     # returns all elements that match as an array.

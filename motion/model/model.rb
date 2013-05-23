@@ -226,14 +226,14 @@ module MotionModel
         # Note collection is not emptied, and next_id is not reset.
       end
 
-      # Retrieves first row of query
-      def first
-        all.first
+      # Retrieves first row or count rows of query
+      def first(count = 1)
+        count > 1 ? all.first(count) : all.first
       end
 
-      # Retrieves last row of query
-      def last
-        all.last
+      # Retrieves last row or count rows of query
+      def last(count = 1)
+        count > 1 ? all.last(count) : all.last
       end
 
       def each(&block)
