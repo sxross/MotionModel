@@ -150,13 +150,13 @@ module MotionModel
     ########### accessor methods #########
 
     # returns first element or count elements that matches.
-    def first(count = 1)
-      count > 1 ? @collection.first(count) : @collection.first
+    def first(*args)
+      to_a.send(:first, *args)
     end
 
     # returns last element or count elements that matches.
-    def last(count = 1)
-      count > 1 ? @collection.last(count) : @collection.last
+    def last(*args)
+      to_a.send(:last, *args)
     end
     
     # returns all elements that match as an array.
@@ -166,7 +166,7 @@ module MotionModel
     
     # returns all elements that match as an array.
     def to_a
-      @collection
+      @collection || []
     end
 
     # each is a shortcut method to turn a query into an iterator. It allows

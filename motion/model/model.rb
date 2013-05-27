@@ -227,13 +227,13 @@ module MotionModel
       end
 
       # Retrieves first row or count rows of query
-      def first(count = 1)
-        count > 1 ? all.first(count) : all.first
+      def first(*args)
+        all.send(:first, *args)
       end
 
       # Retrieves last row or count rows of query
-      def last(count = 1)
-        count > 1 ? all.last(count) : all.last
+      def last(*args)
+        all.send(:last, *args)
       end
 
       def each(&block)
