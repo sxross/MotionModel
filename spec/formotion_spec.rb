@@ -57,7 +57,7 @@ describe "formotion" do
   it "binds data from rendered form into model fields" do
     @subject.from_formotion!({:name => '007 Reunion', :date => 1358197323, :location => "Q's Lab"})
     @subject.name.should == '007 Reunion'
-    @subject.date.strftime("%Y-%m-%d %H:%M").should == '2013-01-14 13:02'
+    @subject.date.utc.strftime("%Y-%m-%d %H:%M").should == '2013-01-14 21:02'
     @subject.location.should == "Q's Lab"
   end
 
