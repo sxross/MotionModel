@@ -675,7 +675,7 @@ To initialize a form from a model in your controller:
 @form_controller = MyFormController.alloc.initWithForm(@form)
 ```
 
-The magic is in: `MotionModel::Model#to_formotion(section_header)`.
+The magic is in: `MotionModel::Model#to_formotion(form_title)`.
 
 The auto_date fields `created_at` and `updated_at` are not sent to
 Formotion by default. If you want them sent to Formotion, set the

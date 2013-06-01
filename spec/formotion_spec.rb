@@ -42,12 +42,12 @@ describe "formotion" do
     @subject.to_formotion.should.not.be.nil
   end
 
-  it "has the correct section title" do
-    @subject.to_formotion('test section')[:sections].first[:title].should == 'test section'
+  it "has the correct form title" do
+    @subject.to_formotion('test form')[:title].should == 'test form'
   end
 
   it "has 3 rows" do
-    @subject.to_formotion('test section')[:sections].first[:rows].length.should == 3
+    @subject.to_formotion[:sections].first[:rows].length.should == 3
   end
 
   it "value of name row is 'get together'" do

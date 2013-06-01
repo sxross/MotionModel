@@ -53,16 +53,16 @@ module MotionModel
     # and <tt>updated_at</tt> are suppressed. If you want these shown in
     # your Formotion form, set <tt>expose_auto_date_fields</tt> to <tt>true</tt>
     #
-    # If you want a title for your Formotion form, set the <tt>section_title</tt>
+    # If you want a title for your Formotion form, set the <tt>form_title</tt>
     # argument to a string that will become that title.
-    def to_formotion(section_title = nil, expose_auto_date_fields = false)
+    def to_formotion(form_title = nil, expose_auto_date_fields = false)
       @expose_auto_date_fields = expose_auto_date_fields
       form = {
         sections: [{}]
       }
+      form[:title] ||= form_title
 
       section = form[:sections].first
-      section[:title] ||= section_title
       section[:rows] = []
 
       returnable_columns.each do |column|
