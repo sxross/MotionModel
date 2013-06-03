@@ -65,12 +65,13 @@ module MotionModel
     #
     # If you want a title for your Formotion form, set the <tt>form_title</tt>
     # argument to a string that will become that title.
-    def to_formotion(form_title = nil, expose_auto_date_fields = false)
+    def to_formotion(form_title = nil, expose_auto_date_fields = false, first_section_title = nil)
       @expose_auto_date_fields = expose_auto_date_fields
 
       sections = {
         default: {rows: []}
       }
+      sections[:default][:title] ||= first_section_title
       if respond_to? 'formotion_sections'
         formotion_sections.each do |k,v|
           sections[k] = v
