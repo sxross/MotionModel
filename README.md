@@ -694,6 +694,26 @@ On the flip side you do something like this in your Formotion submit handler:
 This performs sets on each field. You'll, of course, want to check your
 validations before dismissing the form.
 
+Moreover, Formotion support allows you to split one model fields in sections.
+By default all fields are put in a single untitled section. Here is a complete
+example:
+
+```ruby
+class Event
+  include MotionModel::Model
+  include MotionModel::Formotion  # <== Formotion support
+
+  columns :name => :string,
+          :date => {:type => :date, :formotion => {:picker_type => :date_time}},
+          :location => {:type => :string, :formotion => {:section => :address}}
+
+  has_formotion_sections :address => {:title => "Address"}
+end
+```
+
+This will create a form with the `name` and `date` fields presented first, then a
+section titled 'Address' will contain the `location` field.
+
 Problems/Comments
 ------------------
 
