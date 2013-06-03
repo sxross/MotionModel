@@ -714,6 +714,16 @@ end
 This will create a form with the `name` and `date` fields presented first, then a
 section titled 'Address' will contain the `location` field.
 
+If you want to add a title to the first section, use the `:default` symbol:
+
+```ruby
+class Event
+  [.snip.]
+  has_formotion_sections :default => {:title => "Event"},
+                         :address => {:title => "Address"}
+end
+```
+
 Problems/Comments
 ------------------
 
