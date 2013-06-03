@@ -1,5 +1,15 @@
 module MotionModel
   module Formotion
+    def self.included(base)
+      base.extend(PublicClassMethods)
+    end
+    module PublicClassMethods
+      def has_formotion_sections(sections = {})
+        define_method( "formotion_sections") do
+          sections
+        end
+      end
+    end
     FORMOTION_MAP = {
       :string   => :string,
       :date     => :date,
@@ -53,22 +63,40 @@ module MotionModel
     # and <tt>updated_at</tt> are suppressed. If you want these shown in
     # your Formotion form, set <tt>expose_auto_date_fields</tt> to <tt>true</tt>
     #
-    # If you want a title for your Formotion form, set the <tt>section_title</tt>
+    # If you want a title for your Formotion form, set the <tt>form_title</tt>
     # argument to a string that will become that title.
-    def to_formotion(section_title = nil, expose_auto_date_fields = false)
+    def to_formotion(form_title = nil, expose_auto_date_fields = false, first_section_title = nil)
       @expose_auto_date_fields = expose_auto_date_fields
-      form = {
-        sections: [{}]
-      }
 
-      section = form[:sections].first
-      section[:title] ||= section_title
-      section[:rows] = []
+      sections = {
+        default: {rows: []}
+      }
+      if respond_to? 'formotion_sections'
+        formotion_sections.each do |k,v|
+          sections[k] = v
+          sections[k][:rows] = []
+        end
+      end
+      sections[:default][:title] ||= first_section_title
 
       returnable_columns.each do |column|
         value = value_for(column)
         h = default_hash_for(column, value)
-        section[:rows].push(combine_options(column, h))
+        s = column(column).options[:formotion] ? column(column).options[:formotion][:section] : nil
+        if s
+          sections[s] ||= {}
+          sections[s][:rows].push(combine_options(column,h))
+        else
+          sections[:default][:rows].push(combine_options(column, h))
+        end
+      end
+
+      form = {
+        sections: []
+      }
+      form[:title] ||= form_title
+      sections.each do |k,section|
+        form[:sections] << section
       end
       form
     end

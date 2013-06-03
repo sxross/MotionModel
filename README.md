@@ -675,7 +675,7 @@ To initialize a form from a model in your controller:
 @form_controller = MyFormController.alloc.initWithForm(@form)
 ```
 
-The magic is in: `MotionModel::Model#to_formotion(section_header)`.
+The magic is in: `MotionModel::Model#to_formotion(form_title)`.
 
 The auto_date fields `created_at` and `updated_at` are not sent to
 Formotion by default. If you want them sent to Formotion, set the
@@ -693,6 +693,33 @@ On the flip side you do something like this in your Formotion submit handler:
 
 This performs sets on each field. You'll, of course, want to check your
 validations before dismissing the form.
+
+Moreover, Formotion support allows you to split one model fields in sections.
+By default all fields are put in a single untitled section. Here is a complete
+example:
+
+```ruby
+class Event
+  include MotionModel::Model
+  include MotionModel::Formotion  # <== Formotion support
+
+  columns :name => :string,
+          :date => {:type => :date, :formotion => {:picker_type => :date_time}},
+          :location => {:type => :string, :formotion => {:section => :address}}
+
+  has_formotion_sections :address => {:title => "Address"}
+end
+```
+
+This will create a form with the `name` and `date` fields presented first, then a
+section titled 'Address' will contain the `location` field.
+
+If you want to add a title to the first section, provide a :first_section_title
+argument to `to_formotion`:
+
+```ruby
+@form = Formotion::Form.new(@event.to_formotion('event details', true, 'First Section Title'))
+```
 
 Problems/Comments
 ------------------
