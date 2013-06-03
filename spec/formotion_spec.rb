@@ -6,11 +6,14 @@ class ModelWithOptions
 
   columns :name => :string,
           :date => {:type => :date, :formotion => {:picker_type => :date_time}},
-          :location => :string,
+          :location => {:type => :string, :formotion => {:section => :address}},
           :created_at => :date,
           :updated_at => :date
 
   has_many :related_models
+
+  has_formotion_sections :address => { title: "Address" }
+
 end
 
 class RelatedModel
@@ -46,8 +49,28 @@ describe "formotion" do
     @subject.to_formotion('test form')[:title].should == 'test form'
   end
 
-  it "has 3 rows" do
-    @subject.to_formotion[:sections].first[:rows].length.should == 3
+  it "has two sections" do
+    @subject.to_formotion[:sections].length.should == 2
+  end
+
+  it "has 2 rows in default section" do
+    @subject.to_formotion[:sections].first[:rows].length.should == 2
+  end
+
+  it "does not include title in the default section" do
+    @subject.to_formotion[:sections].first[:title].should == nil
+  end
+
+  it "does include title in the :address section" do
+    @subject.to_formotion[:sections][1][:title].should == 'Address'
+  end
+
+  it "has 1 row in :address section" do
+    @subject.to_formotion[:sections][1][:rows].length.should == 1
+  end
+
+  it "value of location row in :address section is 'my house'" do
+    @subject.to_formotion[:sections][1][:rows].first[:value].should == 'my house'
   end
 
   it "value of name row is 'get together'" do

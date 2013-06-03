@@ -1,5 +1,15 @@
 module MotionModel
   module Formotion
+    def self.included(base)
+      base.extend(PublicClassMethods)
+    end
+    module PublicClassMethods
+      def has_formotion_sections(sections = {})
+        define_method( "formotion_sections") do
+          sections
+        end
+      end
+    end
     FORMOTION_MAP = {
       :string   => :string,
       :date     => :date,
@@ -57,18 +67,33 @@ module MotionModel
     # argument to a string that will become that title.
     def to_formotion(form_title = nil, expose_auto_date_fields = false)
       @expose_auto_date_fields = expose_auto_date_fields
-      form = {
-        sections: [{}]
-      }
-      form[:title] ||= form_title
 
-      section = form[:sections].first
-      section[:rows] = []
+      sections = {
+        default: {rows: []}
+      }
+      formotion_sections.each do |k,v|
+        sections[k] = v
+        sections[k][:rows] = []
+      end
 
       returnable_columns.each do |column|
         value = value_for(column)
         h = default_hash_for(column, value)
-        section[:rows].push(combine_options(column, h))
+        s = column(column).options[:formotion] ? column(column).options[:formotion][:section] : nil
+        if s
+          sections[s] ||= {}
+          sections[s][:rows].push(combine_options(column,h))
+        else
+          sections[:default][:rows].push(combine_options(column, h))
+        end
+      end
+
+      form = {
+        sections: []
+      }
+      form[:title] ||= form_title
+      sections.each do |k,section|
+        form[:sections] << section
       end
       form
     end
