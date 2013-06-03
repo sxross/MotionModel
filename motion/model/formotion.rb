@@ -71,9 +71,11 @@ module MotionModel
       sections = {
         default: {rows: []}
       }
-      formotion_sections.each do |k,v|
-        sections[k] = v
-        sections[k][:rows] = []
+      if respond_to? 'formotion_sections'
+        formotion_sections.each do |k,v|
+          sections[k] = v
+          sections[k][:rows] = []
+        end
       end
 
       returnable_columns.each do |column|
