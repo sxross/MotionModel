@@ -65,6 +65,11 @@ module MotionModel
         end
       end
 
+      def inherited(base_class)
+        p "inherited from #{base_class}"
+        @_column_hashes = base_class._column_hashes.dup
+      end
+
       # Use to do bulk insertion, updating, or deleting without
       # making repeated calls to a delegate. E.g., when syncing
       # with an external data source.
