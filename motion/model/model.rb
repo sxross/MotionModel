@@ -250,9 +250,21 @@ module MotionModel
 
       private
 
+      attr_accessor :abstract_class
+
+      def config
+        @config ||= begin
+          if !superclass.ancestors.include?(MotionModel::Model) || superclass.abstract_class
+            {}
+          else
+            superclass.send(:config).dup
+          end
+        end
+      end
+
       # Hashes to for quick column lookup
       def _column_hashes
-        @_column_hashes ||= {}
+        config[:column_hashes] ||= {}
       end
 
       # BUGBUG: This appears not to be executed, therefore @_issue_notifications is always nil to begin with.
