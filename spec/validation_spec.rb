@@ -41,6 +41,12 @@ describe "validations" do
         "incorrect value supplied for name -- should be non-empty."
     end
 
+    it "contains multiple error messages if name and some_float are blank" do
+      task = ValidatableTask.new(@valid_tasks.except(:name, :some_float))
+      task.valid?
+      task.error_messages.length.should == 2
+    end
+
     it "is true if name is filled in" do
       task = ValidatableTask.create(@valid_tasks.except(:name))
       task.name = 'bob'
