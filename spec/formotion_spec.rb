@@ -6,11 +6,14 @@ class ModelWithOptions
 
   columns :name => :string,
           :date => {:type => :date, :formotion => {:picker_type => :date_time}},
-          :location => :string,
+          :location => {:type => :string, :formotion => {:section => :address}},
           :created_at => :date,
           :updated_at => :date
 
   has_many :related_models
+
+  has_formotion_sections :address => { title: "Address" }
+
 end
 
 class RelatedModel
@@ -42,12 +45,32 @@ describe "formotion" do
     @subject.to_formotion.should.not.be.nil
   end
 
-  it "has the correct section title" do
-    @subject.to_formotion('test section')[:sections].first[:title].should == 'test section'
+  it "has the correct form title" do
+    @subject.to_formotion('test form')[:title].should == 'test form'
   end
 
-  it "has 3 rows" do
-    @subject.to_formotion('test section')[:sections].first[:rows].length.should == 3
+  it "has two sections" do
+    @subject.to_formotion[:sections].length.should == 2
+  end
+
+  it "has 2 rows in default section" do
+    @subject.to_formotion[:sections].first[:rows].length.should == 2
+  end
+
+  it "does not include title in the default section" do
+    @subject.to_formotion[:sections].first[:title].should == nil
+  end
+
+  it "does include title in the :address section" do
+    @subject.to_formotion[:sections][1][:title].should == 'Address'
+  end
+
+  it "has 1 row in :address section" do
+    @subject.to_formotion[:sections][1][:rows].length.should == 1
+  end
+
+  it "value of location row in :address section is 'my house'" do
+    @subject.to_formotion[:sections][1][:rows].first[:value].should == 'my house'
   end
 
   it "value of name row is 'get together'" do
@@ -57,7 +80,7 @@ describe "formotion" do
   it "binds data from rendered form into model fields" do
     @subject.from_formotion!({:name => '007 Reunion', :date => 1358197323, :location => "Q's Lab"})
     @subject.name.should == '007 Reunion'
-    @subject.date.strftime("%Y-%m-%d %H:%M").should == '2013-01-14 13:02'
+    @subject.date.utc.strftime("%Y-%m-%d %H:%M").should == '2013-01-14 21:02'
     @subject.location.should == "Q's Lab"
   end
 

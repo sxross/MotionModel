@@ -20,6 +20,7 @@ MotionModel is MIT licensed, which means you can pretty much do whatever
 you like with it. See the LICENSE file in this project.
 
 * [Getting Going](#getting-going)
+* [Bugs, Features, and Issues, Oh My!](#bugs-features-and-issues-oh-my)
 * [What Model Can Do](#what-model-can-do)
 * [Model Data Types](#model-data-types)
 * [Validation Methods](#validation-methods)
@@ -32,10 +33,39 @@ you like with it. See the LICENSE file in this project.
 * [Problems/Comments](#problemscomments)
 * [Submissions/Patches](#submissionspatches)
 
+## Bugs, Features, and Issues, Oh My!
+
+The reason this is up front here is that in order to respond to your issues
+we need you to help us out by reading these guidelines. You can also look at
+[Submissions/Patches](#submissionspatches) near the bottom of this README
+which restates a bit of this.
+
+That said, all software has bugs, and anyone who thinks otherwise probably is smarter than I am. There are going to be edge cases or cases that our tests don't cover. And that's why open source is great: other people will run into issues we can fix. Other people will have needs we don't have but that are of general utility. And so on.
+
+But… fair is fair. We would make the following requests of you:
+
+* Debug the code as far as you can. Obviously, there are times when you just won't be able to see what's wrong or where there's some squirrely interaction with RubyMotion.
+* If you are comfortable with the MotionModel code, please try to write a spec that makes it fail and submit a pull request with that failing spec. The isolated test case helps us narrow down what changed and to know when we have the issue fixed. Two things make this even better:
+    1. Our specs become more comprehensive; and
+    2. If the issue is an interaction between MotionModel and RubyMotion, it's easier to pass along to HipByte and have a spec they can use for a quick hitting test case. Even better, fix the bug and submit that fix *and* the spec in a pull request.
+* If you are not comfortable with the MotionModel code, then go ahead and describe the issue in as much detail as possible, including backtraces from the debugger, if appropriate.
+
+Now, I've belabored the point about bug reporting enough. The point is, if you possibly can, write a spec.
+
+Issues: Please mark your issues as questions or feature requests, depending on which they are. We'll do all we can to review them and answer questions as quickly as possible. For feature requests, you really can implement the feature in many cases and then submit a pull request. If not, we'll leave it open for consideration in future releases.
+
+### Summary
+
+Bugs: Please write a failing spec
+
+Issues: Please mark them as question or request
+
 Changes for Existing Users to Be Aware Of
 =================
 
 Please see the CHANGELOG for update on changes.
+
+Version 0.4.4 is the first version to be gem-compatible with RubyMotion 2.0
 
 Version 0.3.8 to 0.4.0 is a minor version bump, not a patch version. Upgrading
 to 0.4.0 *will break existing code*. To update your code, simply insert the following line:
@@ -645,7 +675,7 @@ To initialize a form from a model in your controller:
 @form_controller = MyFormController.alloc.initWithForm(@form)
 ```
 
-The magic is in: `MotionModel::Model#to_formotion(section_header)`.
+The magic is in: `MotionModel::Model#to_formotion(form_title)`.
 
 The auto_date fields `created_at` and `updated_at` are not sent to
 Formotion by default. If you want them sent to Formotion, set the
@@ -663,6 +693,33 @@ On the flip side you do something like this in your Formotion submit handler:
 
 This performs sets on each field. You'll, of course, want to check your
 validations before dismissing the form.
+
+Moreover, Formotion support allows you to split one model fields in sections.
+By default all fields are put in a single untitled section. Here is a complete
+example:
+
+```ruby
+class Event
+  include MotionModel::Model
+  include MotionModel::Formotion  # <== Formotion support
+
+  columns :name => :string,
+          :date => {:type => :date, :formotion => {:picker_type => :date_time}},
+          :location => {:type => :string, :formotion => {:section => :address}}
+
+  has_formotion_sections :address => {:title => "Address"}
+end
+```
+
+This will create a form with the `name` and `date` fields presented first, then a
+section titled 'Address' will contain the `location` field.
+
+If you want to add a title to the first section, provide a :first_section_title
+argument to `to_formotion`:
+
+```ruby
+@form = Formotion::Form.new(@event.to_formotion('event details', true, 'First Section Title'))
+```
 
 Problems/Comments
 ------------------

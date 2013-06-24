@@ -55,7 +55,23 @@ describe 'finders' do
       atask = Task.create(:name => 'find me', :details => "details 1")
       found_task = Task.where(:details).contain("s 1").first.details.should == 'details 1'
     end
-      
+
+    it 'should returns first 5 results for where call' do
+      Task.where(:name).contains('task').first(5).length.should == 5
+    end
+
+    it 'should returns last 5 results for where call' do
+      Task.where(:name).contains('task').last(5).length.should == 5
+    end
+
+    it 'should returns first element for where call' do
+      Task.where(:name).contains('task').first.should.is_a Task
+    end
+
+    it 'should returns last element for where call' do
+      Task.where(:name).contains('task').last.should.is_a Task
+    end
+
     it "performs set inclusion(in) queries" do
       class InTest
         include MotionModel::Model
@@ -70,7 +86,7 @@ describe 'finders' do
       results = InTest.find(:id).in([3, 5, 7])
       results.length.should == 3
     end
-      
+
     it 'handles case-sensitive queries' do
       task = Task.create :name => 'Bob'
       Task.find(:name).eq('bob', :case_sensitive => true).all.length.should == 0
@@ -87,6 +103,29 @@ describe 'finders' do
         task_id.should.<(task.id) if task_id
         task_id = task.id
       end
+    end
+
+    it 'should returns first 5 members of the collection as an array' do
+      Task.first(5).length.should.equal(5)
+    end
+
+    it 'should returns last 5 members of the collection as an array' do
+      Task.last(5).length.should.equal(5)
+    end
+
+    it 'should be a difference between first and last element' do
+      first_records = Task.first(5)
+      last_records = Task.last(5)
+
+      first_records[0].should.not == last_records[0]
+    end
+
+    it 'should returns first element' do
+      Task.first.should.is_a Task
+    end
+
+    it 'should returns last element' do
+      Task.last.should.is_a Task
     end
       
     describe 'block-style finders' do
