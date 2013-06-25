@@ -7,12 +7,11 @@ module MotionModel
     columns :name, :type
   end
 
-  MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: false))
-  Record.create_table
-
   describe "Basic SQL DB operations" do
 
     before do
+      MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset: true, ns_log: false))
+      Record.create_table
       @alpha = Record.new(id: 123, name: "alpha", type: "bravo")
     end
 

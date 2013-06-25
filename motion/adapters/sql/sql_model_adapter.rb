@@ -74,6 +74,10 @@ module MotionModel
         count == 0
       end
 
+      def select(*args)
+        default_scope.select(*args)
+      end
+
       def where(*args)
         default_scope.where(*args)
       end
