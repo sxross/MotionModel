@@ -32,7 +32,8 @@ module MotionModel
     end
 
     def cast_to_array(arg)
-      Array(arg)
+      array=*arg
+      array
     end
 
     def cast_to_hash(arg)
