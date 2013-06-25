@@ -49,7 +49,7 @@ begin
   end
 end
 
-MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: false))
+MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset: true, ns_log: false))
 MODELS = [Worker, Office, Manager, Assignment, Programmer, Project]
 id = 0
 MODELS.each do |model|

@@ -28,7 +28,7 @@
 #  has_one :king
 #end
 #
-#MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: false))
+#MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset: true, ns_log: false))
 #Dog.create_table(drop: true)
 #Tail.create_table(drop: true)
 #Leg.create_table(drop: true)
