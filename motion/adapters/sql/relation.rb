@@ -103,6 +103,12 @@ module MotionModel
         @relation.build(attrs)
       end
 
+      def create(attrs = {})
+        build(attrs).tap do |relation|
+          relation.save
+        end
+      end
+
     end
 
     def initialize(owner, column, associated_class, scope, collection = nil)
