@@ -26,6 +26,8 @@ module MotionModel
         when Time, NSDate
           return arg
           # return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+        when Integer
+          Time.at(arg)
         else
           return arg
       end

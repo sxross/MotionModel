@@ -3,7 +3,7 @@ module MotionModel
 
     def to_db_type(column_type, value)
       case column_type
-      when :datetime
+      when :datetime, :date
         value.nil? ? nil : value.to_i
       when :hash
         value.nil? ? nil : BW::JSON.generate(value)
@@ -14,7 +14,7 @@ module MotionModel
 
     def from_db_type(column_type, db_value)
       case column_type
-      when :datetime
+      when :datetime, :date
         db_value.nil? ? nil : Time.at(db_value)
       else
         db_value
