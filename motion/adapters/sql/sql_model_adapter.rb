@@ -261,6 +261,7 @@ module MotionModel
 
       def do_delete
         _db_adapter.build_sql_context(:delete, delete_sql).execute
+        issue_notification(:action => 'delete')
       end
 
       def destroy(options = {})
