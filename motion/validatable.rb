@@ -18,7 +18,7 @@ module MotionModel
           ex = ValidationSpecificationError.new('validation type not present or not a hash')
           raise ex
         end
-    
+
         validations << {field => validation_type}
       end
       alias_method :validates, :validate
@@ -56,7 +56,7 @@ module MotionModel
     end
 
     # This has two functions:
-    # 
+    #
     # * First, it triggers validations.
     #
     # * Second, it returns the result of performing the validations.
@@ -88,7 +88,8 @@ module MotionModel
 
     def validate_each(validations) #nodoc
       validations.each_pair do |field, validation|
-        @valid &&= validate_one field, validation
+        result = validate_one field, validation
+        @valid &&= result
       end
     end
 
@@ -123,7 +124,7 @@ module MotionModel
       end
       result
     end
-  
+
     def validate_one(field, validation) #nodoc
       result = true
       validation.each_pair do |validation_type, setting|
@@ -141,7 +142,7 @@ module MotionModel
     # Should catch Fixnums, Bignums and Floats. Nils and Strings should
     # be handled as well, Arrays, Hashes and other datatypes will not.
     def validate_presence(field, value, setting)
-      if(value.is_a?(Numeric)) 
+      if(value.is_a?(Numeric))
         return true
       elsif value.is_a?(String) || value.nil?
         result = value.nil? || ((value.length == 0) == setting)

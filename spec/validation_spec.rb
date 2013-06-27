@@ -2,7 +2,7 @@ class ValidatableTask
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
   include MotionModel::Validatable
-  columns       :name => :string, 
+  columns       :name => :string,
                 :email => :string,
                 :some_day => :string,
                 :some_float => :float,
@@ -37,7 +37,7 @@ describe "validations" do
     it "contains correct error message if name is blank" do
       task = ValidatableTask.new(@valid_tasks.except(:name))
       task.valid?
-      task.error_messages_for(:name).first.should == 
+      task.error_messages_for(:name).first.should ==
         "incorrect value supplied for name -- should be non-empty."
     end
 
@@ -50,6 +50,18 @@ describe "validations" do
     it "is false if the float is nil" do
       task = ValidatableTask.new(@valid_tasks.except(:some_float))
       task.valid?.should === false
+    end
+
+    it "contains multiple error messages if name and some_float are blank" do
+      task = ValidatableTask.new(@valid_tasks.except(:name, :some_float))
+      task.valid?
+      task.error_messages.length.should == 3
+      task.error_messages_for(:name).length.should == 2
+      task.error_messages_for(:some_float).length.should == 1
+
+      task.error_messages_for(:name).should.include 'incorrect value supplied for name -- should be non-empty.'
+      task.error_messages_for(:name).should.include "incorrect value supplied for name -- should be between 2 and 10 characters long."
+      task.error_messages_for(:some_float).should.include "incorrect value supplied for some_float -- should be non-empty."
     end
 
     it "is true if the float is filled in" do
@@ -86,7 +98,7 @@ describe "validations" do
       task = ValidatableTask.create(@valid_tasks.except(:name))
       task.name = '1'
       task.valid?.should === false
-      task.error_messages_for(:name).first.should == 
+      task.error_messages_for(:name).first.should ==
         "incorrect value supplied for name -- should be between 2 and 10 characters long."
     end
 
@@ -94,7 +106,7 @@ describe "validations" do
       task = ValidatableTask.create(@valid_tasks.except(:name))
       task.name = '123456709AB'
       task.valid?.should === false
-      task.error_messages_for(:name).first.should == 
+      task.error_messages_for(:name).first.should ==
         "incorrect value supplied for name -- should be between 2 and 10 characters long."
     end
   end

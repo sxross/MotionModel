@@ -21,16 +21,19 @@ module MotionModel
     def cast_to_date(arg)
       case arg
         when String
-          return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
-        when Time
-          return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+          return DateParser::parse_date(arg)
+          # return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+        when Time, NSDate
+          return arg
+          # return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
         else
           return arg
       end
     end
 
     def cast_to_array(arg)
-      Array(arg)
+      array=*arg
+      array
     end
 
     def cast_to_hash(arg)
