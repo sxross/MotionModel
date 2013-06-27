@@ -178,7 +178,7 @@ class Task
   columns :name        => :string,
           :long_name   => :string,
           :due_date    => :date
-  validates :name => :presence => true
+  validates :name, :presence => true
 end
 
 class MyCoolController
