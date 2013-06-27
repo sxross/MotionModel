@@ -81,19 +81,24 @@ describe "formotion" do
     @subject.location.should == "Q's Lab"
   end
 
-  it "does not include auto date fields in the hash by default" do
-    formotion_hash = @subject.to_formotion[:sections].first[:rows]
-    formotion_hash.has_hash_value?(:updated_at).should == false
-    formotion_hash.has_hash_value?(:created_at).should == false
-  end
+  describe 'auto fields behavior' do
+    before do
+      @first_row = @subject.to_formotion[:sections].first[:rows]
+    end
 
-  it "can optionally include auto date fields in the hash" do
-    formotion_hash = @subject.to_formotion(nil, true)[:sections].first[:rows]
-    formotion_hash.has_hash_value?(:created_at).should == true
-    formotion_hash.has_hash_value?(:updated_at).should == true
-  end
+    it "does not include auto date fields in the hash by default" do
+      @first_row.has_hash_key?(:updated_at).should == false
+      @first_row.has_hash_key?(:created_at).should == false
+    end
 
-  it "does not include related columns in the collection" do
-    result = @subject.to_formotion[:sections].first[:rows].has_hash_value?(:related_models).should == false
+    it "can optionally include auto date fields in the hash" do
+      optional_result = @subject.to_formotion(nil, true)[:sections].first[:rows]
+      result = optional_result.has_hash_key?(:created_at).should == true
+      result = optional_result.has_hash_key?(:updated_at).should == true
+    end
+
+    it "does not include related columns in the collection" do
+      result = @first_row.has_hash_key?(:related_models).should == false
+    end
   end
 end
