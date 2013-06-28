@@ -60,7 +60,24 @@ describe 'related objects' do
       a_task = Task.create
       a_task.assignees.all.should.be.empty
     end
-
+    it "accept nested attributes in has_many relation" do
+      task_data = {
+        :id => 1,
+        :name => "task1",
+        :assignees => [{
+                         :id => 1,
+                         :assignee_name => "assignee1"
+                       },
+                       {
+                         :id => 2,
+                         :assignee_name => "assignee2"
+                       }]
+      }
+      task = Task.create!(task_data)
+      task.name.should == task_data[:name]
+      task.assignees.count.should == 2
+      task.assignees.first.assignee_name.should == task_data[:assignees].first[:assignee_name]
+    end
     it "supports creating related objects directly on parents" do
       a_task = Task.create(:name => 'Walk the Dog')
       a_task.assignees.create(:assignee_name => 'bob')
