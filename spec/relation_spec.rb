@@ -61,6 +61,8 @@ describe 'related objects' do
       a_task.assignees.all.should.be.empty
     end
 
+    
+
     it "supports creating related objects directly on parents" do
       a_task = Task.create(:name => 'Walk the Dog')
       a_task.assignees.create(:assignee_name => 'bob')
@@ -107,6 +109,16 @@ describe 'related objects' do
         assignee_count = Task.find(3).assignees.count
         Task.find(3).assignees.push(assignee)
         Task.find(3).assignees.count.should == assignee_count + 1
+      end
+
+      it "should not change the count of assignees" do
+        task = Task.first
+        1.upto(10){ |i| task.assignees.create(:assignee_name =>   "Assignee #{i}") }
+        assignees = task.assignees
+        puts assignees.inspect
+        count = assignees.count
+        assignees.where(:assignee_name).eq("Assignee 1")
+        assignees.count.should == count
       end
 
     end
