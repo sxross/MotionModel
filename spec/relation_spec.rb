@@ -72,8 +72,8 @@ describe 'related objects' do
                          :id => 2,
                          :assignee_name => "assignee2"
                        }]
-      }
-      task = Task.create!(task_data)
+      };
+      task = Task.create(task_data)
       task.name.should == task_data[:name]
       task.assignees.count.should == 2
       task.assignees.first.assignee_name.should == task_data[:assignees].first[:assignee_name]

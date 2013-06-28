@@ -703,7 +703,7 @@ module MotionModel
       collection = get_has_many_attr(_col)
       _collection = []
       instances.each do |instance|
-        next if collection.include?(instance)
+        next if collection.all.include?(instance)
         _collection << instance
       end
       push_relation(_col, *_collection)
