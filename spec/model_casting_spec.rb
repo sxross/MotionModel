@@ -116,12 +116,7 @@ describe 'Type casting' do
   it 'returns an Array for an array field' do
     @convertible.an_array.should.is_a(Array)
   end
-  it 'returns proper array for parsed json data using bubble wrap' do
-    parsed_json = BW::JSON.parse('{"menu_categories":["Lunch"]}')
-    @convertible.an_array = parsed_json["menu_categories"]
-    @convertible.an_array.count.should == 1
-    @convertible.an_array.include?("Lunch").should == true
-  end
+
   it 'the array field should be the same as the range form' do
     (@convertible.an_array.first..@convertible.an_array.last).should.equal(1..10)
   end
