@@ -1,4 +1,3 @@
-Object.send(:remove_const, :SqlModelWithOptions) if defined?(SqlModelWithOptions)
 class SqlModelWithOptions
   include MotionModel::Model
   include MotionModel::FMDBModelAdapter
@@ -83,22 +82,43 @@ describe "formotion" do
 
   describe 'auto fields behavior' do
     before do
-      @first_row = @subject.to_formotion[:sections].first[:rows]
+      @first_section_rows = @subject.to_formotion[:sections].first[:rows]
     end
 
+    # Note on why this is has_hash_value instead of has_hash_key.
+    # The Formotion result is an array of hashes, and the real
+    # keys are in the form:
+    #
+    # {key: :created_at}
+    #
+    # so the database field name is the value of the hash key :key
     it "does not include auto date fields in the hash by default" do
-      @first_row.has_hash_key?(:updated_at).should == false
-      @first_row.has_hash_key?(:created_at).should == false
+      @first_section_rows.has_hash_value?(:updated_at).should == false
+      @first_section_rows.has_hash_value?(:created_at).should == false
+    end
+
+    class Array
+      def has_hash_value?(value)
+        self.each do |ele|
+          raise ArgumentError('has_hash_value? only works for arrays of hashes') unless ele.is_a?(Hash)
+
+          ele.each_pair do |k, v|
+            next unless v.class == value.class
+            return true if v == value
+          end
+        end
+        false
+      end
     end
 
     it "can optionally include auto date fields in the hash" do
       optional_result = @subject.to_formotion(nil, true)[:sections].first[:rows]
-      result = optional_result.has_hash_key?(:created_at).should == true
-      result = optional_result.has_hash_key?(:updated_at).should == true
+      result = optional_result.has_hash_value?(:created_at).should == true
+      result = optional_result.has_hash_value?(:updated_at).should == true
     end
 
     it "does not include related columns in the collection" do
-      result = @first_row.has_hash_key?(:related_models).should == false
+      result = @first_section_rows.has_hash_value?(:related_models).should == false
     end
   end
 end
