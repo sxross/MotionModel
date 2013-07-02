@@ -161,9 +161,11 @@ module MotionModel
       attrs.each do |name, value|
         quoted_attrs[name] = begin
           case value
-          when nil;       'NULL'
-          when Numeric;   value.to_s
-          else;           %Q["#{value.gsub(/"/, '""')}"]
+          when nil;         'NULL'
+          when Numeric;     value.to_s
+          when FalseClass;  0
+          when TrueClass;   1
+          else;             %Q["#{value.gsub(/"/, '""')}"]
           end
         end
       end

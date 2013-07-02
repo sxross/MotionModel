@@ -39,7 +39,6 @@ describe 'persistence' do
 
     PersistTask.serialize_to_file('test.dat')
     tasks = PersistTask.deserialize_from_file('test.dat')
-    puts tasks.inspect
     PersistTask.first.created_at.should == created_at
     PersistTask.first.updated_at.should == updated_at
   end

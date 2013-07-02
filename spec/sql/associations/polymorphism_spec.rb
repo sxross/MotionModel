@@ -1,132 +1,55 @@
-#class Lion
-#  include MotionModel::Model
-#  include MotionModel::FMDBModelAdapter
-#  columns :name
-#  belongs_to :home, polymorphic: true
-#end
-#
-#class Tiger
-#  include MotionModel::Model
-#  include MotionModel::FMDBModelAdapter
-#  columns :name
-#  belongs_to :jungle, as: :animal
-#end
-#
-#class AnimalJungles
-#  include MotionModel::Model
-#  include MotionModel::FMDBModelAdapter
-#  belongs_to :animal, polymorphic: true
-#  belongs_to :jungle
-#end
-#
-#class Jungle
-#  include MotionModel::Model
-#  include MotionModel::FMDBModelAdapter
-#  columns :name
-#  has_many :animalzoos
-#  has_many :animals, through: :animal_zoos
-#  has_one :king
-#end
-#
-#MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset_db: true, ns_log: false))
-#Dog.create_table(drop: true)
-#Tail.create_table(drop: true)
-#Leg.create_table(drop: true)
-#
-## Set initial ID's
-#Dog.create(id: 100)
-#Tail.create(id: 200)
-#Leg.create(id: 300)
-#
-#def delete_all
-#  [Dog, Tail, Leg].each { |t| t.delete_all }
-#end
-#delete_all
-#
-#describe "has_one" do
-#  before do
-#    @tail = Tail.new length: 4
-#    @dog = Dog.new name: "Buddy"
-#    @tail.dog = @dog
-#  end
-#
-#  it "should set Tail#dog" do
-#    @tail.dog.should == @dog
-#  end
-#
-#  it "should have Tail#dog_id nil" do
-#    @tail.dog_id.should == nil
-#  end
-#
-#  it "should set Dog#tail" do
-#    @dog.tail.should == @tail
-#  end
-#
-#  describe "when dog saved" do
-#    before do
-#      delete_all
-#      @dog.save
-#    end
-#
-#    it "Dog.count should be correct" do
-#      Dog.count.should == 1
-#    end
-#
-#    it "Tail.count should be correct" do
-#      Tail.count.should == 1
-#    end
-#
-#    it "id should be set" do
-#      @dog.id.should.not == nil
-#    end
-#
-#    it "should set Tail#dog_id" do
-#      @tail.dog_id.should == @dog.id
-#    end
-#  end
-#
-#end
-#
-#describe "has_many" do
-#
-#  before do
-#    @dog = Dog.new
-#    @leg1 = Leg.new side: 'left'; @leg1.dog = @dog
-#    @leg2 = Leg.new side: 'right'; @leg2.dog = @dog
-#  end
-#
-#  it "should set Leg#dog" do
-#    @leg1.dog.should == @dog
-#    @leg2.dog.should == @dog
-#  end
-#
-#  it "should have Leg#dog_id nil" do
-#    @leg1.dog_id.should == nil
-#    @leg2.dog_id.should == nil
-#  end
-#
-#  it "should set Dog#legs" do
-#    @dog.legs.should == [@leg1, @leg2]
-#  end
-#
-#  describe "when dog saved" do
-#    before do
-#      delete_all
-#      @dog.save
-#    end
-#
-#    it "Dog.count should be correct" do
-#      Dog.count.should == 1
-#    end
-#
-#    it "Leg.count should be correct" do
-#      Leg.count.should == 2
-#    end
-#
-#    it "should set Leg#dog_id" do
-#      @leg1.dog_id.should == @dog.id
-#      @leg2.dog_id.should == @dog.id
-#    end
-#  end
-#
-#end
+Object.send(:remove_const, :SqlImage) if defined?(SqlImage)
+Object.send(:remove_const, :SqlUser) if defined?(SqlUser)
+Object.send(:remove_const, :SqlProduct) if defined?(SqlProduct)
+
+class SqlImage
+  include MotionModel::Model
+  include MotionModel::FMDBModelAdapter
+  columns :filename, :string
+  belongs_to :imageable, polymorphic: true
+end
+
+class SqlUser
+  include MotionModel::Model
+  include MotionModel::FMDBModelAdapter
+  columns :name, :string
+  has_many :sql_images, as: :imageable
+end
+
+class SqlProduct
+  include MotionModel::Model
+  include MotionModel::FMDBModelAdapter
+  columns :name, :string
+  has_many :sql_images, as: :imageable
+end
+
+describe "Polymorphism" do
+
+  before do
+    MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset: true, ns_log: false))
+    SqlImage.create_table
+    SqlUser.create_table
+    SqlProduct.create_table
+    @user = SqlUser.create(:name => "Bob")
+    @user.sql_images.create(:filename => "bob.png")
+    @product = SqlProduct.create(:name => "MacBook")
+    @product.sql_images.create(:filename => "macbook.png")
+  end
+
+  describe "has_many" do
+    it "should return the correct polymorphic instance" do
+      @user.sql_images.first.should.be.is_a(SqlImage)
+      @user.sql_images.first.filename.should == "bob.png"
+      @product.sql_images.first.should.be.is_a(SqlImage)
+      @product.sql_images.first.filename.should == "macbook.png"
+    end
+  end
+
+  describe "belongs_to" do
+    it "should return the correct instance" do
+      SqlImage.where(:filename => "bob.png").first.imageable.should == @user
+      SqlImage.where(:filename => "macbook.png").first.imageable.should == @product
+    end
+  end
+
+end

@@ -1,27 +1,16 @@
-Object.send(:remove_const, :ModelWithOptions) if defined?(ModelWithOptions)
-class ModelWithOptions
+class SqlModelWithOptions
   include MotionModel::Model
-  include MotionModel::ArrayModelAdapter
+  include MotionModel::FMDBModelAdapter
   include MotionModel::Formotion
 
   columns :name => :string,
-          :date => {:type => :date, :formotion => {:picker_type => :date_time}},
+          :date => {:type => :datetime, :formotion => {:picker_type => :date_time}},
           :location => {:type => :string, :formotion => {:section => :address}},
           :created_at => :date,
           :updated_at => :date
 
-  has_many :related_models
-
   has_formotion_sections :address => { title: "Address" }
 
-end
-
-class RelatedModel
-  include MotionModel::Model
-  include MotionModel::ArrayModelAdapter
-
-  columns :name => :string
-  belongs_to :model_with_options
 end
 
 def section(subject)
@@ -38,7 +27,13 @@ end
 
 describe "formotion" do
   before do
-    @subject = ModelWithOptions.create(:name => 'get together', :date => '12-11-13 @ 9:00 PM', :location => 'my house')
+    MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset: true, ns_log: false))
+    SqlModelWithOptions.create_table
+    @subject = SqlModelWithOptions.create(
+      :name => 'get together',
+      :date => '12-11-13 21:00',
+      :location => 'my house'
+    )
   end
 
   it "generates a formotion hash" do
@@ -80,23 +75,9 @@ describe "formotion" do
   it "binds data from rendered form into model fields" do
     @subject.from_formotion!({:name => '007 Reunion', :date => 1358197323, :location => "Q's Lab"})
     @subject.name.should == '007 Reunion'
+    @subject.date.should.not.is_a?(Bignum)
     @subject.date.utc.strftime("%Y-%m-%d %H:%M").should == '2013-01-14 21:02'
     @subject.location.should == "Q's Lab"
-  end
-
-
-  class Array
-    def has_hash_value?(value)
-      self.each do |ele|
-        raise ArgumentError('has_hash_value? only works for arrays of hashes') unless ele.is_a?(Hash)
-
-        ele.each_pair do |k, v|
-          next unless v.class == value.class
-          return true if v == value
-        end
-      end
-      false
-    end
   end
 
   describe 'auto fields behavior' do
