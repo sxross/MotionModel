@@ -5,6 +5,11 @@ module MotionModel
 
     def self.included(base)
       base.extend(ClassMethods)
+
+      base.class_eval do
+        # Stub methods for hook protocols
+        define_hook_methods(:validation)
+      end
     end
 
     module ClassMethods
@@ -31,7 +36,7 @@ module MotionModel
     def do_save?(options = {})
       _valid = true
       if options[:validate] != false
-        call_hooks 'validation' do
+        call_hooks :validation do
           _valid = valid?
         end
       end
@@ -64,7 +69,7 @@ module MotionModel
     def after_validation(sender); end
 
     def valid?
-      call_hooks 'validation' do
+      call_hooks :validation do
         @messages = []
         @valid = true
         self.class.validations.each do |validations|
@@ -185,10 +190,6 @@ module MotionModel
     def add_message(field, message)
       @messages.push({field.to_sym => message})
     end
-
-    # Stub methods for hook protocols
-    def before_validation(sender); end
-    def after_validation(sender);  end
 
   end
 end

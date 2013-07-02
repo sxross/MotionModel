@@ -1,10 +1,10 @@
-Object.send(:remove_const, :TaskModelHook) if defined?(TaskModelHook)
-class TaskModelHook
+Object.send(:remove_const, :SqlTaskModelHook) if defined?(SqlTaskModelHook)
+class SqlTaskModelHook
   attr_reader :before_delete_called, :after_delete_called
   attr_reader :before_save_called, :after_save_called
 
   include MotionModel::Model
-  include MotionModel::ArrayModelAdapter
+  include MotionModel::FMDBModelAdapter
   columns       :name => :string,
                 :details => :string,
                 :some_day => :date
@@ -28,8 +28,14 @@ class TaskModelHook
 end
 
 describe "lifecycle hooks" do
+
+  before do
+    MotionModel::Store.config(MotionModel::FMDBAdapter.new('spec.db', reset: true, ns_log: false))
+    SqlTaskModelHook.create_table
+  end
+
   describe "delete and destroy" do
-    before{@task = TaskModelHook.create(:name => 'joe')}
+    before{@task = SqlTaskModelHook.create(:name => 'joe')}
 
     it "calls the before delete hook when delete is called" do
       lambda{@task.delete}.should.change{@task.before_delete_called}
@@ -49,7 +55,7 @@ describe "lifecycle hooks" do
   end
 
   describe "create and save" do
-    before{@task = TaskModelHook.new(:name => 'joe')}
+    before{@task = SqlTaskModelHook.new(:name => 'joe')}
 
     it "calls before_save hook on save" do
       lambda{@task.save}.should.change{@task.before_save_called}
