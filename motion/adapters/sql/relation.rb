@@ -87,6 +87,10 @@ module MotionModel
       end
       #private :new # Use .build instead
 
+      def where(*args)
+        @relation.scoped.where(*args)
+      end
+
       # RubyMotion bombs when trying to override push
       private :push # This method should be avoided because it can't be overridden
       def push_instance(instance, &after_init)
