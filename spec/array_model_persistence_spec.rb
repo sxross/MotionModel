@@ -193,9 +193,17 @@ class Parent
   include MotionModel::ArrayModelAdapter
   columns   :name
   has_many  :children
+  has_one  :dog
 end
 
 class Child
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+  columns     :name
+  belongs_to  :parent
+end
+
+class Dog
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
   columns     :name
@@ -207,23 +215,29 @@ describe "serialization of relations" do
     parent = Parent.create(:name => 'BoB')
     parent.children.create :name => 'Fergie'
     parent.children.create :name => 'Will I Am'
+    parent.dog.create :name => 'Fluffy'
   end
 
   it "is wired up right" do
     Parent.first.name.should == 'BoB'
     Parent.first.children.count.should == 2
+    Parent.first.dog.count.should == 1
   end
 
   it "serializes and deserializes properly" do
     Parent.serialize_to_file('parents.dat')
     Child.serialize_to_file('children.dat')
+    Dog.serialize_to_file('dogs.dat')
     Parent.delete_all
     Child.delete_all
+    Dog.delete_all
     Parent.deserialize_from_file('parents.dat')
     Child.deserialize_from_file('children.dat')
+    Dog.deserialize_from_file('dogs.dat')
     Parent.first.name.should == 'BoB'
     Parent.first.children.count.should == 2
     Parent.first.children.first.name.should == 'Fergie'
+    Parent.first.dog.first.name.should == 'Fluffy'
   end
 end
 
