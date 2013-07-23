@@ -635,6 +635,27 @@ Core Extensions
   Again, a reversing rule is required for both singularize and
   pluralize to work properly.
 
+Serialization
+----------------------
+
+The `ArrayModelAdapter` does not, by default perform any serialization. That's
+because how often which parts of your object graph are serialized can affect
+application performance. However, you *will* want to use the serialization
+features. Here they are:
+
+    YourModel.deserialize_from_file(file_name = nil)
+
+    YourModel.serialize_to_file(file_name = nil)
+
+What happens here? When you want to save a model, you call `serialize_to_file`.
+Each model's data must be saved to a different file so name them accordingly.
+If you have a model that contains related model objects, you may want to save
+both models. But you have complete say over that and *the responsibility to
+handle it*.
+
+When you call `deserialize_from_file`, your model is populated from the file
+previously serialized.
+
 Formotion Support
 ----------------------
 
