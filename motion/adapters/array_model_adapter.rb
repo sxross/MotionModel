@@ -164,6 +164,7 @@ module MotionModel
     end
 
     def do_update(options = {})
+      true
     end
 
     def do_delete

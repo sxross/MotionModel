@@ -168,6 +168,12 @@ describe "Creating a model" do
       Task.where(:name).eq('updated').should == 0
       lambda{task.save}.should.change{Task.where(:name).eq('updated')}
     end
+
+    it 'should not raise MotionModel::RecordNotSaved when save! is called' do
+      task = Task.create(:name => 'updateable')
+      task.name = 'updated'
+      lambda{task.save!}.should.not.raise(MotionModel::RecordNotSaved)
+    end
   end
 
   describe 'deleting' do
