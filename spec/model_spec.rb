@@ -39,7 +39,7 @@ describe "Creating a model" do
       a_task = Task.new(:name => 'name', :details => 'details')
       a_task.name.should.equal('name')
     end
-    
+
     it 'creates a model with all attributes even if some omitted' do
       atask = Task.create(:name => 'bob')
       atask.should.respond_to(:details)
@@ -177,14 +177,14 @@ describe "Creating a model" do
         1.upto(10) {|i| Task.create(:name => "task #{i}")}
       end
     end
-    
+
     it 'deletes a row' do
       target = Task.find(:name).eq('task 3').first
       target.should.not == nil
       target.delete
       Task.find(:name).eq('task 3').count.should.equal 0
     end
-    
+
     it 'deleting a row changes length' do
       target = Task.find(:name).eq('task 2').first
       lambda{target.delete}.should.change{Task.length}
@@ -198,7 +198,7 @@ describe "Creating a model" do
       Task.find(:name).eq('task 3').count.should.equal 1
     end
   end
-  
+
   describe 'Handling Attribute Implementation' do
     it 'raises a NoMethodError exception when an unknown attribute it referenced' do
       task = Task.new
@@ -243,7 +243,7 @@ describe "Creating a model" do
       end
     end
   end
-  
+
   describe 'defining custom attributes' do
     before do
       Task.delete_all
@@ -252,6 +252,51 @@ describe "Creating a model" do
 
     it 'uses a custom attribute by method' do
       @task.custom_attribute_by_method.should == 'Feed the Cat - Get food, pour out'
+    end
+  end
+
+  describe 'protecting timestamps' do
+    class NoTimestamps
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns name: :string
+      protect_remote_timestamps
+    end
+
+    class AutoTimeable
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns name:       :string,
+              created_at: :date,
+              updated_at: :date
+    end
+
+    class ProtectedTimestamps
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns name:       :string,
+              created_at: :date,
+              updated_at: :date
+      protect_remote_timestamps
+    end
+
+    it 'does nothing to break classes with no timestamps' do
+      lambda{NoTimestamps.create!(name: 'no timestamps')}.should.not.raise
+    end
+
+    it "changes the timestamps if they are not protected" do
+      auto_timeable = AutoTimeable.new(name: 'auto timeable')
+      lambda{auto_timeable.name = 'changed auto timeable'; auto_timeable.save!}.should.change{auto_timeable.updated_at}
+    end
+
+    it "does not change created_at if timestamps are protected" do
+      protected_times = ProtectedTimestamps.new(name: 'auto timeable', created_at: Time.now, updated_at: Time.now)
+      lambda{protected_times.name = 'changed created at'; protected_times.save!}.should.not.change{protected_times.created_at}
+    end
+
+    it "does not change updated_at if timestamps are protected" do
+      protected_times = ProtectedTimestamps.new(name: 'auto timeable', created_at: Time.now, updated_at: Time.now)
+      lambda{protected_times.name = 'changed updated at'; protected_times.save!}.should.not.change{protected_times.updated_at}
     end
   end
 end

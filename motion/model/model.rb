@@ -110,6 +110,28 @@ module MotionModel
       #
       #   class Task
       #     include MotionModel::Model
+      #     include MotionModel::ArrayModelAdapter
+      #
+      #     columns  :name, :details, :assignees, :created_at, :updated_at
+      #     has_many :assignees
+      #     protects_remote_timestamps
+      #
+      # In this case, creating or updating will not alter the values of the
+      # timestamps, preferring to allow the server to be the only authority
+      # for assigning timestamp information.
+
+      def protect_remote_timestamps
+        @_protect_remote_timestamps = true
+      end
+
+      def protect_remote_timestamps?
+        @_protect_remote_timestamps == true
+      end
+
+      # Use at class level, as follows:
+      #
+      #   class Task
+      #     include MotionModel::Model
       #
       #     columns  :name, :details, :assignees
       #     has_many :assignees
@@ -518,8 +540,10 @@ module MotionModel
 
     # Set created_at and updated_at fields
     def set_auto_date_field(field_name)
-      method = "#{field_name}="
-      self.send(method, Time.now) if self.respond_to?(method)
+      unless self.class.protect_remote_timestamps?
+        method = "#{field_name}="
+        self.send(method, Time.now) if self.respond_to?(method)
+      end
     end
 
     # Stub methods for hook protocols
