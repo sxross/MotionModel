@@ -49,7 +49,7 @@ module MotionModel
           end
         else
           @any_writes = true
-          result = @db.executeUpdate(sql.sql)
+          result = @db.executeUpdate(sql.sql, withArgumentsInArray:sql.values)
         end
         result
       rescue => exc

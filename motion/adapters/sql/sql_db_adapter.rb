@@ -1,11 +1,12 @@
 module MotionModel
   class SQLContext
-    attr_reader :sql, :type
+    attr_reader :sql, :type, :values
 
-    def initialize(db_adapter, type, sql, options = {})
+    def initialize(db_adapter, type, sql, values, options = {})
       @db_adapter = db_adapter
       @type = type
       @sql = sql
+      @values = values
       @options = options
     end
 
@@ -36,8 +37,9 @@ module MotionModel
       db_value
     end
 
-    def build_sql_context(type, str)
-      SQLContext.new(self, type, str)
+    def build_sql_context(type, query_and_values)
+      query, values = query_and_values
+      SQLContext.new(self, type, query, values)
     end
 
     def table_exists?(table_name)
@@ -130,22 +132,22 @@ module MotionModel
     end
 
     def to_insert_sql(scope, attrs)
-      typed_attrs = _quoted_db_typed_attributes(attrs)
-      column_names_str = typed_attrs.keys.map { |n| %Q["#{n.to_s}"] }.join(', ')
-      values_str = typed_attrs.values.join(', ')
+      placeholders = ['?'] * attrs.size
 
-      <<-SQL.strip << ';'
-        INSERT INTO "#{scope.table_name}" (#{column_names_str}) VALUES (#{values_str})
+      query_str = <<-SQL.strip << ';'
+        INSERT INTO "#{scope.table_name}" (#{attrs.keys.join(', ')}) VALUES (#{placeholders.join(', ')})
       SQL
+      [query_str, _quoted_db_typed_attributes(attrs.values)]
     end
 
     def to_update_sql(id, scope, attrs)
-      typed_attrs = _quoted_db_typed_attributes(attrs)
-      column_values_str = typed_attrs.map { |k, v| %Q["#{k.to_s}" = #{v}] }.join(', ')
+      column_values_str = attrs.keys.map { |k| "#{k.to_s} = ?" }.join(', ')
 
-      <<-SQL.strip << ';'
+      query_str = <<-SQL.strip << ';'
         UPDATE "#{scope.table_name}" SET #{column_values_str} WHERE ("#{scope.table_name}"."id" = #{id})
       SQL
+
+      [query_str, _quoted_db_typed_attributes(attrs.values)]
     end
 
     def to_delete_sql(scope)
@@ -157,20 +159,14 @@ module MotionModel
     private
 
     def _quoted_db_typed_attributes(attrs)
-      quoted_attrs = {}
-      attrs.each do |name, value|
-        quoted_attrs[name] = begin
-          case value
-          when nil;         'NULL'
-          when Numeric;     value.to_s
-          when FalseClass;  0
-          when TrueClass;   1
-          else;             %Q["#{value.gsub(/"/, '""')}"]
-          end
+      attrs.map do |attr|
+        case attr
+        when nil;         'NULL'
+        when FalseClass;  0
+        when TrueClass;   1
+        else; attr
         end
       end
-      quoted_attrs
     end
-
   end
 end
