@@ -137,7 +137,7 @@ module MotionModel
       query_str = <<-SQL.strip << ';'
         INSERT INTO "#{scope.table_name}" (#{attrs.keys.join(', ')}) VALUES (#{placeholders.join(', ')})
       SQL
-      [query_str, _quoted_db_typed_attributes(attrs.values)]
+      [query_str, attrs.values]
     end
 
     def to_update_sql(id, scope, attrs)
@@ -147,26 +147,13 @@ module MotionModel
         UPDATE "#{scope.table_name}" SET #{column_values_str} WHERE ("#{scope.table_name}"."id" = #{id})
       SQL
 
-      [query_str, _quoted_db_typed_attributes(attrs.values)]
+      [query_str, attrs.values]
     end
 
     def to_delete_sql(scope)
       <<-SQL.strip << ';'
         DELETE FROM "#{scope.table_name}" #{scope.options_str}
       SQL
-    end
-
-    private
-
-    def _quoted_db_typed_attributes(attrs)
-      attrs.map do |attr|
-        case attr
-        when nil;         'NULL'
-        when FalseClass;  0
-        when TrueClass;   1
-        else; attr
-        end
-      end
     end
   end
 end
