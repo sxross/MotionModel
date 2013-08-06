@@ -70,7 +70,7 @@ module MotionModel
     
     # performs a set-inclusion test.
     #
-    # Task.find(:id).id([3, 5, 9])
+    # Task.find(:id).in([3, 5, 9])
     def in(set)
       @collection = @collection.collect do |item|
         item if set.include?(item.send(@field_name.to_sym))
