@@ -133,7 +133,7 @@ module MotionModel
     private
 
     def db_path
-      File.join(NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true)[0], @name)
+      @name
     end
 
     def db
