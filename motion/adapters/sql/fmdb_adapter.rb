@@ -1,5 +1,6 @@
 module MotionModel
   class FMDBAdapter < SQLite3Adapter
+    @@transaction_log = false
 
     class Transaction
 
@@ -92,6 +93,9 @@ module MotionModel
       if options[:reset]
         NSFileManager.defaultManager.removeItemAtPath(db_path, error:nil)
       end
+      if options[:transaction_log]
+        @@transaction_log = true
+      end
       MotionModel::Store.config(self)
       queue_name = "#{NSBundle.mainBundle.bundleIdentifier}.#{self.class.name.underscore}"
       @queue = Dispatch::Queue.new(queue_name) # Non-concurrent queue
@@ -105,9 +109,11 @@ module MotionModel
     end
 
     def transaction(&block)
-      puts 'MotionModel::FMDBAdapter'
-      puts caller.first
-      p "thread_dictionary: #{thread_dictionary}"
+      if @@transaction_log
+        puts 'MotionModel::FMDBAdapter'
+        puts caller.first
+        p "thread_dictionary: #{thread_dictionary}"
+      end
 
       if thread_dictionary['fmdb_pending_transaction']
         result = thread_dictionary['fmdb_pending_transaction'].execute {
