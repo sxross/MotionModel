@@ -105,6 +105,10 @@ module MotionModel
     end
 
     def transaction(&block)
+      puts 'MotionModel::FMDBAdapter'
+      puts caller.first
+      p "thread_dictionary: #{thread_dictionary}"
+
       if thread_dictionary['fmdb_pending_transaction']
         result = thread_dictionary['fmdb_pending_transaction'].execute {
           block.call }
