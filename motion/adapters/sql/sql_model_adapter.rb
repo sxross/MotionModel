@@ -96,9 +96,7 @@ module MotionModel
 
       def do_select_attrs(scope)
         result = scope.execute
-        if result.nil?
-          fail "Empty response from DB"
-        end
+        return [] if result.nil?
         result.map do |row|
           Hash[row.map { |k, v|
             col = column(k.to_sym)

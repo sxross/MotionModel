@@ -138,9 +138,6 @@ module MotionModel
             _joins << join_data
           else
             join_name, join_options, nested_join_args = self.class.normalize_join_args(join_data)
-            if nested_join_args
-              nested_join_args
-            end
             if join_options[:joining_class]
               joining_class = Kernel::const_get(join_options[:joining_class].to_s.classify)
             else

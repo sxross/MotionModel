@@ -23,7 +23,7 @@ module MotionModel
     end
 
     def joining_table_key
-      @column.type == :belongs_to ? @column.inverse_column.foreign_key : @column.inverse_column.primary_key
+      @column.type == :belongs_to ? @column.foreign_key : @column.inverse_column.primary_key
     end
 
     def joined_class
