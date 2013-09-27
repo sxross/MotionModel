@@ -99,8 +99,8 @@ Getting Going
 
 If you are using Bundler, put this in your Gemfile:
 
-```
-gem motion_model
+```ruby
+gem 'motion_model'
 ```
 
 then do:
