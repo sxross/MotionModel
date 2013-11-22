@@ -659,12 +659,14 @@ previously serialized.
 Formotion Support
 ----------------------
 
-MotionModel now has support for the cool [Formotion gem](https://github.com/clayallsopp/formotion).
+### Background
+
+MotionModel has support for the cool [Formotion gem](https://github.com/clayallsopp/formotion).
 Note that the Formotion project on GitHub appears to be way ahead of the gem on Rubygems, so you
 might want to build it yourself if you want the latest gee-whiz features (like `:picker_type`, as
-I've shown in this example).
+I've shown in the first example).
 
-This feature is extremely experimental, but here's how it works:
+### High-Level View
 
 ```ruby
 class Event
@@ -681,9 +683,43 @@ This declares the class. The only difference is that you include `MotionModel::F
 If you want to pass additional information on to Formotion, simply include it in the
 `:formotion` hash as shown above.
 
+> Note: the `:formation` stuff in the `columns` specification is something I'm still thinking about. Read on to find out about the two alternate syntaxes for `to_formotion`.
+
+### Details About `to_formotion`
+
+There are two alternate syntaxes for calling this. The initial, or "legacy" syntax is as follows:
+
+```
+to_formotion(form_title, expose_auto_date_fields, first_section_title)
+```
+
+In the legacy syntax, all arguments are optional and sensible defaults are chosen. However, when you want to tune how your form is presented, the syntax gets a bit burdensome. The alternate syntax is:
+
+```
+to_formotion(options)
+```
+
+The options hash looks a lot like a Formotion hash might, except without the data. Here is an example:
+
+```
+{title: 'A very fine form',
+ sections: [
+  {title:  'First Section',
+   fields: [:name, :gender]
+  },
+  {title:  'Second Section',
+   fields: [:address, :city, :state]
+  }
+]}
+```
+
+This specifies exactly what titles and fields appear where and in what order.
+
+### How Values Are Produced for Formotion
+
 MotionModel has sensible defaults for each type supported, so any field of `:date`
 type will default to a date picker in the Formotion form. However, if you want it
-to be a string for some reason, just pass in:
+to be a string for some reason, just specify this in `columns`:
 
 ```ruby
 :date => {:type => :date, :formotion => {:type => :string}}
@@ -692,7 +728,7 @@ to be a string for some reason, just pass in:
 To initialize a form from a model in your controller:
 
 ```ruby
-@form = Formotion::Form.new(@event.to_formotion('event details'))
+@form = Formotion::Form.new(@event.to_formotion('event details')) # Legacy syntax
 @form_controller = MyFormController.alloc.initWithForm(@form)
 ```
 

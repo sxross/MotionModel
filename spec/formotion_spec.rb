@@ -97,4 +97,76 @@ describe "formotion" do
   it "does not include related columns in the collection" do
     result = @subject.to_formotion[:sections].first[:rows].has_hash_value?(:related_models).should == false
   end
+
+  describe "new syntax" do
+    it "generates a formotion hash" do
+      @subject.new_to_formotion.should.not.be.nil
+    end
+
+    it "has the correct form title" do
+      @subject.new_to_formotion(form_title: 'test form')[:title].should == 'test form'
+    end
+
+    it "has two sections" do
+      @subject.new_to_formotion(
+        sections: [
+          {title: 'one'},
+          {title: 'two'}
+          ]
+          ).length.should == 2
+    end
+
+    it "does not include title in the default section" do
+      @subject.new_to_formotion(
+        sections: [
+          {fields: [:name]},
+          {title: 'two'}
+          ]
+          )[:sections].first[:title].should == nil
+    end
+
+    it "does include address in the second section" do
+      @subject.new_to_formotion(
+        sections: [
+          {fields: [:name]},
+          {title: 'two'}
+          ]
+          )[:sections][1][:title].should.not == nil
+    end
+
+    it "has two rows in the first section" do
+      @subject.new_to_formotion(
+        sections: [
+          {fields: [:name, :date]},
+          {title: 'two'}
+          ]
+          )[:sections][0][:rows].length.should == 2
+    end
+
+    it "has two rows in the first section" do
+      @subject.new_to_formotion(
+        sections: [
+          {fields: [:name, :date]},
+          {title: 'two'}
+          ]
+          )[:sections][0][:rows].length.should == 2
+    end
+
+    it "value of location row in :address section is 'my house'" do
+      @subject.new_to_formotion(
+        sections: [
+          {title: 'name', fields: [:name, :date]},
+          {title: 'address', fields: [:location]}
+          ]
+          )[:sections][1][:rows].first[:value].should == 'my house'
+    end
+    it "value of name row is 'get together'" do
+        @subject.new_to_formotion(
+        sections: [
+          {title: 'name', fields: [:name, :date]},
+          {title: 'address', fields: [:location]}
+          ]
+          )[:sections][1][:rows].first[:value].should == 'my house'
+    end
+  end
 end
