@@ -108,12 +108,12 @@ describe "formotion" do
     end
 
     it "has two sections" do
-      @subject.new_to_formotion(
+      s = @subject.new_to_formotion(
         sections: [
           {title: 'one'},
           {title: 'two'}
           ]
-          ).length.should == 2
+          )[:sections].length.should == 2
     end
 
     it "does not include title in the default section" do
