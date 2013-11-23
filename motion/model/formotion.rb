@@ -130,7 +130,7 @@ module MotionModel
       @expose_auto_date_fields = options[:auto_date_fields]
 
       fields = returnable_columns
-      form[:title] ||= options[:form_title]
+      form[:title] = options[:form_title] unless options[:form_title].nil?
       fill_from_options(form, options) if options[:sections]
       form
     end
@@ -150,7 +150,7 @@ module MotionModel
       section.each_pair do |key, value|
         case key
         when :title
-          new_section[:title] = value
+          new_section[:title] = value unless value.nil?
         when :fields
           new_section[:rows] ||= []
           value.each do |field_name|
