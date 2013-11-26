@@ -713,6 +713,20 @@ The options hash looks a lot like a Formotion hash might, except without the dat
 ]}
 ```
 
+Note that in this syntax, you can specify a button in the fields array:
+
+```
+{title: 'A very fine form',
+ sections: [
+  {title:  'First Section',
+   fields: [:name, :gender]
+  },
+  {title:  'Second Section',
+   fields: [:address, :city, :state, {type: :submit, title: 'Ok'}]
+  }
+]}
+```
+
 This specifies exactly what titles and fields appear where and in what order.
 
 ### How Values Are Produced for Formotion

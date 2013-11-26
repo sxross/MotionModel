@@ -168,5 +168,17 @@ describe "formotion" do
           ]
           )[:sections][1][:rows].first[:value].should == 'my house'
     end
+    it "allows you to place buttons in your form" do
+        result = @subject.new_to_formotion(
+        sections: [
+          {title: 'name', fields: [:name, :date, {title: 'Submit', type: :submit}]},
+          {title: 'address', fields: [:location]}
+          ]
+          )
+
+        result[:sections][0][:rows][2].should.is_a? Hash
+        result[:sections][0][:rows][2].should.has_key?(:type)
+        result[:sections][0][:rows][2][:type].should == :submit
+    end
   end
 end

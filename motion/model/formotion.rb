@@ -117,11 +117,12 @@ module MotionModel
     # Hash looks something like this:
     #
     # {sections: [
-    #   {title:  'First Section',
-    #    fields: [:name, :gender]
+    #   {title:  'First Section',           # First section
+    #    fields: [:name, :gender]           # contains name and gender
     #   },
     #   {title:  'Second Section',
-    #    fields: [:address, :city, :state]
+    #    fields: [:address, :city, :state],  # Second section, address
+    #    {title: 'Submit', type: :submit}    # city, state add submit button
     #   }
     # ]}
     def new_to_formotion(options = {form_title: nil, sections: []})
@@ -153,13 +154,21 @@ module MotionModel
           new_section[:title] = value unless value.nil?
         when :fields
           new_section[:rows] ||= []
-          value.each do |field_name|
-            h = default_hash_for(field_name, self.send(field_name))
-            new_section[:rows].push(combine_options(field_name, h))
+          value.each do |field_or_hash|
+            new_section[:rows].push(fill_row(field_or_hash))
           end
         end
       end
       new_section
+    end
+
+    def fill_row(field_or_hash)
+      case field_or_hash
+        when Hash
+          return field_or_hash unless field_or_hash.keys.detect{|key| key =~ /^formotion_/}
+        else
+          combine_options field_or_hash, default_hash_for(field_or_hash, self.send(field_or_hash))
+      end
     end
 
     # <tt>from_formotion</tt> takes the information rendered from a Formotion
