@@ -5,12 +5,18 @@ module DateParser
   #
   # => 2013-02-20 09:00:00 -0800
   def self.parse_date(date_string)
+    if date_string.match(/\d{2}T\d{2}/)
+      # Discards fractional seconds.
+      date_string = date_string.split('.').first if date_string =~ /\.\d{3}Z$/
+      return Time.iso8601(date_string)
+    end
+
     detect(date_string).first.date
   end
 
   # Parse time zone from date
   #
-  # ateParser.parse_date "There is a date in here tomorrow at 9:00 AM EDT"
+  # DateParser.parse_date "There is a date in here tomorrow at 9:00 AM EDT"
   #
   # Caveat: This is implemented per Apple documentation. I've never really
   #         seen it work.
