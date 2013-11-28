@@ -689,19 +689,19 @@ If you want to pass additional information on to Formotion, simply include it in
 
 There are two alternate syntaxes for calling this. The initial, or "legacy" syntax is as follows:
 
-```
+```ruby
 to_formotion(form_title, expose_auto_date_fields, first_section_title)
 ```
 
 In the legacy syntax, all arguments are optional and sensible defaults are chosen. However, when you want to tune how your form is presented, the syntax gets a bit burdensome. The alternate syntax is:
 
-```
+```ruby
 to_formotion(options)
 ```
 
 The options hash looks a lot like a Formotion hash might, except without the data. Here is an example:
 
-```
+```ruby
 {title: 'A very fine form',
  sections: [
   {title:  'First Section',
@@ -715,7 +715,7 @@ The options hash looks a lot like a Formotion hash might, except without the dat
 
 Note that in this syntax, you can specify a button in the fields array:
 
-```
+```ruby
 {title: 'A very fine form',
  sections: [
   {title:  'First Section',
@@ -728,6 +728,21 @@ Note that in this syntax, you can specify a button in the fields array:
 ```
 
 This specifies exactly what titles and fields appear where and in what order.
+
+Finally, you can specify a button:
+
+```ruby
+{title: 'A very fine form',
+ sections: [
+  {title:  'First Section',
+   fields: [:name, :gender]
+  },
+  {title:  'Second Section',
+   fields: [:address, :city, :state, {type: :submit, title: 'Ok'}],
+   {type: :button, title: 'add now!!!'}
+  }
+]}
+```
 
 ### How Values Are Produced for Formotion
 
