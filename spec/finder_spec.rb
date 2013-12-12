@@ -87,6 +87,11 @@ describe 'finders' do
       results.length.should == 3
     end
 
+    it 'handles case-insensitive queries as default' do
+      task = Task.create :name => 'camelCase'
+      Task.find(:name).eq('camelcase').all.length.should == 1
+    end
+
     it 'handles case-sensitive queries' do
       task = Task.create :name => 'Bob'
       Task.find(:name).eq('bob', :case_sensitive => true).all.length.should == 0
