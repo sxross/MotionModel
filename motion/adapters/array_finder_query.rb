@@ -39,7 +39,7 @@ module MotionModel
     end
     
     def translate_case(item, case_sensitive)#nodoc
-      item = item.underscore if case_sensitive === false && item.respond_to?(:underscore)
+      item = item.downcase if case_sensitive === false && item.respond_to?(:downcase)
       item
     end
     
