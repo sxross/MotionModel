@@ -82,7 +82,7 @@ module MotionModel
         @file_name = file_name if file_name
         error_ptr = Pointer.new(:object)
 
-        data = NSKeyedArchiver.archivedDataWithRootObject collection
+        data = NSKeyedArchiver.archivedDataWithRootObject _collection
         unless data.writeToFile(documents_file(@file_name), options: NSDataWritingAtomic, error: error_ptr)
           # De-reference the pointer.
           error = error_ptr[0]

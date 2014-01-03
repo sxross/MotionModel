@@ -13,17 +13,17 @@ module MotionModel
     end
 
     module PublicClassMethods
-       def collection
-        @collection ||= []
+       def _collection
+        @_collection ||= []
       end
 
       def insert(object)
-        collection << object
+        _collection << object
       end
       alias :<< :insert
 
       def length
-        collection.length
+        _collection.length
       end
       alias_method :count, :length
 
@@ -34,7 +34,7 @@ module MotionModel
         # Do each delete so any on_delete and
         # cascades are called, then empty the
         # collection and compact the array.
-        bulk_update { collection.pop.delete until collection.empty? }
+        bulk_update { _collection.pop.delete until _collection.empty? }
         _reset_next_id
       end
 
@@ -47,7 +47,7 @@ module MotionModel
       #   @posts = Post.find(:author).eq('bob').all
       def find(*args, &block)
         if block_given?
-          matches = collection.collect do |item|
+          matches = _collection.collect do |item|
             item if yield(item)
           end.compact
           return ArrayFinderQuery.new(matches)
@@ -55,10 +55,10 @@ module MotionModel
 
         unless args[0].is_a?(Symbol) || args[0].is_a?(String)
           target_id = args[0].to_i
-          return collection.select{|element| element.id == target_id}.first
+          return _collection.select{|element| element.id == target_id}.first
         end
 
-        ArrayFinderQuery.new(args[0].to_sym, collection)
+        ArrayFinderQuery.new(args[0].to_sym, _collection)
       end
       alias_method :where, :find
 
@@ -68,11 +68,11 @@ module MotionModel
 
       # Returns query result as an array
       def all
-        collection
+        _collection
       end
 
       def order(field_name = nil, &block)
-        ArrayFinderQuery.new(collection).order(field_name, &block)
+        ArrayFinderQuery.new(_collection).order(field_name, &block)
       end
 
     end
@@ -110,12 +110,12 @@ module MotionModel
     # work. It only undeletes the object you still own.
 
     def undelete
-      collection << self
+      _collection << self
       issue_notification(:action => 'add')
     end
 
-    def collection #nodoc
-      self.class.collection
+    def _collection #nodoc
+      self.class._collection
     end
 
     # This adds to the ArrayStore without the magic date
@@ -127,7 +127,7 @@ module MotionModel
 
     # Count of objects in the current collection
     def length
-      collection.length
+      _collection.length
     end
     alias_method :count, :length
 
@@ -160,15 +160,15 @@ module MotionModel
     end
 
     def do_insert(options = {})
-      collection << self
+      _collection << self
     end
 
     def do_update(options = {})
     end
 
     def do_delete
-      target_index = collection.index{|item| item.id == self.id}
-      collection.delete_at(target_index) unless target_index.nil?
+      target_index = _collection.index{|item| item.id == self.id}
+      _collection.delete_at(target_index) unless target_index.nil?
       issue_notification(:action => 'delete')
     end
 

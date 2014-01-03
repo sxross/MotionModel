@@ -344,7 +344,7 @@ module MotionModel
       def define_has_many_methods(name) #nodoc
         col = column(name)
         define_method(name)               { get_has_many_attr(col) }
-        define_method("#{name}=")         { |collection| set_has_many_attr(col, *collection) }
+        define_method("#{name}=")         { |collection| set_has_many_attr(col, *_collection) }
       end
 
       def define_has_one_methods(name) #nodoc
@@ -700,13 +700,13 @@ module MotionModel
 
     def push_has_many_attr(col, *instances)
       _col = column(col)
-      collection = get_has_many_attr(_col)
-      _collection = []
+      _collection = get_has_many_attr(_col)
+      __collection = []
       instances.each do |instance|
-        next if collection.include?(instance)
-        _collection << instance
+        next if _collection.include?(instance)
+        __collection << instance
       end
-      push_relation(_col, *_collection)
+      push_relation(_col, *__collection)
       instances
     end
 
