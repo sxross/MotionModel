@@ -42,9 +42,11 @@ module DateParser
 
   private
   def self.detect(date_string)
-    error = Pointer.new(:object)
-    detector = NSDataDetector.dataDetectorWithTypes(NSTextCheckingTypeDate, error:error)
     matches = detector.matchesInString(date_string, options:0, range:NSMakeRange(0, date_string.length))
+  end
+
+  def self.detector
+    @detector ||= NSDataDetector.dataDetectorWithTypes(NSTextCheckingTypeDate, error:Pointer.new(:object))
   end
 end
 
