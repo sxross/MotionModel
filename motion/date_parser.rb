@@ -42,7 +42,6 @@ module DateParser
 
   private
   def self.detect(date_string)
-    error = Pointer.new(:object)
     matches = detector.matchesInString(date_string, options:0, range:NSMakeRange(0, date_string.length))
   end
 
