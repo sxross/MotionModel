@@ -44,7 +44,7 @@ module MotionModel
           if rset
             result = []
             while rset.next do
-              result << rset.resultDictionary
+              result << rset.resultDict
             end
           end
         else
