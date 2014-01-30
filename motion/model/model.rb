@@ -820,7 +820,8 @@ module MotionModel
     end
 
     def initialize_data_columns(column, value) #nodoc
-      self.attributes = {column => value || self.class.default(column)}
+      _value = value.nil? ? self.class.default(column) : value
+      self.attributes = {column => _value}
     end
 
     def column_as(col) #nodoc
