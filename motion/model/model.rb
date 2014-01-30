@@ -533,9 +533,12 @@ module MotionModel
     end
 
     # Set created_at and updated_at fields
+
     def set_auto_date_field(field_name)
       method = "#{field_name}="
-      self.send(method, Time.now) if self.respond_to?(method)
+      if self.respond_to?(method)
+        self.send(method, Time.now) if self.send(field_name).blank?
+      end
     end
 
     def hooks(name)
