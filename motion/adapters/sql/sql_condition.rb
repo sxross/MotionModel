@@ -49,6 +49,8 @@ module MotionModel
         values = @value.map { |v| v.is_a?(Numeric) ? v : %Q["#{v}"] }
       elsif @value.is_a?(Range)
         values = [@value.min, @value.max]
+      elsif @value.is_a?(TrueClass) || @value.is_a?(FalseClass)
+        value = @value.to_i
       else
         value = %Q["#{@value}"]
       end
