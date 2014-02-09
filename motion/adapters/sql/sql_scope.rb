@@ -235,6 +235,20 @@ module MotionModel
       @model_class.do_delete(self)
     end
 
+    def delete_all_sql
+      @db_adapter.to_delete_sql(default_scope)
+    end
+    
+    def delete_all
+      _delete_all_sql = @db_adapter.to_delete_sql(self)
+      @db_adapter.build_sql_context(:delete, _delete_all_sql).execute      
+    end
+    
+    def update_all(_attributes)
+      _update_all_sql = @db_adapter.to_update_all_sql(self, _attributes)
+      @db_adapter.build_sql_context(:update, _update_all_sql).execute
+    end
+
     def to_sql
       @db_adapter.send("to_#{type.to_s}_sql", self)
     end
