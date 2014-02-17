@@ -58,5 +58,11 @@ describe "lifecycle hooks" do
     it "calls after_save hook on save" do
       lambda{@task.save}.should.change{@task.after_save_called}
     end
+
+    it "calls after_save hook on update" do
+      task = Task.last
+      task.instance_variable_set("@after_save_called", false)
+      lambda{task.save}.should.change{task.after_save_called}
+    end
   end
 end
