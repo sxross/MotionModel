@@ -19,7 +19,7 @@ module MotionModel
 
     def execute
       result = @db_adapter.execute_sql(self)
-      #log(@sql, result) if RUBYMOTION_ENV == 'development'
+      log(@sql, result)
       result
     end
   end
