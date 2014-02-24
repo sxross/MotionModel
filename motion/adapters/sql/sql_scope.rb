@@ -17,6 +17,7 @@ module MotionModel
       @orders = nil
       @group = nil
       @limit = nil
+      @offset = nil
     end
 
     def method_missing(id, *args)
@@ -34,6 +35,7 @@ module MotionModel
       _orders = @orders.try(:dup)
       _group = @group.try(:dup)
       _limit = @limit
+      _offset = @offset
       _conditions = @conditions.try(:dup)
       _type = @type
       self.class.new(@model_class, @db_adapter).instance_eval do
@@ -43,6 +45,7 @@ module MotionModel
         @orders = _orders
         @group = _group
         @limit = _limit
+        @offset = _offset
         @conditions = _conditions
         @type = _type
         self
@@ -190,6 +193,14 @@ module MotionModel
       end
     end
 
+    def offset(offset)
+      return self if null_scope?
+      deep_clone.instance_eval do
+        @offset = offset
+        self
+      end
+    end
+
     def all
       deep_clone
     end
@@ -233,6 +244,20 @@ module MotionModel
 
     def delete
       @model_class.do_delete(self)
+    end
+
+    def delete_all_sql
+      @db_adapter.to_delete_sql(default_scope)
+    end
+    
+    def delete_all
+      _delete_all_sql = @db_adapter.to_delete_sql(self)
+      @db_adapter.build_sql_context(:delete, _delete_all_sql).execute      
+    end
+    
+    def update_all(_attributes)
+      _update_all_sql = @db_adapter.to_update_all_sql(self, _attributes)
+      @db_adapter.build_sql_context(:update, _update_all_sql).execute
     end
 
     def to_sql
@@ -286,8 +311,12 @@ module MotionModel
       @limit ? %Q[LIMIT #{@limit}] : nil
     end
 
+    def offset_str
+      @offset ? %Q[OFFSET #{@offset}] : nil
+    end
+
     def options_str
-      arr = [SQLCondition.to_sql_str(@conditions), group_str, order_str, limit_str].compact
+      arr = [SQLCondition.to_sql_str(@conditions), group_str, order_str, limit_str, offset_str].compact
       arr.empty? ? nil : arr.join(' ')
     end
 

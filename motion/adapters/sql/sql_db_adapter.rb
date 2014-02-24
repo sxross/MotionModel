@@ -154,6 +154,15 @@ module MotionModel
       SQL
     end
 
+    def to_update_all_sql(scope, attrs)
+      typed_attrs = _quoted_db_typed_attributes(attrs)
+      column_values_str = typed_attrs.map { |k, v| %Q["#{k.to_s}" = #{v}] }.join(', ')
+
+      <<-SQL.strip << ';'
+        UPDATE "#{scope.table_name}" SET #{column_values_str} #{scope.options_str}
+      SQL
+    end
+
     private
 
     def _quoted_db_typed_attributes(attrs)

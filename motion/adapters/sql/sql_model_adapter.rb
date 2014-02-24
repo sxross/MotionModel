@@ -322,6 +322,15 @@ module MotionModel
         _col.type == :belongs_to? ? get_attr(name) : relation(_col).loaded
       end
 
+      def reload
+        _new_record = self.class.find(self.id)
+        if _new_record.present?
+          self.attributes = self.class.find(self.id).attributes
+        else
+          nil
+        end
+      end
+
       private
 
       def before_initialize(options)
