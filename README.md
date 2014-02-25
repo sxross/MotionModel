@@ -244,8 +244,8 @@ Here are some sample validations:
 
     validate :field_name, :presence => true
     validate :field_name, :length => 5..8 # specify a range
-    validate :field_name, :email
-    validate :field_name, :format
+    validate :field_name, :email => true
+    validate :field_name, :format => /\A\d?\d-\d?\d-\d\d\Z/ # expected string format would be like '12-12-12'
 
 The framework is sufficiently flexible that you can add in custom validators like so:
 
@@ -278,7 +278,7 @@ of save:
 
 Method                 | Meaning
 -----------------------|---------------------------
-`save(options)`        |Just saves the data if it is valid (passes validations) or if you have specified `:validate => false`
+`save(options)`        |Just saves the data if it is valid (passes validations) or if you have specified `:validate => false` for `options`
 `save!`                |Saves the data if it is valid, otherwise raises a `MotionModel::Validatable::RecordInvalid` exception
 
 Model Instances and Unique IDs
