@@ -146,6 +146,21 @@ describe "validations" do
       task.validate_for(:some_day, 'a-12-12').should == false
     end
   end
+
+  describe "validation syntax" do
+    it "validates correctly when the expected hash syntax is used" do
+      task = ValidatableTask.new(@valid_tasks)
+      task.valid?.should == true
+    end
+
+    it "raises a ValidationSpecificationError when a non-Hash validation_type argument is passed to validate" do
+      lambda { ValidatableTask::validate(:field_name, :not_a_hash) }.should.raise
+    end
+
+    it "raises a ValidationSpecificationError when no validation_type argument is passed to validate" do
+      lambda { ValidatableTask::validate(:field_name) }.should.raise
+    end
+  end
 end
 
 class VTask

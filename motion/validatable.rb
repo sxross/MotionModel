@@ -14,8 +14,13 @@ module MotionModel
           raise ex
         end
 
+        unless validation_type.is_a?(Hash)
+          ex = ValidationSpecificationError.new('validation_type is not a hash')
+          raise ex
+        end
+
         if validation_type == {}
-          ex = ValidationSpecificationError.new('validation type not present or not a hash')
+          ex = ValidationSpecificationError.new('validation_type hash is empty')
           raise ex
         end
 
