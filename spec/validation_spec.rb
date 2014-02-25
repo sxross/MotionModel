@@ -156,6 +156,10 @@ describe "validations" do
     it "raises a ValidationSpecificationError when a non-Hash validation_type argument is passed to validate" do
       lambda { ValidatableTask::validate(:field_name, :not_a_hash) }.should.raise
     end
+
+    it "raises a ValidationSpecificationError when no validation_type argument is passed to validate" do
+      lambda { ValidatableTask::validate(:field_name) }.should.raise
+    end
   end
 end
 
