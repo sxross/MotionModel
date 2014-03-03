@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     motion_model (0.4.6)
-      bubble-wrap (= 1.3.0)
+      bubble-wrap (>= 1.3.0)
       motion-support (>= 0.2.2)
 
 GEM
