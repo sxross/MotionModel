@@ -1,3 +1,5 @@
+motion_require 'sql_db_adapter'
+
 module MotionModel
   class SQLite3Adapter < SQLDBAdapter
 
