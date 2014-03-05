@@ -8,9 +8,8 @@ Bundler.require(:default)
 require 'motion-cocoapods'
 
 require 'motion_model'
-#require 'motion_model/array'
-#require 'motion_model/sql'
-#require 'motion_model/fmdb'
+require 'motion_model/array'
+require 'motion_model/sql'
 
 Motion::Project::App.setup do |app|
   # Use `rake config' to see complete project settings.
