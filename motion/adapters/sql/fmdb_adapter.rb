@@ -1,3 +1,5 @@
+motion_require 'sqlite3_adapter'
+
 module MotionModel
   class FMDBAdapter < SQLite3Adapter
 
