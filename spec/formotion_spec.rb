@@ -180,5 +180,18 @@ describe "formotion" do
         result[:sections][0][:rows][2].should.has_key?(:type)
         result[:sections][0][:rows][2][:type].should == :submit
     end
+
+    it "creates date as a float in the formotion hash" do
+        result = @subject.new_to_formotion(
+        sections: [
+          {title: 'name', fields: [:name, :date, {title: 'Submit', type: :submit}]},
+          {title: 'address', fields: [:location]}
+          ]
+          )
+        date_row = result[:sections][0][:rows][1]
+        date_row.should.has_key?(:type)
+        date_row[:type].should == :date
+        date_row[:value].class.should == Float
+    end
   end
 end

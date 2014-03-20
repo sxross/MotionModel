@@ -34,6 +34,8 @@ module MotionModel
     end
 
     def default_hash_for(column, value)
+      value = value.to_f if is_date_time?(column)
+
       {:key         => column.to_sym,
        :title       => column.to_s.humanize,
        :type        => FORMOTION_MAP[column_type(column)],
