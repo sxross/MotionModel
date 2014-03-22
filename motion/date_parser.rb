@@ -6,9 +6,16 @@ module DateParser
   # => 2013-02-20 09:00:00 -0800
   def self.parse_date(date_string)
     if date_string.match(/\d{2}T\d{2}/)
-      # Discards fractional seconds.
-      date_string = date_string.split('.').first if date_string =~ /\.\d{3}Z$/
-      return Time.iso8601(date_string)
+
+      if date_string =~ /\.\d{3}Z$/
+        date_formatter = NSDateFormatter.alloc.init
+        date_formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ'"
+        date = date_formatter.dateFromString date_string
+        return date
+      else
+       return Time.iso8601(date_string)
+      end
+
     end
 
     detect(date_string).first.date
