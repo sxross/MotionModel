@@ -74,5 +74,12 @@ describe "time conversions" do
       m.test_date.should.not.be.nil
       m.test_date.utc.to_s.should.eql '2012-04-23 18:25:43 UTC'
     end
+
+    it "does not discard fractional portion of ISO8601 dates" do
+      m = Model.new(test_date: '2012-04-23T18:25:43.511Z')
+      m.test_date.should.not.be.nil
+      m.test_date.utc.to_s.should.eql '2012-04-23 18:25:43 UTC'
+      m.test_date.utc.to_s.should.not.eql '2012-04-23 18:25:51 UTC'
+    end
   end
 end

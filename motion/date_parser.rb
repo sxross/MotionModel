@@ -1,4 +1,6 @@
 module DateParser
+  @@isoDateFormatter = nil
+
   # Parse a date string: E.g.:
   #
   # DateParser.parse_date "There is a date in here tomorrow at 9:00 AM"
@@ -6,8 +8,7 @@ module DateParser
   # => 2013-02-20 09:00:00 -0800
   def self.parse_date(date_string)
     if date_string.match(/\d{2}T\d{2}/)
-      # Discards fractional seconds.
-      date_string = date_string.split('.').first if date_string =~ /\.\d{3}Z$/
+      return fractional_date(date_string) if date_string =~ /\.\d{3}Z$/
       return Time.iso8601(date_string)
     end
 
@@ -45,6 +46,17 @@ module DateParser
     error = Pointer.new(:object)
     detector = NSDataDetector.dataDetectorWithTypes(NSTextCheckingTypeDate, error:error)
     matches = detector.matchesInString(date_string, options:0, range:NSMakeRange(0, date_string.length))
+  end
+
+  def self.allocate_date_formatter
+    @@isoDateFormatter = NSDateFormatter.alloc.init
+    @@isoDateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ'"
+  end
+
+  def self.fractional_date(date_string)
+    allocate_date_formatter if @@isoDateFormatter.nil?
+    date = @@isoDateFormatter.dateFromString date_string
+    return date
   end
 end
 

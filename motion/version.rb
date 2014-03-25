@@ -4,5 +4,5 @@
 # or forward port their code to take advantage
 # of adapters.
 module MotionModel
-  VERSION = "0.5.1"
+  VERSION = "0.5.2"
 end
