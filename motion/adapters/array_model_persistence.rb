@@ -63,6 +63,9 @@ module MotionModel
             bulk_update do
               NSKeyedUnarchiver.unarchiveObjectWithData(data)
             end
+            
+            _reset_next_id
+            
             return self
           end
         else
