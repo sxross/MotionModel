@@ -86,7 +86,7 @@ module MotionModel
       end
 
       def _reset_next_id
-        @_next_id = 1
+        @_next_id = self.all.map(&:id).max.to_i + 1
       end
 
       # Increments next available id
