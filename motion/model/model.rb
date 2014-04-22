@@ -785,8 +785,40 @@ module MotionModel
     def unload_relation(col)
     end
 
+    def evaluate_default_value(column, value)
+      default = self.class.default(column)
+
+      case default
+      when NilClass
+        {column => value}
+      when Proc
+        {column => default.call}
+      when Symbol
+        {column => self.send(column)}
+      else
+        {column => default}
+      end
+    end
+
+    # issue #113. added ability to specify a proc or block
+    # for the default value. This allows for arrays to be
+    # created as unique. E.g.:
+    #
+    #     class Foo
+    #       include MotionModel::Model
+    #       include MotionModel::ArrayModelAdapter
+    #       columns  subject: { type: :array, default: ->{ [] } }
+    #     end
+    #
+    #     ...
+    #
+    # This is not constrained to initializing arrays. You can
+    # initialize pretty much anything using a proc or block.
+    # If you are specifying a block, make sure to use begin/end
+    # instead of do/end because it makes Ruby happy.
+
     def initialize_data_columns(column, value) #nodoc
-      self.attributes = {column => value || self.class.default(column)}
+      self.attributes = evaluate_default_value(column, value)
     end
 
     def column_as(col) #nodoc

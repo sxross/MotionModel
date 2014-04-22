@@ -167,6 +167,62 @@ class Task
 end
 ```
 
+A note on defaults, you can specify a proc, block or symbol for your default if you want to get fancy. The most obvious use case for this  is that Ruby will optimize the assignment of an array so that a default of `[]` always points to the same object. Not exactly what is intended. Wrapping this in a proc causes a new array to be created. Here's an example:
+
+```
+class Foo
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+  columns  subject: { type: :array, default: ->{ [] } }
+end
+```
+
+This is not constrained to initializing arrays. You can
+initialize pretty much anything using a proc or block.
+If you are specifying a block, make sure to use begin/end
+instead of do/end because it makes Ruby happy.
+
+Here's a different example:
+
+```
+class Timely
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+  columns  ended_run_at: { type: :time, default: ->{ Time.now } }
+end
+```
+Note that this uses the "stubby proc" syntax. That is pretty much equivalent
+to:
+
+```
+columns  ended_run_at: { type: :time, default: lambda { Time.now } }
+```
+
+for the previous example.
+
+If you want to use a block, use the begin/end syntax:
+
+```
+columns  ended_run_at: { type: :time, default:
+  begin
+    Time.now
+  end
+  }
+```
+Finally, you can have the default call some class method as follows:
+
+```
+class Timely
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+  columns  unique_thingie: { type: :integer, default: :randomize }
+
+  def self.randomize
+    rand 1_000_000
+  end
+end
+```
+
 You can also include the `Validatable` module to get field validation. For example:
 
 ```ruby
