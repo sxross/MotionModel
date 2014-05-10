@@ -882,12 +882,17 @@ require "~/github/local/MotionModel/lib/motion_model.rb"
 The `~/github/local` is where I cloned it, but you can put it anyplace. Next, make
 sure you are following the project on GitHub so you know when there are changes.
 
-Submissions/Patches
+Submissions/Patches/Bug Reports
 ------------------
 
-Obviously, the ideal patch request is really a pull request from your own fork, complete with passing
-specs.
+For a submission, do this:
 
-Really, for a bug report, even a failing spec or some proposed code is fine. I really want to make
-this a decent tool for RubyMotion developers who need a straightforward data
-modeling and persistence framework.
+1. Fork it
+2. Create your feature branch (git checkout -b my-new-feature)
+3. Commit your changes (git commit -am 'Add some feature')
+4. Push to the branch (git push origin my-new-feature)
+5. Create new Pull Request
+
+For a bug report, the best bet is follow the above steps, but for #2 and 4,
+use the issue number in the branch. Once you have created the pull request,
+reference it in the issue.
