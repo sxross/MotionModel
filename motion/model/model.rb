@@ -792,7 +792,12 @@ module MotionModel
       when NilClass
         {column => value}
       when Proc
-        {column => default.call}
+        begin
+          {column => default.call}
+        rescue Exception => ex
+          Debug.error "\n\nProblem initializing #{self.class} : #{column} with default and proc.\nException: #{ex.message}\nSorry, your app is pretty much crashing.\n"
+          exit
+        end
       when Symbol
         {column => self.send(column)}
       else
