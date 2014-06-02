@@ -33,6 +33,21 @@ describe 'persistence' do
     PersistTask.last.name.should  == 'name three'
   end
 
+  it "resets the id correctly after reading persistent data" do
+    PersistTask.first.destroy
+    PersistTask.serialize_to_file('test.dat')
+
+    PersistTask.delete_all
+
+    PersistTask.send(:_next_id).should == 1
+
+    PersistTask.deserialize_from_file('test.dat')
+
+    PersistTask.count.should == 2
+
+    PersistTask.send(:_next_id).should == 4
+  end
+
   it "does not change created or updated date on load" do
     created_at = PersistTask.first.created_at
     updated_at = PersistTask.first.updated_at
@@ -239,4 +254,3 @@ describe "serialization of relations" do
     Parent.first.dog.first.name.should == 'Fluffy'
   end
 end
-
