@@ -44,17 +44,24 @@ module MotionModel
       # will remember the file name, so they may omit that argument.
       #
       # Raises a +MotionModel::PersistFileFailureError+ on failure.
-      def deserialize_from_file(file_name = nil)
+      def deserialize_from_file(file_name = nil, directory = nil)
         if schema_version != '1.0.0'
           migrate
         end
 
         @file_name = file_name if file_name
+        @file_path =
+          if directory.nil?
+            documents_file(@file_name)
+          else
+            File.join(directory, @file_name)
+          end
+            
 
-        if File.exist? documents_file(@file_name)
+        if File.exist? @file_path
           error_ptr = Pointer.new(:object)
 
-          data = NSData.dataWithContentsOfFile(documents_file(@file_name), options:NSDataReadingMappedIfSafe, error:error_ptr)
+          data = NSData.dataWithContentsOfFile(@file_path, options:NSDataReadingMappedIfSafe, error:error_ptr)
 
           if data.nil?
             error = error_ptr[0]
