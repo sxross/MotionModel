@@ -27,6 +27,14 @@ describe "time conversions" do
               :updated_at => :date
     end
 
+    class ProtectedUpdateable
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns :name => :string,
+              :updated_at => :date
+      protect_remote_timestamps
+    end
+
     it "Sets created_at when an item is created" do
       c = Creatable.new(:name => 'test')
       lambda{c.save}.should.change{c.created_at}
@@ -50,6 +58,12 @@ describe "time conversions" do
       lambda{ c.save }.should.change{c.updated_at}
     end
 
+    it "Honors (protects) server side timestamps" do
+      c = ProtectedUpdateable.create(:name => 'test')
+      sleep 1
+      c.name = 'test 1'
+      lambda{ c.save }.should.not.change{c.updated_at}
+    end
   end
 
   describe "parsing ISO8601 date formats" do
