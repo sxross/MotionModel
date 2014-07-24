@@ -238,5 +238,21 @@ describe "serialization of relations" do
     Parent.first.children.first.name.should == 'Fergie'
     Parent.first.dog.first.name.should == 'Fluffy'
   end
-end
 
+  it "allows to serialize and eserialize from directories" do
+    directory_path = '/Library/Caches'
+    Parent.serialize_to_file('parents.dat', directory_path)
+    Child.serialize_to_file('children.dat', directory_path)
+    Dog.serialize_to_file('dogs.dat', directory_path)
+    Parent.delete_all
+    Child.delete_all
+    Dog.delete_all
+    Parent.deserialize_from_file('parents.dat', directory_path)
+    Child.deserialize_from_file('children.dat', directory_path)
+    Dog.deserialize_from_file('dogs.dat', directory_path)
+    Parent.first.name.should == 'BoB'
+    Parent.first.children.count.should == 2
+    Parent.first.children.first.name.should == 'Fergie'
+    Parent.first.dog.first.name.should == 'Fluffy'
+  end
+end

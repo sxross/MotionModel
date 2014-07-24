@@ -44,17 +44,24 @@ module MotionModel
       # will remember the file name, so they may omit that argument.
       #
       # Raises a +MotionModel::PersistFileFailureError+ on failure.
-      def deserialize_from_file(file_name = nil)
+      def deserialize_from_file(file_name = nil, directory = nil)
         if schema_version != '1.0.0'
           migrate
         end
 
         @file_name = file_name if file_name
+        @file_path =
+          if directory.nil?
+            documents_file(@file_name)
+          else
+            File.join(directory, @file_name)
+          end
+            
 
-        if File.exist? documents_file(@file_name)
+        if File.exist? @file_path
           error_ptr = Pointer.new(:object)
 
-          data = NSData.dataWithContentsOfFile(documents_file(@file_name), options:NSDataReadingMappedIfSafe, error:error_ptr)
+          data = NSData.dataWithContentsOfFile(@file_path, options:NSDataReadingMappedIfSafe, error:error_ptr)
 
           if data.nil?
             error = error_ptr[0]
@@ -78,12 +85,19 @@ module MotionModel
       # remembered file name.
       #
       # Raises a +MotionModel::PersistFileError+ on failure.
-      def serialize_to_file(file_name = nil)
+      def serialize_to_file(file_name = nil, directory = nil)
         @file_name = file_name if file_name
+        @file_path =
+          if directory.nil?
+            documents_file(@file_name)
+          else
+            File.join(directory, @file_name)
+          end
+      
         error_ptr = Pointer.new(:object)
 
         data = NSKeyedArchiver.archivedDataWithRootObject collection
-        unless data.writeToFile(documents_file(@file_name), options: NSDataWritingAtomic, error: error_ptr)
+        unless data.writeToFile(@file_path, options: NSDataWritingAtomic, error: error_ptr)
           # De-reference the pointer.
           error = error_ptr[0]
 
@@ -91,7 +105,6 @@ module MotionModel
           raise MotionModel::PersistFileError.new "Error when writing data: #{error}"
         end
       end
-
 
       def documents_file(file_name)
         file_path = File.join NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true), file_name
