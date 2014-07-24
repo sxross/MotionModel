@@ -300,45 +300,47 @@ class Debug
   @@silent = false
   @@colorize = true
 
-  # Use silence if you want to keep messages from being echoed
-  # to the console.
-  def self.silence
-    @@silent = true
+  class << self
+    # Use silence if you want to keep messages from being echoed
+    # to the console.
+    def silence
+      @@silent = true
+    end
+
+    def colorize
+      @@colorize
+    end
+
+    def colorize=(value)
+      @@colorize = value == true
+    end
+
+    # Use resume when you want messages that were silenced to
+    # resume displaying.
+    def resume
+      @@silent = false
+    end
+
+    def put_message(type, message, color = Ansi.reset_color)
+      open_color = @@colorize ? color : ''
+      close_color = @@colorize ? Ansi.reset_color : ''
+
+      NSLog("#{open_color}#{type} #{caller[1]}: #{message}#{close_color}") unless @@silent
+    end
+
+    def info(msg)
+      put_message 'INFO', msg, Ansi.green_color
+    end
+    alias :log :info
+
+    def warning(msg)
+      put_message 'WARNING', msg, Ansi.yellow_color
+    end
+
+    def error(msg)
+      put_message 'ERROR', msg, Ansi.red_color
+    end
   end
-
-  def self.colorize
-    @@colorize
-  end
-
-  def self.colorize=(value)
-    @@colorize = value == true
-  end
-
-  # Use resume when you want messages that were silenced to
-  # resume displaying.
-  def self.resume
-    @@silent = false
-  end
-
-  def self.put_message(type, message, color = Ansi.reset_color)
-    open_color = @@colorize ? color : ''
-    close_color = @@colorize ? Ansi.reset_color : ''
-
-    NSLog("#{open_color}#{type} #{caller[1]}: #{message}#{close_color}") unless @@silent
-  end
-
-  def self.info(msg)
-    put_message 'INFO', msg, Ansi.green_color
-  end
-
-  def self.warning(msg)
-    put_message 'WARNING', msg, Ansi.yellow_color
-  end
-
-  def self.error(msg)
-    put_message 'ERROR', msg, Ansi.red_color
-  end
-
 end
 
 # These are C macros in iOS SDK. Not workable for Ruby.
