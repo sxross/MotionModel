@@ -10,7 +10,7 @@ data validation and actually quite a bit more.
 File                 | Module                    | Description
 ---------------------|---------------------------|------------------------------------
 **ext.rb**           | N/A                       | Core Extensions that provide a few Rails-like niceties. Nothing new here, moving on...
-**model.rb**         | MotionModel::Model        | You should read about it in "[What Model Can Do](#what-model-can-do)". Model is the raison d'etre and the centerpiece of MotionModel.
+**model.rb**         | MotionModel::Model        | You should read about it in "[What MotionModel Can Do](#what-motionmodel-can-do)". Model is the raison d'etre and the centerpiece of MotionModel.
 **validatable.rb**   | MotionModel::Validatable  | Provides a basic validation framework for any arbitrary class. You can also create custom validations to suit your app's unique needs.
 **input_helpers**    | MotionModel::InputHelpers | Helps hook a collection up to a data form, populate the form, and retrieve the data afterwards. Note: *MotionModel supports Formotion for input handling as well as these input helpers*.
 **formotion.rb**     | MotionModel::Formotion    | Provides an interface between MotionModel and Formotion
@@ -21,7 +21,7 @@ you like with it. See the LICENSE file in this project.
 
 * [Getting Going](#getting-going)
 * [Bugs, Features, and Issues, Oh My!](#bugs-features-and-issues-oh-my)
-* [What Model Can Do](#what-model-can-do)
+* [What MotionModel Can Do](#what-motionmodel-can-do)
 * [Model Data Types](#model-data-types)
 * [Validation Methods](#validation-methods)
 * [Model Instances and Unique IDs](#model-instances-and-unique-ids)
