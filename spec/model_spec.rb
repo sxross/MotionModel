@@ -300,3 +300,11 @@ describe "Creating a model" do
     end
   end
 end
+
+describe "#all" do
+  it "should return a new collection" do
+    x = Task.all.object_id
+    Task.create
+    Task.all.object_id.should != x
+  end
+end
