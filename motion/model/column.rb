@@ -49,9 +49,9 @@ module MotionModel
         else
           case @type
           when :belongs_to
-            @klass ||= Object.const_get(class_name.to_s.camelize)
+            @klass ||= class_name.to_s.camelize.constantize
           when :has_many, :has_one
-            @klass ||= Object.const_get(class_name.to_s.singularize.camelize)
+            @klass ||= class_name.to_s.singularize.camelize.constantize
           else
             raise "#{@name} is not a relation. This isn't supposed to happen."
           end
@@ -77,12 +77,12 @@ module MotionModel
           inverse_of
         elsif type == :belongs_to
           # Check for a singular and a plural relationship
-          name = owner.name.singularize.underscore
+          name = owner.name.singularize.underscore.gsub('/', '_')
           col = classify.column(name)
           col ||= classify.column(name.pluralize)
           col.name
         else
-          owner.name.singularize.underscore.to_sym
+          owner.name.singularize.underscore.gsub('/', '_').to_sym
         end
       end
 
