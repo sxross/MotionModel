@@ -96,4 +96,12 @@ describe "time conversions" do
       m.test_date.utc.to_s.should.not.eql '2012-04-23 18:25:51 UTC'
     end
   end
+  
+  describe "user specified date formats" do
+    it 'parses a user date format' do
+      date = DateParser::parse_date_with_format("2014-10-28T22:30:00.000-07:00", "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ")
+      date.should.not.be.nil
+      date.utc.to_s.should.eql '2014-10-29 05:30:00 UTC'
+    end
+  end
 end
