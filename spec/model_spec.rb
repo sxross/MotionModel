@@ -16,6 +16,15 @@ class ATask
   columns :name, :details, :some_day
 end
 
+class BTask
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+  columns :name, :details
+  def details=(value)
+    write_attribute(:details, "overridden")
+  end
+end
+
 class TypeCast
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
@@ -253,6 +262,25 @@ describe "Creating a model" do
     it 'uses a custom attribute by method' do
       @task.custom_attribute_by_method.should == 'Feed the Cat - Get food, pour out'
     end
+  end
+  
+  describe 'overloading accessors using write_attribute' do
+    before do
+      BTask.delete_all
+    end
+    
+    it 'updates the attribute on creation' do
+      @task = BTask.create :name => 'foo', :details => 'bar'
+      @task.details.should.equal('overridden')
+      @task.should.not.be.dirty
+    end
+    
+    it 'updates the attribute but does not save a new instance' do
+      @task = BTask.new :name => 'foo', :details => 'bar'
+      @task.details.should.equal('overridden')
+      @task.should.be.dirty
+    end
+    
   end
 
   describe 'protecting timestamps' do
