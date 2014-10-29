@@ -66,6 +66,13 @@ describe "time conversions" do
     end
   end
 
+  describe "date parser data detector reuse" do
+    it "creates a data detector if none is present" do
+      DateParser.class_variable_get(:@@detector).should.be.nil
+      DateParser.detector.class.should == NSDataDetector
+    end
+  end
+
   describe "parsing ISO8601 date formats" do
     class Model
       include MotionModel::Model

@@ -1,5 +1,6 @@
 module DateParser
   @@isoDateFormatter = nil
+  @@detector = nil
 
   # Parse a date string: E.g.:
   #
@@ -57,6 +58,16 @@ module DateParser
     allocate_date_formatter if @@isoDateFormatter.nil?
     date = @@isoDateFormatter.dateFromString date_string
     return date
+  end
+
+  def self.allocate_data_detector
+    error = Pointer.new(:object)
+    @@detector = NSDataDetector.dataDetectorWithTypes(NSTextCheckingTypeDate, error:error)
+  end
+
+  def self.detector
+    allocate_data_detector if @@detector.nil?
+    return @@detector
   end
 end
 
