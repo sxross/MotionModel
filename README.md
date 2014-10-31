@@ -223,6 +223,17 @@ class Timely
 end
 ```
 
+If you have a specific date format that you need to use for parsing the date string, you can specify the format in the column type.  For example:
+
+```ruby
+class Task
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+
+  columns :due_date => {:type => :date, :format => "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"}
+end
+```
+
 You can also include the `Validatable` module to get field validation. For example:
 
 ```ruby

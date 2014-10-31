@@ -18,11 +18,16 @@ module MotionModel
       arg.is_a?(Float) ? arg : arg.to_f
     end
 
-    def cast_to_date(arg)
+    def cast_to_date(arg, column_name)
       case arg
         when String
-          return DateParser::parse_date(arg)
-          # return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+          date_format = options(column_name).key?(:format) && options(column_name)[:format]
+          if date_format
+            return DateParser::parse_date_with_format(arg,date_format)
+          else
+            return DateParser::parse_date(arg)
+            # return NSDate.dateWithNaturalLanguageString(arg.gsub('-','/'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
+          end
         when Time, NSDate
           return arg
           # return NSDate.dateWithNaturalLanguageString(arg.strftime('%Y/%m/%d %H:%M:%S'), locale:NSUserDefaults.standardUserDefaults.dictionaryRepresentation)
@@ -52,7 +57,7 @@ module MotionModel
       when :boolean, :bool then cast_to_bool(arg)
       when :int, :integer, :belongs_to_id then cast_to_integer(arg)
       when :float, :double then cast_to_float(arg)
-      when :date, :time, :datetime then cast_to_date(arg)
+      when :date, :time, :datetime then cast_to_date(arg,column_name)
       when :text then cast_to_string(arg)
       when :array then cast_to_array(arg)
       when :hash then cast_to_hash(arg)

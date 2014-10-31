@@ -8,6 +8,7 @@ class TypeCast
           :a_double => :double,
           :a_date => :date,
           :a_time => :time,
+          :b_date => {:type => :date, :format => "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"},
           :an_array => :array
 end
 
@@ -20,6 +21,7 @@ describe 'Type casting' do
     @convertible.a_float = '3.7'
     @convertible.a_double = '3.41459'
     @convertible.a_date = '2012-09-15'
+    @convertible.b_date = "2014-10-28T22:30:00.000-07:00"
     @convertible.an_array = 1..10
   end
   
@@ -30,6 +32,7 @@ describe 'Type casting' do
     @convertible.a_float.should.is_a Float
     @convertible.a_double.should.is_a Float
     @convertible.a_date.should.is_a NSDate
+    @convertible.b_date.should.is_a NSDate
     @convertible.an_array.should.is_a Array
   end
 
@@ -109,8 +112,17 @@ describe 'Type casting' do
     @convertible.a_date.should.is_a(NSDate)
   end
   
+  it 'returns an NSDate for a date field when provided a proper format for a given date string' do
+    @convertible.b_date.should.is_a(NSDate)
+  end
+  
   it 'the date field should be the same as it was in string form' do
     @convertible.a_date.to_s.should.match(/^2012-09-15/)
+  end
+  
+  it 'parses date using a format if specified in column definition' do
+    @convertible.b_date.should.not.be.nil
+    @convertible.b_date.utc.to_s.should.eql '2014-10-29 05:30:00 UTC'
   end
 
   it 'returns an Array for an array field' do

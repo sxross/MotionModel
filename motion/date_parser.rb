@@ -15,6 +15,11 @@ module DateParser
 
     detect(date_string).first.date
   end
+  
+  def self.parse_date_with_format(date_string, format)
+    allocate_date_formatter_with_format(format)
+    return @@isoDateFormatter.dateFromString(date_string)
+  end
 
   # Parse time zone from date
   #
@@ -52,6 +57,11 @@ module DateParser
   def self.allocate_date_formatter
     @@isoDateFormatter = NSDateFormatter.alloc.init
     @@isoDateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ'"
+  end
+  
+  def self.allocate_date_formatter_with_format(format)
+    @@isoDateFormatter = NSDateFormatter.alloc.init
+    @@isoDateFormatter.dateFormat = format
   end
 
   def self.fractional_date(date_string)
