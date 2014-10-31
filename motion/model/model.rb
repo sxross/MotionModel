@@ -485,6 +485,11 @@ module MotionModel
     def read_attribute(name)
       @data[name]
     end
+    
+    def write_attribute(attr_name, value)
+      @data[attr_name] = value
+      @dirty = true
+    end
 
     # Default to_i implementation returns value of id column, much as
     # in Rails.
