@@ -317,7 +317,7 @@ module MotionModel
           raise ArgumentError.new("you cannot use `description' as a column name because of a conflict with Cocoa.") if name.to_s == 'description'
 
           case options
-          when Symbol, String
+          when Symbol, String, Class
             add_field(name, options)
           when Hash
             add_field(name, options.delete(:type), options)
@@ -448,6 +448,10 @@ module MotionModel
       "#{self.class.name}##{id}"
     end
 
+    def motion_model?
+      true
+    end
+
     def new_record?
       @new_record
     end
@@ -485,7 +489,7 @@ module MotionModel
     def read_attribute(name)
       @data[name]
     end
-    
+
     def write_attribute(attr_name, value)
       @data[attr_name] = value
       @dirty = true

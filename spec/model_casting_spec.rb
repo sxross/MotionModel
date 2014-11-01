@@ -22,7 +22,7 @@ describe 'Type casting' do
     @convertible.a_date = '2012-09-15'
     @convertible.an_array = 1..10
   end
-  
+
   it 'does the type casting on instantiation' do
     @convertible.a_boolean.should.is_a FalseClass
     @convertible.an_int.should.is_a Integer
@@ -108,7 +108,7 @@ describe 'Type casting' do
   it 'returns a NSDate for a date field' do
     @convertible.a_date.should.is_a(NSDate)
   end
-  
+
   it 'the date field should be the same as it was in string form' do
     @convertible.a_date.to_s.should.match(/^2012-09-15/)
   end
@@ -124,5 +124,126 @@ describe 'Type casting' do
   end
   it 'the array field should be the same as the range form' do
     (@convertible.an_array.first..@convertible.an_array.last).should.equal(1..10)
+  end
+
+  describe 'can cast to an arbitrary type' do
+    class HasArbitraryTypes
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns name: String,
+              properties: Hash
+    end
+
+    class EmbeddedAddress
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns     street: String,
+                  city:   String,
+                  state:  String,
+                  zip:    Integer,
+                  pets:   Array
+      # attr_accessor :street
+      # attr_accessor :city
+      # attr_accessor :state
+      # attr_accessor :zip
+      # attr_accessor :pets
+
+      # def initialize(options = {})
+      #   @street = options[:street] if options[:street]
+      #   @city = options[:city] if options[:city]
+      #   @state = options[:state] if options[:state]
+      #   @zip = options[:zip] if options[:zip]
+      #   @pets = options[:pets] if options[:pets]
+      # end
+    end
+
+    class EmbeddingClass
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns name: String,
+              address: EmbeddedAddress,
+              pets: Array
+    end
+
+    before do
+      EmbeddingClass.delete_all
+      HasArbitraryTypes.delete_all
+    end
+
+    it "creation works" do
+      arb = HasArbitraryTypes.create(name: 'A Name', properties: {address: '123 Main Street', city: 'Seattle', state: 'WA'})
+      arb.name.should == 'A Name'
+      arb.properties.class.should == Hash
+      arb.properties[:address].should == '123 Main Street'
+    end
+
+    it "updating works" do
+      HasArbitraryTypes.create(name: 'Another Name', properties: {address: '123 Main Street', city: 'Seattle', state: 'WA'})
+      arb = HasArbitraryTypes.first
+      arb.properties[:address] = '234 Main Street'
+      arb.save
+      arb.properties[:address].should == '234 Main Street'
+      arb = HasArbitraryTypes.find(:name).eq('Another Name').first
+      arb.properties[:address].should == '234 Main Street'
+    end
+
+    it "creating objects with embedded documents works" do
+      addr = EmbeddedAddress.new(street: '2211 First', city: 'Seattle', state: 'WA', zip: 98104)
+      emb = EmbeddingClass.create(name: 'On Class', address: addr)
+      emb.address.class.should == EmbeddedAddress
+      emb.address.street.should == '2211 First'
+    end
+
+    it "copies embedded types" do
+      addr = EmbeddedAddress.new(street: '2211 First', city: 'Seattle', state: 'WA', zip: 98104, pets: ['rover', 'fido', 'barney'])
+      emb = EmbeddingClass.create(name: 'On Class', address: addr)
+      emb.address.pets.class.should == Array
+      emb.address.pets.should.include?('barney')
+      EmbeddingClass.first.address.pets.should.include?('barney')
+    end
+
+    it "updates embedded types" do
+      addr = EmbeddedAddress.new(street: '3322 First', city: 'Seattle', state: 'WA', zip: 98104, pets: ['rover', 'fido', 'barney'])
+      emb = EmbeddingClass.create(name: 'On Class', address: addr)
+      emb.address.pets.should.include?('barney')
+      found = EmbeddingClass.find(:name).eq('On Class').first
+      found.address.pets.should.include?('barney')
+      found.address.pets.delete('barney')
+      found.save
+      EmbeddingClass.find(:name).eq('On Class').first.address.pets.should.not.include?('barney')
+    end
+
+    it "serializes with arbitrary Ruby types without error" do
+      HasArbitraryTypes.create(name: 'A Name', properties: {address: '123 Main Street', city: 'Seattle', state: 'WA'})
+      lambda{HasArbitraryTypes.serialize_to_file('test.dat')}.should.not.raise
+    end
+
+    it "deserializes arbitrary Ruby types with correct values" do
+      HasArbitraryTypes.create(name: 'A Name', properties: {address: '123 Main Street', city: 'Seattle', state: 'WA'})
+      HasArbitraryTypes.serialize_to_file('test.dat')
+      HasArbitraryTypes.deserialize_from_file('test.dat')
+      result = HasArbitraryTypes.find(:name).eq('A Name').first
+      result.should.not.be.nil
+      result.properties.class.should == Hash
+      result.properties[:city].should == 'Seattle'
+    end
+
+    it "serializes arbitrary user-defined classes without error" do
+      addr = EmbeddedAddress.new(street: '2211 First', city: 'Seattle', state: 'WA', zip: 98104)
+      emb = EmbeddingClass.create(name: 'On Class', address: addr)
+      lambda{EmbeddingClass.serialize_to_file('test.dat')}.should.not.raise
+    end
+
+    it "deserializes arbitrary user-defined classes with correct values" do
+      addr = EmbeddedAddress.new(street: '2211 First', city: 'Seattle', state: 'WA', zip: 98104, pets: ['Katniss', 'Peeta'])
+      emb = EmbeddingClass.create(name: 'On Class', address: addr)
+      lambda{EmbeddingClass.serialize_to_file('test.dat')}.should.not.raise
+      EmbeddingClass.deserialize_from_file('test.dat')
+      result = EmbeddingClass.find(:name).eq('On Class').first
+      result.should.not.be.nil
+      result.address.class.should == EmbeddedAddress
+      result.address.city.should == 'Seattle'
+      result.address.pets.should.include?('Katniss')
+    end
   end
 end

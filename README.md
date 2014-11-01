@@ -274,6 +274,65 @@ Currently supported types are:
 You are really not encouraged to stuff big things in your models, which is why a blob type
 is not implemented. The smaller your data, the less overhead involved in saving/loading.
 
+### User Defined Types
+
+*New as of 0.6*: THIS FEATURE IS EXPERIMENTAL. You can use a class name instead of the
+symbols to specify your types. Thus, you can choose more complex types in much the same
+way as you might in a NOSQL database. Consider these examples:
+
+```ruby
+class Address
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+  columns street:     String,
+          city:       String,
+          state:      String,
+          zip:        Integer
+end
+
+class Person
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+
+  columns   name:     String,
+            address:  Address
+end
+```
+
+You can now use this `Person` class as follows:
+
+```ruby
+p = Person.find(:name).eq('Laurent').first
+p.address.country = 'Belgium'
+p.save
+```
+
+> **Note** Address includes all the MotionModel goodness. That is so that any class that embeds it can also persist it. You may be able to get away with defining `encodeWithCoder(coder)` and `initWithCoder(coder)` -- it's your choice, but not currently supported.
+
+### Native Ruby Types
+
+You can also use native Ruby types (limited to those supported by RubyMotion so no `DateTime`):
+
+```ruby
+class Person
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+
+  columns   name:     String,
+            address:  Hash
+end
+```
+
+and you can use the class as follows:
+
+```ruby
+Person.create(name: 'Miss Piggy', address: {street: '111 Swine Ave', city: 'Muppetville', state: 'IN'})
+```
+
+etc.
+
+> Special note: This is a bleeding edge feature as of 0.6, and because of the semantics of copying in Ruby, there are some deep copy situations that may cause objects to be copied or updated incompletely. These should create 100% reproducible bugs in your code so they should not sneak up on you. Nevertheless, understand that the guarantee is a shallow copy. Tests show that an array inside a class copies properly. YMMV.
+
 ### Special Columns
 
 The two column names, `created_at` and `updated_at` will be adjusted automatically if they

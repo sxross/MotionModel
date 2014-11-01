@@ -44,6 +44,35 @@ module MotionModel
       String(arg)
     end
 
+    def cast_to_arbitrary_class(arg)
+      # This little oddity is because a number of built-in
+      # Ruby classes cannot be dup'ed. Not only that, they
+      # respond_to?(:dup) but raise an exception when you
+      # actually do it. Not only that, the behavior can be
+      # different depending on architecture (32- versus 64-bit).
+      #
+      # This is Ruby, folks, not just RubyMotion.
+      #
+      # We don't have to worry if it's a MotionModel, because
+      # using a reference to the data is ok. The by-reference
+      # copy is fine.
+
+      return arg if arg.respond_to?(:motion_model?)
+
+      # But if it is not a MotionModel, we either need to dup
+      # it (for most cases), or just assign it (for built-in
+      # types like Integer, Fixnum, Float, NilClass, etc.)
+
+      result = nil
+      begin
+        result = arg.dup
+      rescue
+        result = arg
+      end
+
+      result
+    end
+
     def cast_to_type(column_name, arg) #nodoc
       return nil if arg.nil? && ![ :boolean, :bool ].include?(column_type(column_name))
 
@@ -56,6 +85,7 @@ module MotionModel
       when :text then cast_to_string(arg)
       when :array then cast_to_array(arg)
       when :hash then cast_to_hash(arg)
+      when Class then cast_to_arbitrary_class(arg)
       else
         raise ArgumentError.new("type #{column_name} : #{column_type(column_name)} is not possible to cast.")
       end
