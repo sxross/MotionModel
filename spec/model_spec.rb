@@ -3,7 +3,8 @@ class ModelSpecTask
   include MotionModel::ArrayModelAdapter
   columns       :name => :string,
   							:details => :string,
-  							:some_day => :date
+  							:some_day => :date,
+                :enabled => {:type => :boolean, :default => false}
 
   def custom_attribute_by_method
     "#{name} - #{details}"
@@ -57,6 +58,16 @@ describe "Creating a model" do
     it "adds a default value if none supplied" do
       a_type_test = TypeCast.new
       a_type_test.an_int.should.equal(3)
+    end
+    
+    it "on initialization uses supplied value instead of default value, if supplied" do
+      a_task = ModelSpecTask.new(:enabled => true)
+      a_task.enabled.should.be.true
+    end
+        
+    it "on creation uses supplied value instead of default value, if supplied" do
+      a_task = ModelSpecTask.create(:enabled => true)
+      a_task.enabled.should.be.true
     end
 
     it "can check for a column's existence on a model" do
