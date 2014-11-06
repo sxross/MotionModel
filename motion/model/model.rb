@@ -834,7 +834,7 @@ module MotionModel
       when Symbol
         {column => self.send(column)}
       else
-        {column => default}
+        {column => (value.nil? ? default : value)}
       end
     end
 
