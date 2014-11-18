@@ -88,8 +88,8 @@ $ gem install motion_model -v 0.3.8
 
 or if you are using bundler:
 
-```
-gem motion_model, "0.3.8"
+```ruby
+gem 'motion_model', '0.3.8'
 ```
 
 Version 0.3.8 was the last that did not separate the model and persistence concerns.
@@ -117,13 +117,13 @@ gem install motion_model
 
 then put this in your Rakefile after requiring `motion/project`:
 
-```
+```ruby
 require 'motion_model'
 ```
 
 If you want to use Bundler from `master`, put this in your Gemfile:
 
-```
+```ruby
 gem 'motion_model', :git => 'git@github.com:sxross/MotionModel.git'
 ```
 
@@ -169,7 +169,7 @@ end
 
 A note on defaults, you can specify a proc, block or symbol for your default if you want to get fancy. The most obvious use case for this  is that Ruby will optimize the assignment of an array so that a default of `[]` always points to the same object. Not exactly what is intended. Wrapping this in a proc causes a new array to be created. Here's an example:
 
-```
+```ruby
 class Foo
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
@@ -184,7 +184,7 @@ instead of do/end because it makes Ruby happy.
 
 Here's a different example:
 
-```
+```ruby
 class Timely
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
@@ -194,7 +194,7 @@ end
 Note that this uses the "stubby proc" syntax. That is pretty much equivalent
 to:
 
-```
+```ruby
 columns  ended_run_at: { type: :time, default: lambda { Time.now } }
 ```
 
@@ -202,7 +202,7 @@ for the previous example.
 
 If you want to use a block, use the begin/end syntax:
 
-```
+```ruby
 columns  ended_run_at: { type: :time, default:
   begin
     Time.now
@@ -211,7 +211,7 @@ columns  ended_run_at: { type: :time, default:
 ```
 Finally, you can have the default call some class method as follows:
 
-```
+```ruby
 class Timely
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
@@ -357,10 +357,12 @@ end
 
 Here are some sample validations:
 
-    validate :field_name, :presence => true
-    validate :field_name, :length => 5..8 # specify a range
-    validate :field_name, :email => true
-    validate :field_name, :format => /\A\d?\d-\d?\d-\d\d\Z/ # expected string format would be like '12-12-12'
+```ruby
+validate :field_name, :presence => true
+validate :field_name, :length => 5..8 # specify a range
+validate :field_name, :email => true
+validate :field_name, :format => /\A\d?\d-\d?\d-\d\d\Z/ # expected string format would be like '12-12-12'
+```
 
 The framework is sufficiently flexible that you can add in custom validators like so:
 
@@ -384,7 +386,9 @@ last hash is passed intact via the `settings` argument.
 
 You are responsible for adding an error message using:
 
-    add_message(field, "incorrect value foo #{the_foo} -- should be something else.")
+```ruby
+add_message(field, "incorrect value foo #{the_foo} -- should be something else.")
+```
 
 You must return `true` from your validator if the value passes validation otherwise `false`.
 
@@ -460,7 +464,6 @@ Using MotionModel
 
   ```ruby
     Task.serialize_to_file('tasks.dat')
-  end
   ```
   After the first serialize or deserialize, your model will remember the file
   name so you can call these methods without the filename argument.
@@ -758,9 +761,13 @@ because how often which parts of your object graph are serialized can affect
 application performance. However, you *will* want to use the serialization
 features. Here they are:
 
-    YourModel.deserialize_from_file(file_name = nil)
+```ruby
+YourModel.deserialize_from_file(file_name = nil)
 
-    YourModel.serialize_to_file(file_name = nil)
+# or:
+
+YourModel.serialize_to_file(file_name = nil)
+```
 
 What happens here? When you want to save a model, you call `serialize_to_file`.
 Each model's data must be saved to a different file so name them accordingly.
