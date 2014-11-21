@@ -362,6 +362,15 @@ Here are some sample validations:
     validate :field_name, :email => true
     validate :field_name, :format => /\A\d?\d-\d?\d-\d\d\Z/ # expected string format would be like '12-12-12'
 
+You can also define conditions to execute validations just in some contexts:
+```ruby
+validate :field_name, :presence => true, :if => :some_context?
+
+def some_context?
+  # Your conditional stuff here
+end
+```
+
 The framework is sufficiently flexible that you can add in custom validators like so:
 
 ```ruby
