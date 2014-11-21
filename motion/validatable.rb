@@ -131,6 +131,8 @@ module MotionModel
     end
 
     def validate_one(field, validation) #nodoc
+      return true unless validation[:if] ? send(validation[:if]) : true
+
       result = true
       validation.each_pair do |validation_type, setting|
         if self.respond_to? validation_method(validation_type)
