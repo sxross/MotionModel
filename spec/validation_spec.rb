@@ -6,7 +6,9 @@ class ValidatableTask
                 :email => :string,
                 :some_day => :string,
                 :some_float => :float,
-                :some_int => :int
+                :some_int => :int,
+                :if_with_proc => :string,
+                :if_with_sym => :string
 
   validate      :name, :presence => true
   validate      :name, :length => 2..10
@@ -15,6 +17,12 @@ class ValidatableTask
   validate      :some_day, :length => 8..10
   validate      :some_float, :presence => true
   validate      :some_int, :presence => true
+  validate      :if_with_proc, :presence => true, :if => -> { if_with_proc == 'unexpected' }
+  validate      :if_with_sym, :presence => true, :if => :false_condition_method
+
+  def false_condition_method
+    false
+  end
 end
 
 describe "validations" do
@@ -24,8 +32,26 @@ describe "validations" do
       :email => 'bob@domain.com',
       :some_day => '12-12-12',
       :some_float => 1.080,
-      :some_int => 99
+      :some_int => 99,
+      :if_with_proc => 'Never validated column',
+      :if_with_sym => 'Never validated column'
     }
+  end
+
+  describe 'conditional validation' do
+    context 'with conditional by method' do
+      it 'does not validate if condition returns false' do
+        task = ValidatableTask.new(@valid_tasks.except(:if_with_sym))
+        task.valid?.should == true
+      end
+    end
+
+    context 'with conditional by proc' do
+      it 'does not validate if condition returns false' do
+        task = ValidatableTask.new(@valid_tasks.except(:if_with_proc))
+        task.valid?.should == true
+      end
+    end
   end
 
   describe "presence" do
