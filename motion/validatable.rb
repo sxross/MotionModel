@@ -130,8 +130,21 @@ module MotionModel
       result
     end
 
+    def must_validate?(validation)
+      stuff = validation[:if]
+      return true unless stuff
+
+      case stuff
+      when Symbol then send(stuff)
+      when Proc then instance_exec(&stuff)
+      else
+        fail ArgumentError,
+             ':if requires a Symbol denoting a method or a Proc/lambda'
+      end
+    end
+
     def validate_one(field, validation) #nodoc
-      return true unless validation[:if] ? send(validation[:if]) : true
+      return true unless must_validate?(validation)
 
       result = true
       validation.each_pair do |validation_type, setting|
