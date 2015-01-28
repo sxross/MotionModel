@@ -97,7 +97,7 @@ module MotionModel
     # see `eq` for notes on case sensitivity.
     def gt(query_string, options = {:case_sensitive => false})
       do_comparison(query_string, options) do |comparator, item|
-        comparator > item
+        comparator < item
       end
     end
     alias_method :>, :gt
@@ -108,7 +108,7 @@ module MotionModel
     # see `eq` for notes on case sensitivity.
     def lt(query_string, options = {:case_sensitive => false})
       do_comparison(query_string, options) do |comparator, item|
-        comparator < item
+        comparator > item
       end
     end
     alias_method :<, :lt
@@ -119,7 +119,7 @@ module MotionModel
     # see `eq` for notes on case sensitivity.
     def gte(query_string, options = {:case_sensitive => false})
       do_comparison(query_string, options) do |comparator, item|
-        comparator >= item
+        comparator <= item
       end
     end
     alias_method :>=, :gte
@@ -130,7 +130,7 @@ module MotionModel
     # see `eq` for notes on case sensitivity.
     def lte(query_string, options = {:case_sensitive => false})
       do_comparison(query_string, options) do |comparator, item|
-        comparator <= item
+        comparator >= item
       end
     end
     alias_method :<=, :lte
