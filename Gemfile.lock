@@ -3,7 +3,6 @@ GEM
   specs:
     bubble-wrap (1.4.0)
     motion-stump (0.3.0)
-    rake (10.1.0)
 
 PLATFORMS
   ruby
@@ -11,4 +10,3 @@ PLATFORMS
 DEPENDENCIES
   bubble-wrap
   motion-stump (~> 0.2)
-  rake

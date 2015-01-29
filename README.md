@@ -10,7 +10,7 @@ data validation and actually quite a bit more.
 File                 | Module                    | Description
 ---------------------|---------------------------|------------------------------------
 **ext.rb**           | N/A                       | Core Extensions that provide a few Rails-like niceties. Nothing new here, moving on...
-**model.rb**         | MotionModel::Model        | You should read about it in "[What MotionModel Can Do](#what-motionmodel-can-do)". Model is the raison d'etre and the centerpiece of MotionModel.
+**model.rb**         | MotionModel::Model        | You should read about it in "[What Model Can Do](#what-model-can-do)". Model is the raison d'etre and the centerpiece of MotionModel.
 **validatable.rb**   | MotionModel::Validatable  | Provides a basic validation framework for any arbitrary class. You can also create custom validations to suit your app's unique needs.
 **input_helpers**    | MotionModel::InputHelpers | Helps hook a collection up to a data form, populate the form, and retrieve the data afterwards. Note: *MotionModel supports Formotion for input handling as well as these input helpers*.
 **formotion.rb**     | MotionModel::Formotion    | Provides an interface between MotionModel and Formotion
@@ -21,7 +21,7 @@ you like with it. See the LICENSE file in this project.
 
 * [Getting Going](#getting-going)
 * [Bugs, Features, and Issues, Oh My!](#bugs-features-and-issues-oh-my)
-* [What MotionModel Can Do](#what-motionmodel-can-do)
+* [What Model Can Do](#what-model-can-do)
 * [Model Data Types](#model-data-types)
 * [Validation Methods](#validation-methods)
 * [Model Instances and Unique IDs](#model-instances-and-unique-ids)
@@ -274,65 +274,6 @@ Currently supported types are:
 You are really not encouraged to stuff big things in your models, which is why a blob type
 is not implemented. The smaller your data, the less overhead involved in saving/loading.
 
-### User Defined Types
-
-*New as of 0.6*: THIS FEATURE IS EXPERIMENTAL. You can use a class name instead of the
-symbols to specify your types. Thus, you can choose more complex types in much the same
-way as you might in a NOSQL database. Consider these examples:
-
-```ruby
-class Address
-  include MotionModel::Model
-  include MotionModel::ArrayModelAdapter
-  columns street:     String,
-          city:       String,
-          state:      String,
-          zip:        Integer
-end
-
-class Person
-  include MotionModel::Model
-  include MotionModel::ArrayModelAdapter
-
-  columns   name:     String,
-            address:  Address
-end
-```
-
-You can now use this `Person` class as follows:
-
-```ruby
-p = Person.find(:name).eq('Laurent').first
-p.address.country = 'Belgium'
-p.save
-```
-
-> **Note** Address includes all the MotionModel goodness. That is so that any class that embeds it can also persist it. You may be able to get away with defining `encodeWithCoder(coder)` and `initWithCoder(coder)` -- it's your choice, but not currently supported.
-
-### Native Ruby Types
-
-You can also use native Ruby types (limited to those supported by RubyMotion so no `DateTime`):
-
-```ruby
-class Person
-  include MotionModel::Model
-  include MotionModel::ArrayModelAdapter
-
-  columns   name:     String,
-            address:  Hash
-end
-```
-
-and you can use the class as follows:
-
-```ruby
-Person.create(name: 'Miss Piggy', address: {street: '111 Swine Ave', city: 'Muppetville', state: 'IN'})
-```
-
-etc.
-
-> Special note: This is a bleeding edge feature as of 0.6, and because of the semantics of copying in Ruby, there are some deep copy situations that may cause objects to be copied or updated incompletely. These should create 100% reproducible bugs in your code so they should not sneak up on you. Nevertheless, understand that the guarantee is a shallow copy. Tests show that an array inside a class copies properly. YMMV.
-
 ### Special Columns
 
 The two column names, `created_at` and `updated_at` will be adjusted automatically if they
@@ -445,72 +386,73 @@ Using MotionModel
 
     You can implement some aggregate functions using map/reduce:
 
-```ruby
-  @task.all.map{|task| task.number_of_items}.reduce(:+)                # implements sum
-  @task.all.map{|task| task.number_of_items}.reduce(:+) / @task.count  #implements average
-```
+    ```ruby
+      @task.all.map{|task| task.number_of_items}.reduce(:+)                # implements sum
+      @task.all.map{|task| task.number_of_items}.reduce(:+) / @task.count  #implements average
+    ```
 
 * Serialization is part of MotionModel. So, in your `AppDelegate` you might do something like this:
 
-  ```ruby
-    @tasks = Task.deserialize_from_file('tasks.dat')
-  ```
+    ```ruby
+      @tasks = Task.deserialize_from_file('tasks.dat')
+    ```
 
-  and of course on the "save" side:
+    and of course on the "save" side:
 
-  ```ruby
-    Task.serialize_to_file('tasks.dat')
-  end
-  ```
-  After the first serialize or deserialize, your model will remember the file
-  name so you can call these methods without the filename argument.
+    ```ruby
+      Task.serialize_to_file('tasks.dat')
+    ```
+    After the first serialize or deserialize, your model will remember the file
+    name so you can call these methods without the filename argument.
 
-  Implementation note: that the this serialization of any arbitrarily complex set of relations
-  is automatically handled by `NSCoder` provided you conform to the coding
-  protocol (which MotionModel does). When you declare your columns, `MotionModel` understands how to
-  serialize your data so you need take no specific action.
+    Implementation note: that the this serialization of any arbitrarily complex set of relations
+    is automatically handled by `NSCoder` provided you conform to the coding
+    protocol (which MotionModel does). When you declare your columns, `MotionModel` understands how to
+    serialize your data so you need take no specific action.
 
-  **Warning**: As of this release, persistence will serialize only one
-  model at a time and not your entire data store.
+    Persistence will serialize only one
+    model at a time and not your entire data store.
+    This is to allow you to decide what data is
+    serialized when.
 
   * Relations
 
-  ```ruby
-  class Task
-    include MotionModel::Model
-    include MotionModel::ArrayModelAdapter
-    columns     :name => :string
-    has_many    :assignees
-  end
+    ```ruby
+    class Task
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns     :name => :string
+      has_many    :assignees
+    end
 
-  class Assignee
-    include MotionModel::Model
-    include MotionModel::ArrayModelAdapter
-    columns     :assignee_name => :string
-    belongs_to  :task
-  end
+    class Assignee
+      include MotionModel::Model
+      include MotionModel::ArrayModelAdapter
+      columns     :assignee_name => :string
+      belongs_to  :task
+    end
 
-  # Create a task, then create an assignee as a
-  # related object on that task
-  a_task = Task.create(:name => "Walk the Dog")
-  a_task.assignees.create(:assignee_name => "Howard")
+    # Create a task, then create an assignee as a
+    # related object on that task
+    a_task = Task.create(:name => "Walk the Dog")
+    a_task.assignees.create(:assignee_name => "Howard")
 
-  # See? It works.
-  a_task.assignees.assignee_name      # => "Howard"
-  Task.first.assignees.assignee_name  # => "Howard"
+    # See? It works.
+    a_task.assignees.assignee_name      # => "Howard"
+    Task.first.assignees.assignee_name  # => "Howard"
 
-  # Create another assignee but don't save
-  # Add to assignees collection. Both objects
-  # are saved.
-  another_assignee = Assignee.new(:name => "Douglas")
-  a_task.assignees << another_assignee  # adds to relation and saves both objects
+    # Create another assignee but don't save
+    # Add to assignees collection. Both objects
+    # are saved.
+    another_assignee = Assignee.new(:name => "Douglas")
+    a_task.assignees << another_assignee  # adds to relation and saves both objects
 
-  # The count of assignees accurately reflects current state
-  a_task.assignees.count              # => 2
+    # The count of assignees accurately reflects current state
+    a_task.assignees.count              # => 2
 
-  # And backreference access through belongs_to works.
-  Assignee.first.task.name            # => "Walk the Dog"
-  ```
+    # And backreference access through belongs_to works.
+    Assignee.first.task.name            # => "Walk the Dog"
+    ```
 
 There are four ways to delete objects from your data store:
 

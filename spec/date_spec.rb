@@ -1,8 +1,8 @@
 describe "time conversions" do
-  it "NSDate and Time should agreee on minutes since epoch" do
+  it "NSDate and Time should agree on minutes since epoch" do
     t = Time.new
     d = NSDate.dateWithTimeIntervalSince1970(t.to_f)
-    t.to_f.should == d.timeIntervalSince1970
+    (t.to_f - d.timeIntervalSince1970).abs.should. < 0.001
   end
 
   it "Parsing '3/18/12 @ 7:00 PM' With Natural Language should work right" do
