@@ -2,6 +2,8 @@ language: objective-c
 before_install:
   - ruby --version
   - sudo chown -R travis ~/Library/RubyMotion
+install:
+  - ruby -S bundle install
 rvm:
   - "1.9.3"
 script: bundle exec rake spec
