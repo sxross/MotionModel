@@ -132,6 +132,34 @@ describe 'finders' do
     it 'should returns last element' do
       Task.last.should.is_a Task
     end
+    
+    describe 'comparison finders' do
+      
+      it 'returns elements with id greater than 5' do
+        tasks = Task.where(:id).gt(5).all
+        tasks.length.should.equal(5)
+        tasks.reject{|t| [6,7,8,9,10].include?(t.id)}.should.be.empty
+      end
+      
+      it 'returns elements with id greater than or equal to 7' do
+        tasks = Task.where(:id).gte(7).all
+        tasks.length.should.equal(4)
+        tasks.reject{|t| [7,8,9,10].include?(t.id)}.should.be.empty
+      end
+      
+      it 'returns elements with id less than 5' do
+        tasks = Task.where(:id).lt(5).all
+        tasks.length.should.equal(4)
+        tasks.reject{|t| [1,2,3,4].include?(t.id)}.should.be.empty
+      end
+      
+      it 'returns elements with id less than or equal to 3' do
+        tasks = Task.where(:id).lte(3).all
+        tasks.length.should.equal(3)
+        tasks.reject{|t| [1,2,3].include?(t.id)}.should.be.empty
+      end
+      
+    end
       
     describe 'block-style finders' do
       before do
