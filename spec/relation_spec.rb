@@ -196,6 +196,12 @@ describe 'related objects' do
           @t1.assignees.first.assignee_name.should == @a1.assignee_name
         end
         
+        it "directly assigning the assignee a nil task twice doesn't change anything" do
+          @a1.task.should == nil
+          @a1.task = nil
+          @a1.dirty?.should == false
+        end
+
         it "directly assigning the existing task to an assignee doesn't change anything" do
           @a1.task = @t1
           @a1.save
