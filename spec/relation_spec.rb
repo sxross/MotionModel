@@ -202,6 +202,12 @@ describe 'related objects' do
           @a1.task = @t1
           @a1.dirty?.should == false
         end
+        
+        it "directly assigning the assignee a nil task twice doesn't change anything" do
+          @a1.task.should == nil
+          @a1.task = nil
+          @a1.dirty?.should == false
+        end
       end
     end
   end
