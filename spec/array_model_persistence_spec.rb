@@ -255,4 +255,33 @@ describe "serialization of relations" do
     Parent.first.children.first.name.should == 'Fergie'
     Parent.first.dog.first.name.should == 'Fluffy'
   end
+  
+  class StoredTask
+    include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
+    columns   :name
+  end
+
+  describe "reloading correct ids" do
+    before do
+      # # StoredTasks.dat was built with the following
+      # t1 = StoredTask.create(name: "One")     # id: 1
+      # t2 = StoredTask.create(name: "Two")     # id: 2
+      # t3 = StoredTask.create(name: "Three")   # id: 3
+      # t2.destroy
+
+      # # StoredTasks.all => [id: 1, id:3]
+      # StoredTask.serialize_to_file('StoredTasks.dat')
+      StoredTask.deserialize_from_file('StoredTasks.dat', NSBundle.mainBundle.resourcePath)
+    end
+
+    it "creates a new task with the correct id after deserialization" do
+      StoredTask.count.should == 2
+      StoredTask.first.id.should == 1
+      StoredTask.last.id.should == 3
+      
+      t4 = StoredTask.create(name: "Four")
+      t4.id.should == 4
+    end
+  end
 end
