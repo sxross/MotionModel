@@ -70,6 +70,7 @@ module MotionModel
       def all
         collection
       end
+      alias_method :array, :all
 
       def order(field_name = nil, &block)
         ArrayFinderQuery.new(collection).order(field_name, &block)
