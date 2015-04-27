@@ -70,6 +70,11 @@ module MotionModel
             bulk_update do
               NSKeyedUnarchiver.unarchiveObjectWithData(data)
             end
+            
+            # ensure _next_id is in sync with deserialized model
+            max_id = self.all.map { |o| o.id }.max
+            increment_next_id(max_id) unless max_id.nil? || _next_id > max_id
+            
             return self
           end
         else
