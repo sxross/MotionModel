@@ -2,7 +2,10 @@ language: objective-c
 before_install:
   - ruby --version
   - sudo chown -R travis ~/Library/RubyMotion
+# Figure out if we have latest RubyMotion
+  - motion --version
   - sudo motion update
+  - motion --version
 install:
   - ruby -S bundle install
 # rvm:

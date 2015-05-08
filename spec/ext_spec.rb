@@ -1,3 +1,5 @@
+
+
 describe 'Extensions' do
   describe 'Pluralization' do
     it 'pluralizes a normal word: dog' do
@@ -62,4 +64,3 @@ describe 'Extensions' do
     end
   end
 end
-

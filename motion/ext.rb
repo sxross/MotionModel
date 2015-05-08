@@ -344,15 +344,15 @@ class Debug
 end
 
 # These are C macros in iOS SDK. Not workable for Ruby.
-def UIInterfaceOrientationIsLandscape(orientation)
-  orientation == UIInterfaceOrientationLandscapeLeft ||
-     orientation == UIInterfaceOrientationLandscapeRight
-end
-
-def UIInterfaceOrientationIsPortrait(orientation)
-  orientation == UIInterfaceOrientationPortrait ||
-     orientation == UIInterfaceOrientationPortraitUpsideDown
-end
+# def UIInterfaceOrientationIsLandscape(orientation)
+#   orientation == UIInterfaceOrientationLandscapeLeft ||
+#      orientation == UIInterfaceOrientationLandscapeRight
+# end
+#
+# def UIInterfaceOrientationIsPortrait(orientation)
+#   orientation == UIInterfaceOrientationPortrait ||
+#      orientation == UIInterfaceOrientationPortraitUpsideDown
+# end
 
 class Module
   # Retrieve a constant within its scope
