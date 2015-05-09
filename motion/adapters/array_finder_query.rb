@@ -163,6 +163,7 @@ module MotionModel
     def all
       to_a
     end
+    alias_method :array, :all
     
     # returns all elements that match as an array.
     def to_a
