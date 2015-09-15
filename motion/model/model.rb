@@ -710,7 +710,7 @@ module MotionModel
         if _col.polymorphic
           set_polymorphic_attr(_col.name, owner)
         else
-          _set_attr(_col.foreign_key, owner ? owner.id : nil)
+          _set_attr(_col.foreign_key, owner ? owner.send(_col.primary_key) : nil)
         end
       end
 
