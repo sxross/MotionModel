@@ -75,7 +75,6 @@ module MotionModel
 
     def cast_to_type(column_name, arg) #nodoc
       return nil if arg.nil? && ![ :boolean, :bool ].include?(column_type(column_name))
-
       return case column_type(column_name)
       when :string, :belongs_to_type then cast_to_string(arg)
       when :boolean, :bool then cast_to_bool(arg)

@@ -6,7 +6,7 @@ module MotionModel
       attr_reader :type
       attr_reader :options
 
-      OPTION_ATTRS = [:as, :conditions, :default, :dependent, :foreign_key, :inverse_of, :joined_class_name,
+      OPTION_ATTRS = [:as, :conditions, :default, :dependent, :primary_key, :foreign_key, :inverse_of, :joined_class_name,
           :polymorphic, :symbolize, :through]
 
       OPTION_ATTRS.each do |key|
@@ -27,7 +27,7 @@ module MotionModel
       end
 
       def primary_key
-        :id
+        @options[:primary_key] || :id
       end
 
       def foreign_name
