@@ -454,6 +454,40 @@ Using MotionModel
     Assignee.first.task.name            # => "Walk the Dog"
     ```
 
+  Similar to Rails, MotionModel assumes that the id column is used to hold the primary key of its models. The `:primary_key` option allows you to specify a different column for the association
+
+  For example, given we have a users table with guid as the primary key. If we want a separate todos model to associate using the the guid column, then we can use `:primary_key` to achieve this like so:
+
+  ```ruby
+  class User
+    include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
+
+    has_many :visits
+
+    columns :name => type: :string
+            :guid => type: :string
+  end
+
+  class Todo
+    include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
+
+    belongs_to :user, primary_key: :guid # :user_id will hold the value of the User's guid column
+  end
+  ```
+
+  In order to change the foreign_key  for the association, we could achieve it using the `:foreign_key` option:
+  ```ruby
+  class Todo
+    include MotionModel::Model
+    include MotionModel::ArrayModelAdapter
+
+    belongs_to :user, primary_key: :guid, foreign_key: :user_guid  # :user_guid will hold the value of the User's guid column
+  end
+  ```
+  When we execute `@todo.user` then the `@todo` record will associate itself with a User record that has its `:guid` value as the `:user_guid` value of `@todo`.
+
 There are four ways to delete objects from your data store:
 
 * `object.delete     #` just deletes the object and ignores all relations
