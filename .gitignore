@@ -7,3 +7,4 @@ resources/*.storyboardc
 doc/**/*.*
 doc
 *.gem
+.bundle

@@ -12,3 +12,6 @@ DEPENDENCIES
   bubble-wrap
   motion-stump (~> 0.2)
   rake
+
+BUNDLED WITH
+   1.11.2
