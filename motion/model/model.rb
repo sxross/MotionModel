@@ -698,7 +698,8 @@ module MotionModel
     end
 
     def get_has_one_attr(col)
-      _has_many_has_one_relation(col)
+      attr = _has_many_has_one_relation(col)
+      attr
     end
 
     # Associate the owner but without rebuilding the inverse assignment
@@ -752,11 +753,7 @@ module MotionModel
     end
 
     def set_has_one_attr(col, instance)
-      _col = column(col)
-      if get_has_one_attr(_col) != instance
-        rebuild_relation(_col, instance)
-      end
-      instance
+      replace_has_one_reference(col, instance)
     end
 
     def get_polymorphic_attr(col)
