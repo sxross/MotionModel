@@ -174,5 +174,24 @@ module MotionModel
       issue_notification(:action => 'delete')
     end
 
+    private
+    def replace_has_one_reference(col, instance)
+      # Find old related object and remove its foreign key relation
+      # But don't remove it from its collection because that might
+      # not be the user's intention
+      fk = "#{col.inverse_column.foreign_key}=".to_sym
+
+      related_object = _has_many_has_one_relation(col)
+      related_object = related_object.first if related_object.is_a?(ArrayFinderQuery)
+
+      related_object.send(fk, nil)
+
+      # Establish new relation in the instance passed to the method
+      # and auto-save it.
+      instance.send(fk, id)
+      instance.save
+      instance
+    end
+
   end
 end
