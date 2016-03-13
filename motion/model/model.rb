@@ -372,7 +372,7 @@ module MotionModel
       def define_has_one_methods(name) #nodoc
         col = column(name)
         define_method(name)               { get_has_one_attr(col) }
-        define_method("#{name}=")         { |instance| get_has_one_attr(col).push(instance) }
+        define_method("#{name}=")         { |instance| set_has_one_attr(col, instance) }
       end
 
       def add_field(name, type, options = {:default => nil}) #nodoc
@@ -754,15 +754,7 @@ module MotionModel
     end
 
     def set_has_one_attr(col, instance)
-      mp "set_has_one_attr:"
-      _col = column(col)
-      mp _col
-      mp get_has_one_attr(_col)
-      mp instance
-      # if get_has_one_attr(_col) != instance
-      #   mp "TRUE"
-      #   rebuild_relation(_col, instance)
-      # end
+      get_has_one_attr(col).push(instance)
       instance
     end
 
