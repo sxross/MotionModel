@@ -9,11 +9,10 @@ class Task
   include MotionModel::Model
   include MotionModel::ArrayModelAdapter
   columns       :name => :string,
-  							:details => :string,
-  							:some_day => :date
+                :details => :string,
+                :some_day => :date
   has_many :assignees
 end
-
 
 class User
   include MotionModel::Model
@@ -28,6 +27,26 @@ class EmailAccount
   include MotionModel::ArrayModelAdapter
   columns :name => :string
   belongs_to :user
+end
+
+class BelongsToUser
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+
+  columns :name => :string,
+          :id => :string
+
+  has_one :belongs_to_profile
+end
+
+class BelongsToProfile
+  include MotionModel::Model
+  include MotionModel::ArrayModelAdapter
+
+  columns :email => :string,
+          :id => :string
+
+  belongs_to :belongs_to_user
 end
 
 describe 'related objects' do
@@ -195,7 +214,7 @@ describe 'related objects' do
           @t1.assignees.count.should == 1
           @t1.assignees.first.assignee_name.should == @a1.assignee_name
         end
-        
+
         it "directly assigning the assignee a nil task twice doesn't change anything" do
           @a1.task.should == nil
           @a1.task = nil
@@ -208,7 +227,7 @@ describe 'related objects' do
           @a1.task = @t1
           @a1.dirty?.should == false
         end
-        
+
         it "directly assigning the assignee a nil task twice doesn't change anything" do
           @a1.task.should == nil
           @a1.task = nil
@@ -216,6 +235,17 @@ describe 'related objects' do
         end
       end
     end
+  end
+
+  it 'can get parent from a has_one create relation with a custom ID' do
+    user = BelongsToUser.create(name: 'Sam', id: "")
+    profile = user.belongs_to_profile.create(email: 'ss@gmail.com')
+
+    BelongsToProfile.first.belongs_to_user.should.is_a?(BelongsToUser)
+    BelongsToProfile.first.belongs_to_user.name.should == 'Sam'
+
+    BelongsToUser.first.belongs_to_profile.first.belongs_to_user.should.is_a?(BelongsToUser)
+    BelongsToUser.first.belongs_to_profile.first.belongs_to_user.name.should == 'Sam'
   end
 end
 

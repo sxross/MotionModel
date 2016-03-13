@@ -144,7 +144,7 @@ module MotionModel
     end
 
     def belongs_to_relation(col) # nodoc
-      col.classify.find(_get_attr(col.foreign_key))
+      col.classify.find_by_id(_get_attr(col.foreign_key))
     end
 
     def has_many_relation(col) # nodoc
