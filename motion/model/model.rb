@@ -372,7 +372,7 @@ module MotionModel
       def define_has_one_methods(name) #nodoc
         col = column(name)
         define_method(name)               { get_has_one_attr(col) }
-        define_method("#{name}=")         { |instance| set_has_one_attr(col, instance) }
+        define_method("#{name}=")         { |instance| get_has_one_attr(col).push(instance) }
       end
 
       def add_field(name, type, options = {:default => nil}) #nodoc
@@ -698,7 +698,9 @@ module MotionModel
     end
 
     def get_has_one_attr(col)
-      _has_many_has_one_relation(col)
+      has_one_attr = _has_many_has_one_relation(col)
+      has_one_attr = has_one_attr.first if has_one_attr.is_a?(ArrayFinderQuery) && !has_one_attr.first.nil?
+      has_one_attr
     end
 
     # Associate the owner but without rebuilding the inverse assignment
@@ -752,10 +754,15 @@ module MotionModel
     end
 
     def set_has_one_attr(col, instance)
+      mp "set_has_one_attr:"
       _col = column(col)
-      if get_has_one_attr(_col) != instance
-        rebuild_relation(_col, instance)
-      end
+      mp _col
+      mp get_has_one_attr(_col)
+      mp instance
+      # if get_has_one_attr(_col) != instance
+      #   mp "TRUE"
+      #   rebuild_relation(_col, instance)
+      # end
       instance
     end
 
