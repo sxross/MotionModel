@@ -12,7 +12,7 @@ Motion::Project::App.setup do |app|
   # Use `rake config' to see complete project settings.
   app.name = 'MotionModel'
   app.delegate_class = 'FakeDelegate'
-  app.sdk_version = "9.2"
-  app.deployment_target = "9.2"
+  app.sdk_version = "8.1"
+  app.deployment_target = "8.1"
   app.files = (app.files + Dir.glob('./app/**/*.rb')).uniq
 end
