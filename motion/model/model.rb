@@ -698,7 +698,9 @@ module MotionModel
     end
 
     def get_has_one_attr(col)
-      _has_many_has_one_relation(col)
+      has_one_attr = _has_many_has_one_relation(col)
+      has_one_attr = has_one_attr.first if has_one_attr.is_a?(ArrayFinderQuery) && !has_one_attr.first.nil?
+      has_one_attr
     end
 
     # Associate the owner but without rebuilding the inverse assignment
@@ -752,10 +754,7 @@ module MotionModel
     end
 
     def set_has_one_attr(col, instance)
-      _col = column(col)
-      if get_has_one_attr(_col) != instance
-        rebuild_relation(_col, instance)
-      end
+      get_has_one_attr(col).push(instance)
       instance
     end
 

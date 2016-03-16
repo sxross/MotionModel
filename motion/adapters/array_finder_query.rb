@@ -1,18 +1,18 @@
 module MotionModel
   class ArrayFinderQuery
     attr_accessor :field_name
-    
+
     def initialize(*args)#nodoc
       @field_name = args[0] if args.length > 1
       @collection = args.last
     end
-    
+
     def belongs_to(obj, klass = nil) #nodoc
       @related_object = obj
       @klass          = klass
       self
     end
-    
+
     # Conjunction to add conditions to query.
     #
     # Task.find(:name => 'bob').and(:gender).eq('M')
@@ -22,7 +22,7 @@ module MotionModel
       self
     end
     alias_method :where, :and
-    
+
     # Specifies how to sort. only ascending sort is supported in the short
     # form. For descending, implement the block form.
     #
@@ -37,12 +37,12 @@ module MotionModel
       end
       self
     end
-    
+
     def translate_case(item, case_sensitive)#nodoc
       item = item.downcase if case_sensitive === false && item.respond_to?(:downcase)
       item
     end
-    
+
     def do_comparison(query_string, options = {:case_sensitive => false})#nodoc
       query_string = translate_case(query_string, options[:case_sensitive])
       @collection = @collection.collect do |item|
@@ -52,7 +52,7 @@ module MotionModel
       end.compact
       self
     end
-    
+
     # performs a "like" query.
     #
     # Task.find(:work_group).contain('dev') => ['UI dev', 'Core dev', ...]
@@ -67,7 +67,7 @@ module MotionModel
     end
     alias_method :contains, :contain
     alias_method :like, :contain
-    
+
     # performs a set-inclusion test.
     #
     # Task.find(:id).in([3, 5, 9])
@@ -76,7 +76,7 @@ module MotionModel
         item if set.include?(item.send(@field_name.to_sym))
       end.compact
     end
-    
+
     # performs strict equality comparison.
     #
     # If arguments are strings, they are, by default,
@@ -91,7 +91,7 @@ module MotionModel
     end
     alias_method :==, :eq
     alias_method :equal, :eq
-    
+
     # performs greater-than comparison.
     #
     # see `eq` for notes on case sensitivity.
@@ -102,7 +102,7 @@ module MotionModel
     end
     alias_method :>, :gt
     alias_method :greater_than, :gt
-    
+
     # performs less-than comparison.
     #
     # see `eq` for notes on case sensitivity.
@@ -113,7 +113,7 @@ module MotionModel
     end
     alias_method :<, :lt
     alias_method :less_than, :lt
-    
+
     # performs greater-than-or-equal comparison.
     #
     # see `eq` for notes on case sensitivity.
@@ -124,7 +124,7 @@ module MotionModel
     end
     alias_method :>=, :gte
     alias_method :greater_than_or_equal, :gte
-    
+
     # performs less-than-or-equal comparison.
     #
     # see `eq` for notes on case sensitivity.
@@ -135,7 +135,7 @@ module MotionModel
     end
     alias_method :<=, :lte
     alias_method :less_than_or_equal, :lte
-    
+
     # performs inequality comparison.
     #
     # see `eq` for notes on case sensitivity.
@@ -146,7 +146,7 @@ module MotionModel
     end
     alias_method :!=, :ne
     alias_method :not_equal, :ne
-    
+
     ########### accessor methods #########
 
     # returns first element or count elements that matches.
@@ -158,13 +158,13 @@ module MotionModel
     def last(*args)
       to_a.send(:last, *args)
     end
-    
+
     # returns all elements that match as an array.
     def all
       to_a
     end
     alias_method :array, :all
-    
+
     # returns all elements that match as an array.
     def to_a
       @collection || []
@@ -178,15 +178,15 @@ module MotionModel
       raise ArgumentError.new("each requires a block") unless block_given?
       @collection.each{|item| yield item}
     end
-   
+
     # returns length of the result set.
     def length
       @collection.length
     end
     alias_method :count, :length
-    
+
     ################ relation support ##############
-    
+
     # task.assignees.create(:name => 'bob')
     # creates a new Assignee object on the Task object task
     def create(options)
@@ -195,24 +195,24 @@ module MotionModel
       obj.save
       obj
     end
-    
+
     # task.assignees.new(:name => 'BoB')
     # creates a new unsaved Assignee object on the Task object task
     def new(options = {})
       raise ArgumentError.new("Creating on a relation requires the parent be saved first.") if @related_object.nil?
-      
+
       id_field = (@related_object.class.to_s.underscore + '_id').to_sym
       new_obj = @klass.new(options.merge(id_field => @related_object.id))
-      
+
       new_obj
     end
-    
+
     # Returns number of objects (rows) in collection
     def length
       @collection.length
     end
     alias_method :count, :length
-    
+
     # Pushes an object onto an association. For e.g.:
     #
     #    Task.find(3).assignees.push(assignee)
