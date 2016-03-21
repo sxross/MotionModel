@@ -68,7 +68,7 @@ module MotionModel
 
       # Returns query result as an array
       def all
-        collection
+        collection.dup
       end
       alias_method :array, :all
 
