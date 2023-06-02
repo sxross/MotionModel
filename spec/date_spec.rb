@@ -77,7 +77,7 @@ describe "time conversions" do
     class Model
       include MotionModel::Model
       include MotionModel::ArrayModelAdapter
-      columns :test_date => :date,
+      columns :test_date => :date
     end
 
     it 'parses ISO8601 format variant #1 (RoR  default)' do

@@ -144,7 +144,15 @@ module MotionModel
     end
 
     def belongs_to_relation(col) # nodoc
-      col.classify.find_by_id(_get_attr(col.foreign_key))
+      if col.polymorphic
+        klass, id = get_polymorphic_attr(col)
+        if klass
+          klass = Kernel.deep_const_get(klass) if klass.is_a?(String)
+          klass.find_by_id(id)
+        end
+      else
+        col.classify.find_by_id(_get_attr(col.foreign_key))
+      end
     end
 
     def has_many_relation(col) # nodoc
@@ -157,7 +165,11 @@ module MotionModel
 
     def _has_many_has_one_relation(col) # nodoc
       related_klass = col.classify
-      related_klass.find(col.inverse_column.foreign_key).belongs_to(self, related_klass).eq(_get_attr(:id))
+      if col.polymorphic
+        related_klass.find(col.inverse_column.foreign_key).eq(_get_attr(:id)).and(col.inverse_column.foreign_polymorphic_type).eq(self.className)
+      else
+        related_klass.find(col.inverse_column.foreign_key).belongs_to(self, related_klass).eq(_get_attr(:id))
+      end
     end
 
     def do_insert(options = {})
