@@ -722,7 +722,7 @@ module MotionModel
     # Determine if the :belongs_to relationship is synchronized. Checks the instance and the DB column attributes.
     def belongs_to_synced?(col, owner)
       # The :belongs_to that points to the instance has changed
-      return false if get_belongs_to_attr(col) != owner
+      return false if !col.polymorphic && get_belongs_to_attr(col) != owner
 
       # The polymorphic reference (_type, _id) columns do not match, maybe it was just saved
       return false if col.polymorphic && !polymorphic_attr_matches?(col, owner)
@@ -765,7 +765,7 @@ module MotionModel
       unless id.nil?
         owner_class_name  = _get_attr(_col.foreign_polymorphic_type)
         owner_class_name  = String(owner_class_name) # RubyMotion issue, String#classify might fail otherwise
-        owner_class       = Kernel::deep_const_get(owner_class_name.classify)
+        owner_class       = Kernel::deep_const_get(owner_class_name)
       end
       [owner_class, id]
     end

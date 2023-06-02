@@ -43,8 +43,9 @@ module MotionModel
       end
 
       def classify
-        fail "Column#classify indeterminate for polymorphic associations" if type == :belongs_to && polymorphic
-        if @klass
+        if type == :belongs_to && polymorphic
+          nil
+        elsif @klass
           @klass
         else
           case @type
